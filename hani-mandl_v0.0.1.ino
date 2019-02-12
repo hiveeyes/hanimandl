@@ -5,7 +5,8 @@
   Copyright (C) 2018 by Marc Vasterling
             
   2018-05 Marc Vasterling | initial version, 
-                            published in the Facebook group "Imkerei und Technik. Eigenbau"
+                            published in the Facebook group "Imkerei und Technik. Eigenbau",
+                            Marc Vasterling: "meinen Code kann jeder frei verwenden, ändern und hochladen wo er will, solange er nicht seinen eigenen Namen drüber setzt."
 
   This code is in the public domain.
 */
