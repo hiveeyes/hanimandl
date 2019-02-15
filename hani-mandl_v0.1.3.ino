@@ -1,8 +1,7 @@
 /*
-  Abfuellwaage Version 0.1.0
+  Abfuellwaage Version 0.1.3
   --------------------------
-
-  Copyright (C) 2018-2019 by Marc Vasterling, Marc Wetzel 
+  Copyright (C) 2018-2019 by Marc Vasterling, Marc Wetzel, Clemens Gruber  
             
   2018-05 Marc Vasterling | initial version, 
                             published in the Facebook group "Imkerei und Technik. Eigenbau",
@@ -11,14 +10,19 @@
                             published in the Facebook group also
   2019-01 Marc Wetzel     | Refakturierung und Dokumentation, 
                             published in the Facebook group also
-
+  2019-02 Clemens Gruber  | code beautifying mit kleineren Umbenennungen bei Funktionen und Variablen
+                            Anpssung fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
+                            - pins bei OLED-Initialisierung geaendert
+                            - pins geaendert, um Konflikte mit hard wired pins des OLEDs zu vermeiden 
+  2019-02 Clemens Gruber  | Aktivierung der internen pull downs für alle digitalen Eingaenge
+  
+                            
   This code is in the public domain.
-
-
+  
+  
   Hinweise zur Hardware
   ---------------------
-  - alle digitalen Eingänge sind mit PullDown Widerständen gegen GND geführt
-
+  - bei allen digitalen Eingänge sind interne pull downs aktiviert, keine externen-Widerständen nötig! 
 */
 
 #include <Arduino.h>
