@@ -1,5 +1,5 @@
 /*
-  Abfuellwaage Version 0.1.3
+  Abfuellwaage Version 0.1.4
   --------------------------
   Copyright (C) 2018-2019 by Marc Vasterling, Marc Wetzel, Clemens Gruber  
             
