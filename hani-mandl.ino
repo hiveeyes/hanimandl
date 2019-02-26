@@ -28,12 +28,21 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-#include <U8g2lib.h>      /* aus dem Bibliotheksverwalter */
+#include <Preferences.h>  /* aus dem BSP von expressif */
 #include <HX711.h>        /* https://github.com/bogde/HX711 */
 #include <ESP32_Servo.h>  /* https://github.com/jkb-git/ESP32Servo */
-#include <Preferences.h>  /* aus dem BSP von expressif */
+#include <AceButton.h>
+#include <U8g2lib.h>      /* aus dem Bibliotheksverwalter */
+
+using namespace ace_button;
 
 #define isDebug 
+
+#ifdef isDebug
+#define DebugOut(a) Serial.println(a)
+#else
+#define DebugOut(a) 
+#endif
 
 Servo servo;
 HX711 scale;
@@ -48,28 +57,34 @@ Preferences preferences;
 U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
 
 // Servo
-const int servo_pin = 2;
+const int servo_pin = 17;
 
 // 3x Schalter Ein 1 - Aus - Ein 2
 const int switch_betrieb_pin = 19;
-const int switch_vcc_pin = 22;        // <- Vcc 
 const int switch_setup_pin = 21;
 
 // Taster 
-const int button_start_vcc_pin = 13;  // <- Vcc 
 const int button_start_pin = 12;
-const int button_stop_vcc_pin = 14;   // <- Vcc 
 const int button_stop_pin = 27;
 
 // Poti
 const int poti_pin = 39;
 
 // Wägezelle-IC 
-const int hx711_sck_pin = 17;
-const int hx711_dt_pin = 5;
+const int hx711_sck_pin = 22;
+const int hx711_dt_pin = 13;
 
 // wir verwenden auch den pin fuer LED_BUILTIN!
 // es ist pin 25 fuer den Heltec WiFi Kit 32 
+
+ButtonConfig buttonConfig;
+AceButton bt_start(&buttonConfig);
+AceButton bt_stop(&buttonConfig);
+
+ButtonConfig switchConfig;
+AceButton sw_betrieb(&switchConfig);
+AceButton sw_setup(&switchConfig);
+
 
 
 const char* gewicht_char = "";
@@ -88,26 +103,34 @@ int korrektur;
 int autostart;
 int winkel;
 int winkel_min = 0;
-int winkel_max = 155;
-int winkel_dosier_min = 45;
-float fein_dosier_gewicht = 60;
+int winkel_max = 90;
+int winkel_dosier_min = 60; //45
+float fein_dosier_gewicht = 30; //60
 int i;
 int u;
 int a;
 int z;
 
 void print2serial(String displayname, int value) {
+#ifdef isDebug  
   Serial.print(displayname);
   Serial.println(value);
+#endif  
 }
 
 void print2serial(String displayname, float value) {
+#ifdef isDebug  
   Serial.print(displayname);
   Serial.println(value);
+#endif
 }
+
+
 
 void getPreferences(void) {
   // EEPROM //
+  DebugOut(__FUNCTION__);
+
   preferences.begin("EEPROM", false);       //faktor und tara aus eeprom lesen
   faktor2 = preferences.getUInt("faktor2", 0);
 
@@ -137,6 +160,7 @@ void getPreferences(void) {
 }
 
 void setupTara(void) {
+  DebugOut(__FUNCTION__);
   u8g2.setCursor(0, 8);
   u8g2.print("*");
   
@@ -153,6 +177,7 @@ void setupTara(void) {
 }
 
 void setupCalibration(void) {
+  DebugOut(__FUNCTION__);
   u8g2.setCursor(0, 22);
   u8g2.print("*");
   
@@ -208,6 +233,7 @@ void setupCalibration(void) {
 }
 
 void setupKorrektur(void) {
+  DebugOut(__FUNCTION__);
   u8g2.setCursor(0, 36);
   u8g2.print("*");
   
@@ -244,6 +270,7 @@ void setupKorrektur(void) {
 }
 
 void setupFuellmenge(void) {
+  DebugOut(__FUNCTION__);
   u8g2.setCursor(0, 50);
   u8g2.print("*");
   
@@ -343,6 +370,7 @@ void setupFuellmenge(void) {
 }
 
 void setupAutostart(void) {
+  DebugOut(__FUNCTION__);
   u8g2.setCursor(0, 64);
   u8g2.print("*");
   
@@ -402,6 +430,7 @@ void setupAutostart(void) {
 }
 
 void processSetup(void) {
+  DebugOut(__FUNCTION__);
   pos = (map(analogRead(poti_pin), 0, 4095, 1, 5));
 
   u8g2.setFont(u8g2_font_courB10_tf);
@@ -441,23 +470,27 @@ void processSetup(void) {
   a = 0;
 }
 
+void showMessage(String msg)
+{
+      u8g2.clearBuffer();
+      u8g2.setFont(u8g2_font_courB24_tf);
+      u8g2.setCursor(20, 43);
+      u8g2.print(msg);
+      u8g2.sendBuffer();
+}
+
 void processBetrieb(void)
 {
+  DebugOut(__FUNCTION__);
   pos = (map(analogRead(poti_pin), 0, 4095, 0, 100));
   gewicht = ((((int(scale.read())) - tara_raw) / faktor) - tara);
   
   if ((autostart == 1) && (gewicht <= 5) && (gewicht >= -5) && (a == 0)) {
-    delay(1000);
-    
-    if ((gewicht <= 5) && (gewicht >= -5)) {
-      u8g2.clearBuffer();
-      u8g2.setFont(u8g2_font_courB24_tf);
-      u8g2.setCursor(20, 43);
-      u8g2.print("START");
-      u8g2.sendBuffer();
-      delay(3000);
+      delay(1000);
+      showMessage("START");
+      delay(1500);
       a = 1;
-    }
+    
   }
   
   if ((autostart == 1) && (gewicht < -20)) {
@@ -470,7 +503,7 @@ void processBetrieb(void)
   }
   
   if ((digitalRead(button_stop_pin)) == HIGH) {
-    (winkel = winkel_min);
+    winkel = winkel_min;
     a = 0;
   }
   
@@ -498,10 +531,14 @@ void processBetrieb(void)
   }
   
   servo.write(winkel);
+  DebugOut("Servo Winkel:");
+  DebugOut(winkel);
+
   float y = ((fmenge + korrektur - gewicht) / fein_dosier_gewicht);
-  Serial.println(y);
+
   
   #ifdef isDebug
+    Serial.println(y);    
     Serial.print(scale.read_average(3));
     Serial.print(" Tara_raw:");
     Serial.print(tara_raw);
@@ -593,7 +630,8 @@ void processBetrieb(void)
 
 void processHandbetrieb(void)
 {
-  pos = (map(analogRead(poti_pin), 0, 4095, 0, 100));
+  DebugOut(__FUNCTION__);
+  pos = map(analogRead(poti_pin), 0, 4095, 0, 100);
   gewicht = ((((int(scale.read())) - tara_raw) / faktor) - tara);
   
   if ((digitalRead(button_start_pin)) == HIGH) {
@@ -601,18 +639,16 @@ void processHandbetrieb(void)
   }
   
   if ((digitalRead(button_stop_pin)) == HIGH) {
-    (winkel = winkel_min);
+    winkel = winkel_min;
     a = 0;
-  }
-  
-  if ((digitalRead(button_stop_pin)) == HIGH) {
-    (winkel = winkel_min);
   }
   
   if (a == 1) {
     winkel = ((winkel_max * pos) / 100);
   }
   
+  DebugOut("Servo Winkel:");
+  DebugOut(winkel);
   servo.write(winkel);
   
   #ifdef isDebug
@@ -624,7 +660,7 @@ void processHandbetrieb(void)
     Serial.print(" Gewicht ");
     Serial.println(gewicht);
   #endif
-  
+
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_courB24_tf);
   
@@ -681,12 +717,34 @@ void processHandbetrieb(void)
   u8g2.setCursor(120, 13);
   u8g2.print(char(37));
   u8g2.sendBuffer();
-//a=0;
 }
 
+void handleEvent(AceButton* button, uint8_t eventType, uint8_t  buttonState ) {
+  DebugOut("Handle Event");
+  DebugOut("Button-ID:");
+  DebugOut(button->getId());
+  DebugOut("Button-eventtype:");
+  DebugOut(eventType);
+  DebugOut("Button-state:");
+  DebugOut(buttonState);
+
+  DebugOut(sw_setup.getLastButtonState());
+  
+  switch (eventType) {
+    case AceButton::kEventReleased:
+      // We trigger on the Released event not the Pressed event to distinguish
+      // this event from the LongPressed event.
+      //retrievePreset(button->getId());
+      break;
+    case AceButton::kEventLongPressed:
+      //setPreset(button->getId());
+      break;
+  }
+}
 
 void setup()
 {
+  DebugOut(__FUNCTION__);
   // enable internal pull downs for digital inputs 
   pinMode(button_start_pin, INPUT_PULLDOWN);
   pinMode(button_stop_pin, INPUT_PULLDOWN);
@@ -694,8 +752,25 @@ void setup()
   pinMode(switch_setup_pin, INPUT_PULLDOWN);
   pinMode(LED_BUILTIN, OUTPUT);
 
+  // Configure the Button/Switch Configs with the event handler, and enable all higher
+  // level events.
+  bt_start.init(button_start_pin, LOW, 0);
+  bt_stop.init(button_stop_pin, LOW, 1);
+  sw_betrieb.init(switch_betrieb_pin, LOW, 2);
+  sw_setup.init(switch_setup_pin, LOW, 3);
+  
+  buttonConfig.setEventHandler(handleEvent);
+  buttonConfig.setFeature(ButtonConfig::kFeatureClick);
+  buttonConfig.setFeature(ButtonConfig::kFeatureDoubleClick);
+  
+  switchConfig.setEventHandler(handleEvent);
+  switchConfig.setFeature(ButtonConfig::kFeatureClick);
+  switchConfig.setFeature(ButtonConfig::kFeatureDoubleClick);
+  switchConfig.setFeature(ButtonConfig::kFeatureRepeatPress);
+  
   // switch Vcc / GND on normal pins for convenient wiring
   // output 5V for VCC
+  /*
   digitalWrite (switch_vcc_pin, HIGH); 
   digitalWrite (button_start_vcc_pin, HIGH); 
   digitalWrite (button_stop_vcc_pin, HIGH); 
@@ -707,14 +782,21 @@ void setup()
   pinMode (button_stop_vcc_pin, OUTPUT);
   // short delay to let chip power up
   delay (100); 
-  
+  */
+#ifdef isDebug  
   Serial.begin(115200);
   while (!Serial) {
   }
-  
+#endif  
   u8g2.begin();
+  
+  u8g2.setDisplayRotation(U8G2_R0);
+  u8g2.setFlipMode(1);   
+  
   scale.begin(hx711_dt_pin, hx711_sck_pin);
   scale.power_up();
+
+  DebugOut("Servo ATTACH");
 
   servo.attach(servo_pin, 750, 2500);
 
@@ -724,6 +806,15 @@ void setup()
 
 void loop()
 {
+  bt_start.check();
+  bt_stop.check();
+  sw_betrieb.check();
+  sw_setup.check();
+
+    DebugOut(sw_setup.getLastButtonState());
+    DebugOut(sw_betrieb.getLastButtonState());
+
+/*
   if ((digitalRead(switch_setup_pin)) == HIGH)
     processSetup();
 
@@ -735,4 +826,5 @@ void loop()
   if ((digitalRead(switch_betrieb_pin) == LOW)
       && (digitalRead(switch_setup_pin) == LOW))
     processHandbetrieb();
+*/    
 }
