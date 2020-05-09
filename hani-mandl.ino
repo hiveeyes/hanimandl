@@ -1,23 +1,28 @@
 /*
-  Abfuellwaage Version 0.1.4
+  Abfuellwaage Version 0.2.0
   --------------------------
   Copyright (C) 2018-2019 by Marc Vasterling, Marc Wetzel, Clemens Gruber  
             
-  2018-05 Marc Vasterling | initial version, 
-                            published in the Facebook group "Imkerei und Technik. Eigenbau",
-                            Marc Vasterling: "meinen Code kann jeder frei verwenden, ändern und hochladen wo er will, solange er nicht seinen eigenen Namen drüber setzt."
-  2018-06 Marc Vasterling | improved version, 
-                            published in the Facebook group also
-  2019-01 Marc Wetzel     | Refakturierung und Dokumentation, 
-                            published in the Facebook group also
-  2019-02 Clemens Gruber  | code beautifying mit kleineren Umbenennungen bei Funktionen und Variablen
-                            Anpssung fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
-                            - pins bei OLED-Initialisierung geaendert
-                            - pins geaendert, um Konflikte mit hard wired pins des OLEDs zu vermeiden 
-  2019-02 Clemens Gruber  | Aktivierung der internen pull downs für alle digitalen Eingaenge
-  2019-02 Clemens Gruber  | "normale" pins zu Vcc / GND geaendert um die Verkabelung etwas einfacher und angenehmer zu machen
- 
-                            
+  2018-05 Marc Vasterling    | initial version, 
+                               published in the Facebook group "Imkerei und Technik. Eigenbau",
+                               Marc Vasterling: "meinen Code kann jeder frei verwenden, ändern und hochladen wo er will, solange er nicht seinen eigenen Namen drüber setzt."
+  2018-06 Marc Vasterling    | improved version, 
+                               published in the Facebook group also
+  2019-01 Marc Wetzel        | Refakturierung und Dokumentation, 
+                               published in the Facebook group also
+  2019-02 Clemens Gruber     | code beautifying mit kleineren Umbenennungen bei Funktionen und Variablen
+                               Anpssung fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
+                               - pins bei OLED-Initialisierung geaendert
+                               - pins geaendert, um Konflikte mit hard wired pins des OLEDs zu vermeiden 
+  2019-02 Clemens Gruber     | Aktivierung der internen pull downs für alle digitalen Eingaenge
+  2019-02 Clemens Gruber     | "normale" pins zu Vcc / GND geaendert um die Verkabelung etwas einfacher und angenehmer zu machen
+  2020-05 Andreas Holzhammer | Anpassungen an das veränderte ;-( pin-Layout der Version 2 des Heltec 
+                               wird verkauft als "New Wifi Kit 32" oder "Wifi Kit 32 V2"
+                               - Änderungen siehe
+                                 https://community.hiveeyes.org/t/side-project-hanimandl-halbautomatischer-honig-abfullbehalter/768/43 
+                                 und https://community.hiveeyes.org/t/side-project-hanimandl-halbautomatischer-honig-abfullbehalter/768/44
+                               - der code ist mit der geänderten pin-Belegung nicht mehr abwärskompatibel zur alten Heltec-Version                                
+                               
   This code is in the public domain.
   
   
@@ -47,13 +52,16 @@ Preferences preferences;
 // fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
 U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
 
+// Vext control pin
+const int vext_ctrl_pin = 21;
+
 // Servo
 const int servo_pin = 2;
 
 // 3x Schalter Ein 1 - Aus - Ein 2
-const int switch_betrieb_pin = 19;
-const int switch_vcc_pin = 22;        // <- Vcc 
-const int switch_setup_pin = 21;
+const int switch_betrieb_pin = 23;
+const int switch_vcc_pin = 19;        // <- Vcc 
+const int switch_setup_pin = 22;
 
 // Taster 
 const int button_start_vcc_pin = 13;  // <- Vcc 
@@ -87,6 +95,7 @@ int fmenge;
 int korrektur;
 int autostart;
 int winkel;
+// int winkel_alt;
 int winkel_min = 0;
 int winkel_max = 155;
 int winkel_dosier_min = 45;
@@ -95,6 +104,7 @@ int i;
 int u;
 int a;
 int z;
+char ausgabe[50];
 
 void print2serial(String displayname, int value) {
   Serial.print(displayname);
@@ -452,7 +462,7 @@ void processBetrieb(void)
     if ((gewicht <= 5) && (gewicht >= -5)) {
       u8g2.clearBuffer();
       u8g2.setFont(u8g2_font_courB24_tf);
-      u8g2.setCursor(20, 43);
+      u8g2.setCursor(15, 43);
       u8g2.print("START");
       u8g2.sendBuffer();
       delay(3000);
@@ -508,86 +518,40 @@ void processBetrieb(void)
     Serial.print(" Faktor ");
     Serial.print(faktor);
     Serial.print(" Gewicht ");
-    Serial.println(gewicht);
+    Serial.print(gewicht);
+    Serial.print(" Winkel ");
+    Serial.println(winkel);
   #endif
 
   u8g2.clearBuffer();
+  
   u8g2.setFont(u8g2_font_courB24_tf);
-  
-  if (gewicht < 100) {
-    u8g2.setCursor(55, 43);
+
+  u8g2.setCursor(10, 42);
+  sprintf(ausgabe,"%5dg", gewicht);
+  u8g2.print(ausgabe);
+
+  u8g2.setFont(u8g2_font_courB08_tf);
+  if ( a == 1 ) { 
+     u8g2.setCursor(0, 26);     u8g2.print("e");
+     u8g2.setCursor(0, 35);     u8g2.print("i");
+     u8g2.setCursor(0, 42);     u8g2.print("n");
+  } else {
+     u8g2.setCursor(0, 27);     u8g2.print("a");
+     u8g2.setCursor(0, 35);     u8g2.print("u");
+     u8g2.setCursor(0, 42);     u8g2.print("s");
   }
-  
-  if (gewicht < 10) {
-    u8g2.setCursor(75, 43);
-  }
-  
-  if (gewicht >= 100) {
-    u8g2.setCursor(35, 43);
-  }
-  
-  if (gewicht >= 1000) {
-    u8g2.setCursor(15, 43);
-  }
-  
-  if (gewicht < 0) {
-    u8g2.setCursor(55, 43);
-  }
-  
-  if (gewicht <= -10) {
-    u8g2.setCursor(35, 43);
-  }
-  
-  if (gewicht <= -100) {
-    u8g2.setCursor(15, 43);
-  }
-  
-  u8g2.print(gewicht);
-  u8g2.setCursor(95, 43);
-  u8g2.print("g");
-  u8g2.setFont(u8g2_font_courB14_tf);
-  
-  #ifdef isDebug
-    u8g2.setCursor(0,13);
-    u8g2.print("t=");
-    u8g2.setCursor(24,13);
-    u8g2.print(tara);
-  #endif
-  
-  u8g2.setCursor(0, 13);
-  u8g2.print("W=");
-  u8g2.setCursor(24, 13);
-  u8g2.print(winkel);
-  
-  if (autostart == 1) {
-    u8g2.setCursor(58, 13);
-    u8g2.print("AS");
-  }
-  
+
+  u8g2.setFont(u8g2_font_courB12_tf);
+
+  u8g2.setCursor(0, 11);
+  sprintf(ausgabe,"W=%-3d %2s %3d%%", winkel, (autostart==1)?"AS":"  ", pos);
+  u8g2.print(ausgabe);
+
   u8g2.setCursor(0, 64);
-  u8g2.print("k=");
-  u8g2.setCursor(24, 64);
-  u8g2.print(korrektur);
-  u8g2.setCursor(73, 64);
-  u8g2.print("f=");
-  u8g2.setCursor(97, 64);
-  u8g2.print(fmenge);
-  
-  if (pos < 100) {
-    u8g2.setCursor(98, 13);
-  }
-  
-  if (pos < 10) {
-    u8g2.setCursor(108, 13);
-  }
-  
-  if (pos >= 100) {
-    u8g2.setCursor(88, 13);
-  }
-  
-  u8g2.print(pos);
-  u8g2.setCursor(120, 13);
-  u8g2.print(char(37));
+  sprintf(ausgabe,"k=%-3d   f=%3d", korrektur, fmenge);
+  u8g2.print(ausgabe);
+
   u8g2.sendBuffer();
 }
 
@@ -612,7 +576,7 @@ void processHandbetrieb(void)
   if (a == 1) {
     winkel = ((winkel_max * pos) / 100);
   }
-  
+
   servo.write(winkel);
   
   #ifdef isDebug
@@ -622,64 +586,41 @@ void processHandbetrieb(void)
     Serial.print(" Faktor ");
     Serial.print(faktor);
     Serial.print(" Gewicht ");
-    Serial.println(gewicht);
+    Serial.print(gewicht);
+    Serial.print(" Winkel ");
+    Serial.print(winkel);
+    Serial.print(" a ");
+    Serial.println(a);
   #endif
   
   u8g2.clearBuffer();
+
   u8g2.setFont(u8g2_font_courB24_tf);
-  
-  if (gewicht < 100) {
-    u8g2.setCursor(55, 43);
+
+  u8g2.setCursor(10, 42);
+  sprintf(ausgabe,"%5dg", gewicht);
+  u8g2.print(ausgabe);
+
+  u8g2.setFont(u8g2_font_courB08_tf);
+  if ( a == 1 ) { 
+     u8g2.setCursor(0, 26);     u8g2.print("e");
+     u8g2.setCursor(0, 35);     u8g2.print("i");
+     u8g2.setCursor(0, 42);     u8g2.print("n");
+  } else {
+     u8g2.setCursor(0, 27);     u8g2.print("a");
+     u8g2.setCursor(0, 35);     u8g2.print("u");
+     u8g2.setCursor(0, 42);     u8g2.print("s");
   }
-  
-  if (gewicht < 10) {
-    u8g2.setCursor(75, 43);
-  }
-  
-  if (gewicht >= 100) {
-    u8g2.setCursor(35, 43);
-  }
-  
-  if (gewicht >= 1000) {
-    u8g2.setCursor(15, 43);
-  }
-  
-  if (gewicht < 0) {
-    u8g2.setCursor(55, 43);
-  }
-  
-  if (gewicht <= -10) {
-    u8g2.setCursor(35, 43);
-  }
-  
-  if (gewicht <= -100) {
-    u8g2.setCursor(15, 43);
-  }
-  
-  u8g2.print(gewicht);
-  u8g2.setCursor(95, 43);
-  u8g2.print("g");
-  u8g2.setFont(u8g2_font_courB14_tf);
-  u8g2.setCursor(0, 13);
-  u8g2.print("W=");
-  u8g2.setCursor(24, 13);
-  u8g2.print(winkel);
-  
-  if (pos < 100) {
-    u8g2.setCursor(98, 13);
-  }
-  
-  if (pos < 10) {
-    u8g2.setCursor(108, 13);
-  }
-  
-  if (pos >= 100) {
-    u8g2.setCursor(88, 13);
-  }
-  
-  u8g2.print(pos);
-  u8g2.setCursor(120, 13);
-  u8g2.print(char(37));
+
+  u8g2.setFont(u8g2_font_courB12_tf);
+
+  u8g2.setCursor(0, 11);
+  sprintf(ausgabe,"W=%-3d    %3d%%", winkel, pos);
+  u8g2.print(ausgabe);
+
+  u8g2.setCursor(0, 64);
+  u8g2.print("Handbetrieb");
+
   u8g2.sendBuffer();
 //a=0;
 }
@@ -692,6 +633,7 @@ void setup()
   pinMode(button_stop_pin, INPUT_PULLDOWN);
   pinMode(switch_betrieb_pin, INPUT_PULLDOWN);
   pinMode(switch_setup_pin, INPUT_PULLDOWN);
+  pinMode(vext_ctrl_pin, INPUT_PULLDOWN);
   pinMode(LED_BUILTIN, OUTPUT);
 
   // switch Vcc / GND on normal pins for convenient wiring
@@ -708,16 +650,24 @@ void setup()
   // short delay to let chip power up
   delay (100); 
   
+  u8g2.begin();
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_courB24_tf);
+  u8g2.setCursor(20, 43);
+  u8g2.print("BOOT");
+  u8g2.sendBuffer();
+
   Serial.begin(115200);
   while (!Serial) {
   }
   
-  u8g2.begin();
   scale.begin(hx711_dt_pin, hx711_sck_pin);
   scale.power_up();
 
-  servo.attach(servo_pin, 750, 2500);
-
+//  servo.attach(servo_pin, 750, 2500);
+  servo.attach(servo_pin);
+//  delay(100);
+  servo.write(winkel_min);
   getPreferences();
 }
 
