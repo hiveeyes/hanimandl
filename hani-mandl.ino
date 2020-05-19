@@ -1,28 +1,23 @@
 /*
-  Abfuellwaage Version 0.2.0
+  Abfuellwaage Version 0.1.4
   --------------------------
   Copyright (C) 2018-2019 by Marc Vasterling, Marc Wetzel, Clemens Gruber  
             
-  2018-05 Marc Vasterling    | initial version, 
-                               published in the Facebook group "Imkerei und Technik. Eigenbau",
-                               Marc Vasterling: "meinen Code kann jeder frei verwenden, ändern und hochladen wo er will, solange er nicht seinen eigenen Namen drüber setzt."
-  2018-06 Marc Vasterling    | improved version, 
-                               published in the Facebook group also
-  2019-01 Marc Wetzel        | Refakturierung und Dokumentation, 
-                               published in the Facebook group also
-  2019-02 Clemens Gruber     | code beautifying mit kleineren Umbenennungen bei Funktionen und Variablen
-                               Anpssung fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
-                               - pins bei OLED-Initialisierung geaendert
-                               - pins geaendert, um Konflikte mit hard wired pins des OLEDs zu vermeiden 
-  2019-02 Clemens Gruber     | Aktivierung der internen pull downs für alle digitalen Eingaenge
-  2019-02 Clemens Gruber     | "normale" pins zu Vcc / GND geaendert um die Verkabelung etwas einfacher und angenehmer zu machen
-  2020-05 Andreas Holzhammer | Anpassungen an das veränderte ;-( pin-Layout der Version 2 des Heltec 
-                               wird verkauft als "New Wifi Kit 32" oder "Wifi Kit 32 V2"
-                               - Änderungen siehe
-                                 https://community.hiveeyes.org/t/side-project-hanimandl-halbautomatischer-honig-abfullbehalter/768/43 
-                                 und https://community.hiveeyes.org/t/side-project-hanimandl-halbautomatischer-honig-abfullbehalter/768/44
-                               - der code ist mit der geänderten pin-Belegung nicht mehr abwärskompatibel zur alten Heltec-Version                                
-                               
+  2018-05 Marc Vasterling | initial version, 
+                            published in the Facebook group "Imkerei und Technik. Eigenbau",
+                            Marc Vasterling: "meinen Code kann jeder frei verwenden, ändern und hochladen wo er will, solange er nicht seinen eigenen Namen drüber setzt."
+  2018-06 Marc Vasterling | improved version, 
+                            published in the Facebook group also
+  2019-01 Marc Wetzel     | Refakturierung und Dokumentation, 
+                            published in the Facebook group also
+  2019-02 Clemens Gruber  | code beautifying mit kleineren Umbenennungen bei Funktionen und Variablen
+                            Anpssung fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
+                            - pins bei OLED-Initialisierung geaendert
+                            - pins geaendert, um Konflikte mit hard wired pins des OLEDs zu vermeiden 
+  2019-02 Clemens Gruber  | Aktivierung der internen pull downs für alle digitalen Eingaenge
+  2019-02 Clemens Gruber  | "normale" pins zu Vcc / GND geaendert um die Verkabelung etwas einfacher und angenehmer zu machen
+ 
+                            
   This code is in the public domain.
   
   
@@ -39,6 +34,10 @@
 #include <Preferences.h>  /* aus dem BSP von expressif */
 
 #define isDebug 
+
+#define SETUP       0
+#define BETRIEB     1
+#define HANDBETRIEB 2
 
 Servo servo;
 HX711 scale;
@@ -76,16 +75,8 @@ const int poti_pin = 39;
 const int hx711_sck_pin = 17;
 const int hx711_dt_pin = 5;
 
-// wir verwenden auch den pin fuer LED_BUILTIN!
-// es ist pin 25 fuer den Heltec WiFi Kit 32 
-
-
-const char* gewicht_char = "";
-
 int pos;
 int gewicht;
-int menu_kalib;
-int menu_korrek;
 int tara;
 int tara_raw;
 int gewicht_raw;
@@ -95,26 +86,15 @@ int fmenge;
 int korrektur;
 int autostart;
 int winkel;
-// int winkel_alt;
 int winkel_min = 0;
 int winkel_max = 155;
 int winkel_dosier_min = 45;
 float fein_dosier_gewicht = 60;
 int i;
-int u;
 int a;
-int z;
-char ausgabe[50];
-
-void print2serial(String displayname, int value) {
-  Serial.print(displayname);
-  Serial.println(value);
-}
-
-void print2serial(String displayname, float value) {
-  Serial.print(displayname);
-  Serial.println(value);
-}
+char ausgabe[30]; // Fontsize 12 = 13 Zeichen maximal in einer Zeile
+int modus = -1;   // Bei Modus-Wechsel den Servo auf Minimum fahren
+int autofill = 0; // Für Automatikmodus - System ein/aus?
 
 void getPreferences(void) {
   // EEPROM //
@@ -134,15 +114,15 @@ void getPreferences(void) {
   #endif
   
   faktor = (faktor2 / 10000.00);
-  tara = preferences.getUInt("tara", 0);
-  tara_raw = preferences.getUInt("tara_raw", 0);
-  fmenge = preferences.getUInt("fmenge", 0);
+  tara      = preferences.getUInt("tara", 0);
+  tara_raw  = preferences.getUInt("tara_raw", 0);
+  fmenge    = preferences.getUInt("fmenge", 0);
   korrektur = preferences.getUInt("korrektur", 0);
   autostart = preferences.getUInt("autostart", 0);
 
-  print2serial("faktor = ", faktor);
-  print2serial("tara_raw = ", tara_raw);
-  print2serial("tara = ", tara);
+  Serial.print("faktor = ");   Serial.println(faktor);
+  Serial.print("tara_raw = "); Serial.println(tara_raw);
+  Serial.print("tara = ");     Serial.println(tara);
   preferences.end();
 }
 
@@ -228,7 +208,7 @@ void setupKorrektur(void) {
     u8g2.clearBuffer();
     
     while (i > 0) {
-      pos = (map(analogRead(poti_pin), 0, 4095, -50, 10));
+      pos = (map(analogRead(poti_pin), 0, 4095, 10, -50));
       u8g2.setFont(u8g2_font_courB14_tf);
       u8g2.clearBuffer();
       u8g2.setCursor(10, 12);
@@ -412,6 +392,13 @@ void setupAutostart(void) {
 }
 
 void processSetup(void) {
+  if ( modus != SETUP ) {
+     modus = SETUP;
+     winkel = winkel_min;          // Hahn schliessen
+     a=0;                          // Servo-Betrieb aus
+     servo.write(winkel);
+  }
+  
   pos = (map(analogRead(poti_pin), 0, 4095, 1, 5));
 
   u8g2.setFont(u8g2_font_courB10_tf);
@@ -448,40 +435,59 @@ void processSetup(void) {
     setupAutostart();
 
   u8g2.sendBuffer();
-  a = 0;
 }
 
 void processBetrieb(void)
 {
-  pos = (map(analogRead(poti_pin), 0, 4095, 0, 100));
+  if ( modus != BETRIEB ) {
+     modus = BETRIEB;
+     winkel = winkel_min;          // Hahn schliessen
+     a=0;                          // Servo-Betrieb aus
+     servo.write(winkel);
+     autofill = 0;
+  }
+  
+  pos = (map(analogRead(poti_pin), 0, 4095, 100, 0));
   gewicht = ((((int(scale.read())) - tara_raw) / faktor) - tara);
   
-  if ((autostart == 1) && (gewicht <= 5) && (gewicht >= -5) && (a == 0)) {
-    delay(1000);
-    
+  if ((autofill == 1) && (gewicht <= 5) && (gewicht >= -5) && (a == 0)) {
+    u8g2.clearBuffer();
+    u8g2.setFont(u8g2_font_courB24_tf);
+    u8g2.setCursor(15, 43);
+    u8g2.print("START");
+    u8g2.sendBuffer();
+    // kurz warten und prüfen ob das gewicht nicht nur eine zufällige Schwankung war 
+    delay(1500);  
+    gewicht = ((((int(scale.read())) - tara_raw) / faktor) - tara);
+
     if ((gewicht <= 5) && (gewicht >= -5)) {
-      u8g2.clearBuffer();
-      u8g2.setFont(u8g2_font_courB24_tf);
-      u8g2.setCursor(15, 43);
-      u8g2.print("START");
-      u8g2.sendBuffer();
-      delay(3000);
       a = 1;
     }
   }
-  
-  if ((autostart == 1) && (gewicht < -20)) {
+
+  // Glas entfernt -> Servo schliessen
+  if (gewicht < -20) {
     winkel = winkel_min;
     a = 0;
+    if ( autostart != 1 ) {
+      autofill = 0;
+    }
   }
   
   if ((digitalRead(button_start_pin)) == HIGH) {
-    a = 1;
+    autofill = 1;
   }
   
   if ((digitalRead(button_stop_pin)) == HIGH) {
-    (winkel = winkel_min);
+    winkel = winkel_min;
     a = 0;
+    autofill = 0;
+  }
+
+  // Füll-Automatik ohne Autostart ist aktiviert, Glas ist teilweise gefüllt
+  // Füllvorgang fortsetzen
+  if ((autofill == 1) && (gewicht >= 0) && (autostart != 1)) {
+    a = 1;
   }
   
   if (a == 1) {
@@ -500,16 +506,12 @@ void processBetrieb(void)
   if ((a == 1) && ((gewicht - korrektur) >= fmenge)) {
     winkel = winkel_min;
     a = 0;
-  }
-  
-  if ((digitalRead(button_stop_pin)) == HIGH) {
-    (winkel = winkel_min);
-    a = 0;
+    if ( autostart != 1 ) {
+      autofill = 0;
+    }
   }
   
   servo.write(winkel);
-  float y = ((fmenge + korrektur - gewicht) / fein_dosier_gewicht);
-  Serial.println(y);
   
   #ifdef isDebug
     Serial.print(scale.read_average(3));
@@ -526,20 +528,15 @@ void processBetrieb(void)
   u8g2.clearBuffer();
   
   u8g2.setFont(u8g2_font_courB24_tf);
-
   u8g2.setCursor(10, 42);
   sprintf(ausgabe,"%5dg", gewicht);
   u8g2.print(ausgabe);
 
-  u8g2.setFont(u8g2_font_courB08_tf);
-  if ( a == 1 ) { 
-     u8g2.setCursor(0, 26);     u8g2.print("e");
-     u8g2.setCursor(0, 35);     u8g2.print("i");
-     u8g2.setCursor(0, 42);     u8g2.print("n");
+  u8g2.setFont(u8g2_font_open_iconic_play_2x_t);
+  if ( autofill == 1 ) { 
+     u8g2.drawGlyph(0,40,0x45);
   } else {
-     u8g2.setCursor(0, 27);     u8g2.print("a");
-     u8g2.setCursor(0, 35);     u8g2.print("u");
-     u8g2.setCursor(0, 42);     u8g2.print("s");
+     u8g2.drawGlyph(0,40,0x44);
   }
 
   u8g2.setFont(u8g2_font_courB12_tf);
@@ -557,7 +554,14 @@ void processBetrieb(void)
 
 void processHandbetrieb(void)
 {
-  pos = (map(analogRead(poti_pin), 0, 4095, 0, 100));
+  if ( modus != HANDBETRIEB ) {
+     modus = HANDBETRIEB;
+     winkel = winkel_min;          // Hahn schliessen
+     a=0;                          // Servo-Betrieb aus
+     servo.write(winkel);
+  }
+
+  pos = (map(analogRead(poti_pin), 0, 4095, 100, 0));
   gewicht = ((((int(scale.read())) - tara_raw) / faktor) - tara);
   
   if ((digitalRead(button_start_pin)) == HIGH) {
@@ -567,10 +571,6 @@ void processHandbetrieb(void)
   if ((digitalRead(button_stop_pin)) == HIGH) {
     (winkel = winkel_min);
     a = 0;
-  }
-  
-  if ((digitalRead(button_stop_pin)) == HIGH) {
-    (winkel = winkel_min);
   }
   
   if (a == 1) {
@@ -601,15 +601,11 @@ void processHandbetrieb(void)
   sprintf(ausgabe,"%5dg", gewicht);
   u8g2.print(ausgabe);
 
-  u8g2.setFont(u8g2_font_courB08_tf);
+  u8g2.setFont(u8g2_font_open_iconic_play_2x_t);
   if ( a == 1 ) { 
-     u8g2.setCursor(0, 26);     u8g2.print("e");
-     u8g2.setCursor(0, 35);     u8g2.print("i");
-     u8g2.setCursor(0, 42);     u8g2.print("n");
+     u8g2.drawGlyph(0,40,0x45);
   } else {
-     u8g2.setCursor(0, 27);     u8g2.print("a");
-     u8g2.setCursor(0, 35);     u8g2.print("u");
-     u8g2.setCursor(0, 42);     u8g2.print("s");
+     u8g2.drawGlyph(0,40,0x44);
   }
 
   u8g2.setFont(u8g2_font_courB12_tf);
@@ -622,7 +618,6 @@ void processHandbetrieb(void)
   u8g2.print("Handbetrieb");
 
   u8g2.sendBuffer();
-//a=0;
 }
 
 
@@ -651,6 +646,7 @@ void setup()
   delay (100); 
   
   u8g2.begin();
+  // print Boot Screen
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_courB24_tf);
   u8g2.setCursor(20, 43);
@@ -666,8 +662,8 @@ void setup()
 
 //  servo.attach(servo_pin, 750, 2500);
   servo.attach(servo_pin);
-//  delay(100);
   servo.write(winkel_min);
+  
   getPreferences();
 }
 
