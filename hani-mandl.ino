@@ -1,5 +1,5 @@
 /*
-  Abfuellwaage Version 0.1.4
+  Abfuellwaage Version 0.2.1
   --------------------------
   Copyright (C) 2018-2019 by Marc Vasterling, Marc Wetzel, Clemens Gruber  
             
@@ -16,11 +16,15 @@
                             - pins geaendert, um Konflikte mit hard wired pins des OLEDs zu vermeiden 
   2019-02 Clemens Gruber  | Aktivierung der internen pull downs für alle digitalen Eingaenge
   2019-02 Clemens Gruber  | "normale" pins zu Vcc / GND geaendert um die Verkabelung etwas einfacher und angenehmer zu machen
+  2020-05 Andreas Holzhammer | Anpassungen an das veränderte ;-( pin-Layout der Version 2 des Heltec 
+                               wird verkauft als "New Wifi Kit 32" oder "Wifi Kit 32 V2"
+                               - Änderungen siehe https://community.hiveeyes.org/t/side-project-hanimandl-halbautomatischer-honig-abfullbehalter/768/43 
+                                 und https://community.hiveeyes.org/t/side-project-hanimandl-halbautomatischer-honig-abfullbehalter/768/44
+                               - der code ist mit der geänderten pin-Belegung nicht mehr abwärskompatibel zur alten Heltec-Version   
+  2020-05 Andreas Holzhammer | Tara pro abzufüllendem Glas automatisch anpassen (Variable tara_glas)
  
-                            
   This code is in the public domain.
-  
-  
+   
   Hinweise zur Hardware
   ---------------------
   - bei allen digitalen Eingänge sind interne pull downs aktiviert, keine externen-Widerständen nötig! 
@@ -77,11 +81,12 @@ const int hx711_dt_pin = 5;
 
 int pos;
 int gewicht;
-int tara;
-int tara_raw;
-int gewicht_raw;
-float faktor;
-int faktor2;
+int tara;             // Tara für das Standard-Glas, für Automatikmodus
+int tara_glas;        // Tara für das aktuelle Glas, falls Glasgewicht abweicht
+int tara_raw;         // Tara der leeren Waage
+int gewicht_raw;      // Gewicht Raw-Wert, nur zur Kalkulation tara_raw
+float faktor;         // Skalierungsfaktor für Werte der Waage
+int faktor2;          // faktor * 10000 für Preferences
 int fmenge;
 int korrektur;
 int autostart;
@@ -461,6 +466,7 @@ void processBetrieb(void)
     gewicht = ((((int(scale.read())) - tara_raw) / faktor) - tara);
 
     if ((gewicht <= 5) && (gewicht >= -5)) {
+      tara_glas = gewicht;
       a = 1;
     }
   }
@@ -469,6 +475,7 @@ void processBetrieb(void)
   if (gewicht < -20) {
     winkel = winkel_min;
     a = 0;
+    tara_glas = 0;
     if ( autostart != 1 ) {
       autofill = 0;
     }
@@ -482,6 +489,7 @@ void processBetrieb(void)
     winkel = winkel_min;
     a = 0;
     autofill = 0;
+    tara_glas = 0;
   }
 
   // Füll-Automatik ohne Autostart ist aktiviert, Glas ist teilweise gefüllt
@@ -494,7 +502,7 @@ void processBetrieb(void)
     winkel = ((winkel_max * pos) / 100);
   }
   
-  if ((a == 1) && (fmenge + korrektur - gewicht <= fein_dosier_gewicht)) {
+  if ((a == 1) && (fmenge + korrektur - gewicht - tara_glas <= fein_dosier_gewicht)) {
     winkel = ((((winkel_max * pos) / 100)
         * ((fmenge + korrektur - gewicht) / fein_dosier_gewicht)));
   }
@@ -503,9 +511,10 @@ void processBetrieb(void)
     winkel = winkel_dosier_min;
   }
   
-  if ((a == 1) && ((gewicht - korrektur) >= fmenge)) {
+  if ((a == 1) && ((gewicht - korrektur - tara_glas) >= fmenge)) {
     winkel = winkel_min;
     a = 0;
+    tara_glas = 0;
     if ( autostart != 1 ) {
       autofill = 0;
     }
@@ -517,6 +526,8 @@ void processBetrieb(void)
     Serial.print(scale.read_average(3));
     Serial.print(" Tara_raw:");
     Serial.print(tara_raw);
+    Serial.print(" Tara_glas:");
+    Serial.print(tara_glas);
     Serial.print(" Faktor ");
     Serial.print(faktor);
     Serial.print(" Gewicht ");
@@ -529,7 +540,7 @@ void processBetrieb(void)
   
   u8g2.setFont(u8g2_font_courB24_tf);
   u8g2.setCursor(10, 42);
-  sprintf(ausgabe,"%5dg", gewicht);
+  sprintf(ausgabe,"%5dg", gewicht - tara_glas);
   u8g2.print(ausgabe);
 
   u8g2.setFont(u8g2_font_open_iconic_play_2x_t);
