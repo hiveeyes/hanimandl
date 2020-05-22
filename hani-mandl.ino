@@ -43,6 +43,8 @@
 #define BETRIEB     1
 #define HANDBETRIEB 2
 
+#define SCALE_READS 3     // Parameter für scale.read_average()
+
 Servo servo;
 HX711 scale;
 Preferences preferences;
@@ -94,7 +96,7 @@ int winkel;
 int winkel_min = 0;
 int winkel_max = 155;
 int winkel_dosier_min = 45;
-float fein_dosier_gewicht = 60;
+float fein_dosier_gewicht = 60; // float wegen Berechnung des Schliesswinkels
 int i;
 int a;
 char ausgabe[30]; // Fontsize 12 = 13 Zeichen maximal in einer Zeile
@@ -124,11 +126,17 @@ void getPreferences(void) {
   fmenge    = preferences.getUInt("fmenge", 0);
   korrektur = preferences.getUInt("korrektur", 0);
   autostart = preferences.getUInt("autostart", 0);
-
-  Serial.print("faktor = ");   Serial.println(faktor);
-  Serial.print("tara_raw = "); Serial.println(tara_raw);
-  Serial.print("tara = ");     Serial.println(tara);
   preferences.end();
+
+#ifdef isDebug
+  Serial.println("Preferences:");
+  Serial.print("faktor = ");    Serial.println(faktor);
+  Serial.print("tara = ");      Serial.println(tara);
+  Serial.print("tara_raw = ");  Serial.println(tara_raw);
+  Serial.print("fmenge = ");    Serial.println(fmenge);
+  Serial.print("korrektur = "); Serial.println(korrektur);
+  Serial.print("autostart = "); Serial.println(autostart);
+#endif
 }
 
 void setupTara(void) {
@@ -136,7 +144,7 @@ void setupTara(void) {
   u8g2.print("*");
   
   if ((digitalRead(button_start_pin)) == HIGH) {
-    tara = ((int(scale.read_average(10)) - tara_raw) / faktor);
+    tara = ((int(scale.read_average(30)) - tara_raw) / faktor);
     u8g2.setCursor(100, 12);
     u8g2.print("OK");
     u8g2.sendBuffer();
@@ -152,7 +160,6 @@ void setupCalibration(void) {
   u8g2.print("*");
   
   if ((digitalRead(button_start_pin)) == HIGH) {
-    i = 1;
     delay(300);
     u8g2.setFont(u8g2_font_courB14_tf);
     u8g2.clearBuffer();
@@ -166,15 +173,15 @@ void setupCalibration(void) {
     u8g2.print("bestaetigen");
     u8g2.sendBuffer();
     
+    i = 1;
     while (i > 0) {
       if ((digitalRead(button_start_pin)) == HIGH) {
-        gewicht_raw = (int(scale.read_average(10)));
+        gewicht_raw = (int(scale.read_average(30)));
         delay(2000);
         i = 0;
       }
     }
     
-    i = 1;
     u8g2.clearBuffer();
     u8g2.setCursor(10, 12);
     u8g2.print("Bitte Waage");
@@ -186,9 +193,10 @@ void setupCalibration(void) {
     u8g2.print("bestaetigen");
     u8g2.sendBuffer();
     
+    i = 1;
     while (i > 0) {
       if ((digitalRead(button_start_pin)) == HIGH) {
-        tara_raw = (int(scale.read_average(10)));
+        tara_raw = (int(scale.read_average(30)));
         delay(2000);
         i = 0;
         faktor = ((gewicht_raw - tara_raw) / 500.000);
@@ -444,17 +452,20 @@ void processSetup(void) {
 
 void processBetrieb(void)
 {
+  int zielgewicht;
+  
   if ( modus != BETRIEB ) {
      modus = BETRIEB;
      winkel = winkel_min;          // Hahn schliessen
      a=0;                          // Servo-Betrieb aus
      servo.write(winkel);
      autofill = 0;
+     tara_glas = 0;
   }
-  
+
   pos = (map(analogRead(poti_pin), 0, 4095, 100, 0));
-  gewicht = ((((int(scale.read())) - tara_raw) / faktor) - tara);
-  
+  gewicht = ((((int(scale.read_average(SCALE_READS))) - tara_raw) / faktor) - tara);
+
   if ((autofill == 1) && (gewicht <= 5) && (gewicht >= -5) && (a == 0)) {
     u8g2.clearBuffer();
     u8g2.setFont(u8g2_font_courB24_tf);
@@ -463,13 +474,15 @@ void processBetrieb(void)
     u8g2.sendBuffer();
     // kurz warten und prüfen ob das gewicht nicht nur eine zufällige Schwankung war 
     delay(1500);  
-    gewicht = ((((int(scale.read())) - tara_raw) / faktor) - tara);
+    gewicht = ((((int(scale.read_average(SCALE_READS))) - tara_raw) / faktor) - tara);
 
     if ((gewicht <= 5) && (gewicht >= -5)) {
       tara_glas = gewicht;
       a = 1;
     }
   }
+
+  zielgewicht = fmenge + korrektur + tara_glas;
 
   // Glas entfernt -> Servo schliessen
   if (gewicht < -20) {
@@ -502,9 +515,9 @@ void processBetrieb(void)
     winkel = ((winkel_max * pos) / 100);
   }
   
-  if ((a == 1) && (fmenge + korrektur - gewicht - tara_glas <= fein_dosier_gewicht)) {
-    winkel = ((((winkel_max * pos) / 100)
-        * ((fmenge + korrektur - gewicht) / fein_dosier_gewicht)));
+  if ((a == 1) && (fmenge - (gewicht - korrektur - tara_glas) <= fein_dosier_gewicht)) {
+    winkel = ( ((winkel_max * pos) / 100)
+        * ( (fmenge - (gewicht - korrektur - tara_glas)) / fein_dosier_gewicht) );
   }
   
   if ((a == 1) && (winkel <= winkel_dosier_min)) {
@@ -514,7 +527,6 @@ void processBetrieb(void)
   if ((a == 1) && ((gewicht - korrektur - tara_glas) >= fmenge)) {
     winkel = winkel_min;
     a = 0;
-    tara_glas = 0;
     if ( autostart != 1 ) {
       autofill = 0;
     }
@@ -523,7 +535,7 @@ void processBetrieb(void)
   servo.write(winkel);
   
   #ifdef isDebug
-    Serial.print(scale.read_average(3));
+    Serial.print(scale.read_average(SCALE_READS));
     Serial.print(" Tara_raw:");
     Serial.print(tara_raw);
     Serial.print(" Tara_glas:");
@@ -532,6 +544,8 @@ void processBetrieb(void)
     Serial.print(faktor);
     Serial.print(" Gewicht ");
     Serial.print(gewicht);
+    Serial.print(" Zielgewicht ");
+    Serial.print(zielgewicht);
     Serial.print(" Winkel ");
     Serial.println(winkel);
   #endif
@@ -544,11 +558,7 @@ void processBetrieb(void)
   u8g2.print(ausgabe);
 
   u8g2.setFont(u8g2_font_open_iconic_play_2x_t);
-  if ( autofill == 1 ) { 
-     u8g2.drawGlyph(0,40,0x45);
-  } else {
-     u8g2.drawGlyph(0,40,0x44);
-  }
+  u8g2.drawGlyph(0, 40, (autofill==1)?0x45:0x44 );
 
   u8g2.setFont(u8g2_font_courB12_tf);
 
@@ -573,7 +583,7 @@ void processHandbetrieb(void)
   }
 
   pos = (map(analogRead(poti_pin), 0, 4095, 100, 0));
-  gewicht = ((((int(scale.read())) - tara_raw) / faktor) - tara);
+  gewicht = ((((int(scale.read_average(SCALE_READS))) - tara_raw) / faktor) - tara);
   
   if ((digitalRead(button_start_pin)) == HIGH) {
     a = 1;
@@ -591,7 +601,7 @@ void processHandbetrieb(void)
   servo.write(winkel);
   
   #ifdef isDebug
-    Serial.print(scale.read_average(3));
+    Serial.print(scale.read_average(SCALE_READS));
     Serial.print(" Tara_raw:");
     Serial.print(tara_raw);
     Serial.print(" Faktor ");
@@ -613,11 +623,7 @@ void processHandbetrieb(void)
   u8g2.print(ausgabe);
 
   u8g2.setFont(u8g2_font_open_iconic_play_2x_t);
-  if ( a == 1 ) { 
-     u8g2.drawGlyph(0,40,0x45);
-  } else {
-     u8g2.drawGlyph(0,40,0x44);
-  }
+  u8g2.drawGlyph(0, 40, (a==1)?0x45:0x44 );
 
   u8g2.setFont(u8g2_font_courB12_tf);
 
