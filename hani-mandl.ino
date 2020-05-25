@@ -153,12 +153,11 @@ void IRAM_ATTR isr2() {
  aLastState = aState; // Updates the previous state of the outputA with the current state
 }
 
-// Modulo mit neg no 
+
+// eingene Modulo-Funktion, die auch mit negativen Zahlen korrekt klarkommt 
 int mod( int x, int y ){
    return x<0 ? ((x+1)%y)+y-1 : x%y;
 }
-
-
 
 
 void print2serial(String displayname, int value) {
@@ -191,9 +190,10 @@ void getPreferences(void) {
   faktor = (faktor2 / 10000.00);
   tara = preferences.getUInt("tara", 0);
   tara_raw = preferences.getUInt("tara_raw", 0);
-  fmenge = preferences.getUInt("fmenge", 0);
-  korrektur = preferences.getUInt("korrektur", 0);
+  counter_glas = preferences.getUInt("fmenge", 0);
+  counter_k = preferences.getUInt("korrektur", 0);
   autostart = preferences.getUInt("autostart", 0);
+  counter_pos = preferences.getUInt("pos", 0);
 
   //print2serial("faktor = ", faktor);
   //print2serial("tara_raw = ", tara_raw);
@@ -555,9 +555,21 @@ void processSetup(void) {
 void processBetrieb(void)
 {
   //pos = (map(analogRead(poti_pin), 0, 4095, 0, 100));
+  int pos_tmp = pos;
   pos = counter_pos;
+  if (pos != pos_tmp) {
+     preferences.begin("EEPROM", false);
+     preferences.putUInt("pos", counter_pos);
+     preferences.end();
+  }
   gewicht = ((((int(scale.read())) - tara_raw) / faktor) - tara);
+  int fmenge_tmp = fmenge;
   fmenge = glas[(int)(counter_glas/10)];
+  if (fmenge != fmenge_tmp) {                // preferences in Interrupt Funkt
+       preferences.begin("EEPROM", false);
+       preferences.putUInt("fmenge", counter_glas);
+       preferences.end();
+  }
   
   if ((autostart == 1) && (gewicht <= 5) && (gewicht >= -5) && (a == 0)) {
     delay(1000);
@@ -677,17 +689,23 @@ void processBetrieb(void)
     u8g2.print("AS");
   }
   //marc
+  int korrektur_tmp = korrektur;
   korrektur = (int)(counter_k / 5);
+  if (korrektur != korrektur_tmp) {
+     preferences.begin("EEPROM", false);
+     preferences.putUInt("korrektur", counter_k);
+     preferences.end();
+  }
+  //u8g2.setColorIndex(0);
   u8g2.setCursor(0, 64);
   u8g2.print("k=");
+  //u8g2.setColorIndex(1);
   u8g2.setCursor(24, 64);
   u8g2.print(korrektur);
   u8g2.setCursor(73, 64);
   u8g2.print("f=");
   u8g2.setCursor(97, 64);
   u8g2.print(fmenge);
-  //u8g2.print("123");
-  
   if (pos < 100) {
     u8g2.setCursor(98, 13);
   }
