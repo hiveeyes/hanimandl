@@ -49,13 +49,21 @@ Preferences preferences;
 // fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
 U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
 
+const int Setup = 1;
+const int Betrieb = 2;
+const int Handbetrieb = 3;
+int Betriebsmodus;
+
 // Rotary
 #define outputA 33
 #define outputB 26
 #define outputSW 32
+#define button_rotary 32
+
 volatile int counter_pos = 50; 
 volatile int counter_k = 6;
 volatile int counter_glas = 3;
+volatile int counter_poti = 0;
 int aState;
 int aLastState;  
 
@@ -132,10 +140,24 @@ void IRAM_ATTR isr2() {
    else {
      if (aState != aLastState){     
        if (digitalRead(outputB) != aState) { 
-          if (counter_pos>0) {counter_pos--;}
-        } 
-        else {
-          if (counter_pos<200) { counter_pos++;}
+          if (Betriebsmodus == Betrieb) {
+            if (counter_pos>0) {counter_pos--;}
+          }
+          else {
+            if (counter_poti >0) {counter_poti -=2;}
+          }
+       }
+
+
+           
+          else {
+             if (Betriebsmodus == Betrieb) {
+               if (counter_pos<200) { counter_pos++;}
+             }
+             else {
+              if (counter_poti <50) {counter_poti +=2;}
+             }
+          
         }
       }
     } 
@@ -205,7 +227,9 @@ void setupTara(void) {
   u8g2.setCursor(0, 8);
   u8g2.print("*");
   
-  if ((digitalRead(button_start_pin)) == HIGH) {
+  //if ((digitalRead(button_start_pin)) == HIGH) {
+    if ((digitalRead(button_rotary)) == LOW) {
+    
     tara = ((int(scale.read_average(10)) - tara_raw) / faktor);
     u8g2.setCursor(100, 12);
     u8g2.print("OK");
@@ -221,7 +245,8 @@ void setupCalibration(void) {
   u8g2.setCursor(0, 22);
   u8g2.print("*");
   
-  if ((digitalRead(button_start_pin)) == HIGH) {
+//  if ((digitalRead(button_start_pin)) == HIGH) {
+  if ((digitalRead(button_rotary)) == LOW) {
     i = 1;
     delay(300);
     u8g2.setFont(u8g2_font_courB14_tf);
@@ -237,7 +262,8 @@ void setupCalibration(void) {
     u8g2.sendBuffer();
     
     while (i > 0) {
-      if ((digitalRead(button_start_pin)) == HIGH) {
+      //if ((digitalRead(button_start_pin)) == HIGH) {
+      if ((digitalRead(button_rotary)) == LOW) {
         gewicht_raw = (int(scale.read_average(10)));
         delay(2000);
         i = 0;
@@ -257,7 +283,8 @@ void setupCalibration(void) {
     u8g2.sendBuffer();
     
     while (i > 0) {
-      if ((digitalRead(button_start_pin)) == HIGH) {
+     // if ((digitalRead(button_start_pin)) == HIGH) {
+      if ((digitalRead(button_rotary)) == LOW) {
         tara_raw = (int(scale.read_average(10)));
         delay(2000);
         i = 0;
@@ -454,17 +481,19 @@ void setupFuellmenge(void) {
 }
 
 void setupAutostart(void) {
-  u8g2.setCursor(0, 64);
+  u8g2.setCursor(0, 36);
   u8g2.print("*");
   
-  if ((digitalRead(button_start_pin)) == HIGH) {
+  //if ((digitalRead(button_start_pin)) == HIGH) {
+  if ((digitalRead(button_rotary)) == LOW) {
     i = 1;
     delay(200);
     u8g2.setFont(u8g2_font_courB14_tf);
     u8g2.clearBuffer();
     
     while (i > 0) {
-      pos = (map(analogRead(poti_pin), 0, 4095, 1, 2));
+      //pos = (map(analogRead(poti_pin), 0, 4095, 1, 2));
+      pos = map(counter_poti, 0, 50, 1, 2);
       u8g2.setFont(u8g2_font_courB14_tf);
       u8g2.clearBuffer();
       u8g2.setCursor(10, 12);
@@ -478,7 +507,8 @@ void setupAutostart(void) {
         u8g2.print("*");
         u8g2.sendBuffer();
         
-        if ((digitalRead(button_start_pin)) == HIGH) {
+  //      if ((digitalRead(button_start_pin)) == HIGH) {
+        if ((digitalRead(button_rotary)) == LOW) {
           autostart = 1;
           u8g2.setCursor(105, 12);
           u8g2.print("OK");
@@ -496,7 +526,8 @@ void setupAutostart(void) {
         u8g2.print("*");
         u8g2.sendBuffer();
         
-        if ((digitalRead(button_start_pin)) == HIGH) {
+//        if ((digitalRead(button_start_pin)) == HIGH) {
+        if ((digitalRead(button_rotary)) == LOW) { 
           autostart = 2;
           u8g2.setCursor(105, 28);
           u8g2.print("OK");
@@ -513,8 +544,8 @@ void setupAutostart(void) {
 }
 
 void processSetup(void) {
-  pos = (map(analogRead(poti_pin), 0, 4095, 1, 5));
-
+  //pos = (map(analogRead(poti_pin), 0, 4095, 1, 5));
+  pos = map(counter_poti, 0, 50, 1, 3);
   u8g2.setFont(u8g2_font_courB10_tf);
   u8g2.clearBuffer();
   u8g2.setCursor(10, 8);
@@ -522,10 +553,10 @@ void processSetup(void) {
   u8g2.setCursor(10, 22);
   u8g2.print("Kalibrieren");
   u8g2.setCursor(10, 36);
-  u8g2.print("Korrektur");
-  u8g2.setCursor(10, 50);
-  u8g2.print("Fuellmenge");
-  u8g2.setCursor(10, 64);
+  //u8g2.print("Korrektur");
+  //u8g2.setCursor(10, 50);
+  //u8g2.print("Fuellmenge");
+  //u8g2.setCursor(10, 64);
   u8g2.print("Autostart");
 
   // Tara 
@@ -537,15 +568,15 @@ void processSetup(void) {
     setupCalibration();
 
   // Korrektur 
-  if (pos == 3)
-    setupKorrektur();
+  //if (pos == 3)
+  //  setupKorrektur();
     
   // Füllmenge 
-  if (pos == 4)
-    setupFuellmenge();
+  //if (pos == 4)
+  //  setupFuellmenge();
 
   // Autostart 
-  if (pos == 5)
+  if (pos == 3)
     setupAutostart();
 
   u8g2.sendBuffer();
@@ -868,17 +899,18 @@ void setup()
 
 void loop()
 {
-  if ((digitalRead(switch_setup_pin)) == HIGH)
+  if ((digitalRead(switch_setup_pin)) == HIGH) {
+    Betriebsmodus = Setup;
     processSetup();
-
+  }
   // Betrieb 
-  if ((digitalRead(switch_betrieb_pin)) == HIGH)
+  if ((digitalRead(switch_betrieb_pin)) == HIGH) {
+    Betriebsmodus = Betrieb;
     processBetrieb();
-
+  }
   // Handbetrieb 
-  if ((digitalRead(switch_betrieb_pin) == LOW)
-      && (digitalRead(switch_setup_pin) == LOW))
+  if ((digitalRead(switch_betrieb_pin) == LOW) && (digitalRead(switch_setup_pin) == LOW)) {
+    Betriebsmodus = Handbetrieb;
     processHandbetrieb();
+  }
 }
-
-// Rotary
