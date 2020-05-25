@@ -116,85 +116,42 @@ const int glas2 = 440;
 const int glas1 = 250;
 
 
-
-/*struct Button {
-  const uint8_t PIN;
-  uint32_t numberKeyPresses;
-  bool pressed;
-};
-*/
-//int buttonPressed =0;
-/*
-void IRAM_ATTR isr1() {
-  buttonPressed += 1;
-  Serial.println(buttonPressed);
-}
-*/
 void IRAM_ATTR isr2() { 
-   aState = digitalRead(outputA); // Reads the "current" state of the outputA
-   /*Serial.print(aLastState);
-   Serial.print("  ");
-    Serial.println(aState);*/
-   // If the previous and the current state of the outputA are different, that means a Pulse has occured
+  aState = digitalRead(outputA); // Reads the "current" state of the outputA
   if (digitalRead(outputSW) == HIGH) {  
-     if (digitalRead(button_stop_pin) == HIGH) {
+    if (digitalRead(button_stop_pin) == HIGH) {
        if (aState != aLastState){     
-       // If the outputB state is different to the outputA state, that means the encoder is rotating clockwise
          if (digitalRead(outputB) != aState) { 
            counter_glas = mod((counter_glas+1) , Anzahl_Glaeser*10);
-        }
-       else {
-         counter_glas = mod((counter_glas-1) , Anzahl_Glaeser*10);
-      }
-    // Serial.print("Position: ");
-    // Serial.println(counter_pos);
-   } 
-     }
-   
+         }
+         else {
+           counter_glas = mod((counter_glas-1) , Anzahl_Glaeser*10);
+         }
+      } 
+    }
    else {
-   if (aState != aLastState){     
-     // If the outputB state is different to the outputA state, that means the encoder is rotating clockwise
-     if (digitalRead(outputB) != aState) { 
-       if (counter_pos>0) {counter_pos--;}
-        
-     
-     } else {
-       if (counter_pos<100) { counter_pos++;}
+     if (aState != aLastState){     
+       if (digitalRead(outputB) != aState) { 
+          if (counter_pos>0) {counter_pos--;}
+        } 
+        else {
+          if (counter_pos<100) { counter_pos++;}
+        }
+      }
+    } 
+  }
+  else {
+    if (aState != aLastState){     
+       if (digitalRead(outputB) != aState) { 
+         if (counter_k<100) { counter_k++;}
+       } 
+       else {      
+         if (counter_k>-100) {counter_k--;}
+       }
      }
-    // Serial.print("Position: ");
-    // Serial.println(counter_pos);
-   }
- } 
-     
-
-
-
-  
- }
- 
- else {
-  if (aState != aLastState){     
-     // If the outputB state is different to the outputA state, that means the encoder is rotating clockwise
-     if (digitalRead(outputB) != aState) { 
-        if (counter_k<100) { counter_k++;}
-     } else {
-      
-       if (counter_k>-100) {counter_k--;}
-     }
-     //Serial.print("Nachlauf: ");
-     //Serial.println(counter_k);   
-   }
- }   
+   }   
  aLastState = aState; // Updates the previous state of the outputA with the current state
 }
-
-/*Rotary rotary1 = {outputA, 0, false};
-void IRAM_ATTR isr2() {
-  button1.numberKeyPresses += 1;
-  button1.pressed = true;
-  Serial.println(button1.numberKeyPresses);
-}
-*/
 
 // Modulo mit neg no 
 int mod( int x, int y ){
