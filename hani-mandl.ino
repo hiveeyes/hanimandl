@@ -16,7 +16,9 @@
                             - pins geaendert, um Konflikte mit hard wired pins des OLEDs zu vermeiden 
   2019-02 Clemens Gruber  | Aktivierung der internen pull downs für alle digitalen Eingaenge
   2019-02 Clemens Gruber  | "normale" pins zu Vcc / GND geaendert um die Verkabelung etwas einfacher und angenehmer zu machen
- 
+  2020-05 Marc Junker     | Erweiterung von Poti auf Rotary Encoder; alle Serial.print´s in #ifdef eingeschlossen; "Start" delay verkürzt
+                            glas von const in Array geändert
+  
                             
   This code is in the public domain.
   
@@ -33,7 +35,7 @@
 #include <ESP32_Servo.h>  /* https://github.com/jkb-git/ESP32Servo */
 #include <Preferences.h>  /* aus dem BSP von expressif */
 
-#define isDebug 
+//#define isDebug 
 
 Servo servo;
 HX711 scale;
@@ -46,6 +48,16 @@ Preferences preferences;
 //U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, SCL, SDA, U8X8_PIN_NONE);
 // fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
 U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
+
+// Rotary
+#define outputA 33
+#define outputB 26
+#define outputSW 32
+volatile int counter_pos = 50; 
+volatile int counter_k = 6;
+volatile int counter_glas = 3;
+int aState;
+int aLastState;  
 
 // Servo
 const int servo_pin = 2;
@@ -88,13 +100,109 @@ int korrektur;
 int autostart;
 int winkel;
 int winkel_min = 0;
-int winkel_max = 155;
-int winkel_dosier_min = 45;
+int winkel_max = 110;
+int winkel_dosier_min = 30;
 float fein_dosier_gewicht = 60;
 int i;
 int u;
 int a;
 int z;
+
+const int Anzahl_Glaeser = 6;
+int glas[Anzahl_Glaeser] = {125, 250, 440, 500, 535, 700};
+const int glas4 = 535;
+const int glas3 = 500;
+const int glas2 = 440;
+const int glas1 = 250;
+
+
+
+/*struct Button {
+  const uint8_t PIN;
+  uint32_t numberKeyPresses;
+  bool pressed;
+};
+*/
+//int buttonPressed =0;
+/*
+void IRAM_ATTR isr1() {
+  buttonPressed += 1;
+  Serial.println(buttonPressed);
+}
+*/
+void IRAM_ATTR isr2() { 
+   aState = digitalRead(outputA); // Reads the "current" state of the outputA
+   /*Serial.print(aLastState);
+   Serial.print("  ");
+    Serial.println(aState);*/
+   // If the previous and the current state of the outputA are different, that means a Pulse has occured
+  if (digitalRead(outputSW) == HIGH) {  
+     if (digitalRead(button_stop_pin) == HIGH) {
+       if (aState != aLastState){     
+       // If the outputB state is different to the outputA state, that means the encoder is rotating clockwise
+         if (digitalRead(outputB) != aState) { 
+           counter_glas = mod((counter_glas+1) , Anzahl_Glaeser*10);
+        }
+       else {
+         counter_glas = mod((counter_glas-1) , Anzahl_Glaeser*10);
+      }
+    // Serial.print("Position: ");
+    // Serial.println(counter_pos);
+   } 
+     }
+   
+   else {
+   if (aState != aLastState){     
+     // If the outputB state is different to the outputA state, that means the encoder is rotating clockwise
+     if (digitalRead(outputB) != aState) { 
+       if (counter_pos>0) {counter_pos--;}
+        
+     
+     } else {
+       if (counter_pos<100) { counter_pos++;}
+     }
+    // Serial.print("Position: ");
+    // Serial.println(counter_pos);
+   }
+ } 
+     
+
+
+
+  
+ }
+ 
+ else {
+  if (aState != aLastState){     
+     // If the outputB state is different to the outputA state, that means the encoder is rotating clockwise
+     if (digitalRead(outputB) != aState) { 
+        if (counter_k<100) { counter_k++;}
+     } else {
+      
+       if (counter_k>-100) {counter_k--;}
+     }
+     //Serial.print("Nachlauf: ");
+     //Serial.println(counter_k);   
+   }
+ }   
+ aLastState = aState; // Updates the previous state of the outputA with the current state
+}
+
+/*Rotary rotary1 = {outputA, 0, false};
+void IRAM_ATTR isr2() {
+  button1.numberKeyPresses += 1;
+  button1.pressed = true;
+  Serial.println(button1.numberKeyPresses);
+}
+*/
+
+// Modulo mit neg no 
+int mod( int x, int y ){
+   return x<0 ? ((x+1)%y)+y-1 : x%y;
+}
+
+
+
 
 void print2serial(String displayname, int value) {
   Serial.print(displayname);
@@ -113,7 +221,7 @@ void getPreferences(void) {
 
   #ifdef isDebug
     if (faktor2 == 0) {
-      Serial.println("Waage ist nicht kalibiert!");
+      //Serial.println("Waage ist nicht kalibiert!");
       for (int i=0; i < 200; i++) {
         delay(50);
         digitalWrite(LED_BUILTIN, LOW);
@@ -130,9 +238,9 @@ void getPreferences(void) {
   korrektur = preferences.getUInt("korrektur", 0);
   autostart = preferences.getUInt("autostart", 0);
 
-  print2serial("faktor = ", faktor);
-  print2serial("tara_raw = ", tara_raw);
-  print2serial("tara = ", tara);
+  //print2serial("faktor = ", faktor);
+  //print2serial("tara_raw = ", tara_raw);
+  //print2serial("tara = ", tara);
   preferences.end();
 }
 
@@ -207,6 +315,9 @@ void setupCalibration(void) {
   }
 }
 
+
+
+
 void setupKorrektur(void) {
   u8g2.setCursor(0, 36);
   u8g2.print("*");
@@ -243,6 +354,45 @@ void setupKorrektur(void) {
   }
 }
 
+void setupGlas1(void)
+{
+  u8g2.setFont(u8g2_font_courB10_tf);
+  u8g2.clearBuffer();
+  u8g2.setCursor(10, 12);
+  u8g2.print("Leeres Glas");
+  u8g2.setCursor(10, 28);
+  u8g2.print("aufstellen und");
+  u8g2.setCursor(10, 44);
+  u8g2.print("OK druecken.");
+  u8g2.sendBuffer();
+  while ((digitalRead(button_start_pin)) == LOW) {};
+  setupTara();
+  u8g2.setFont(u8g2_font_courB10_tf);
+  u8g2.clearBuffer();
+  u8g2.setCursor(10, 12);
+  u8g2.print("Volles Glas");
+  u8g2.setCursor(10, 28);
+  u8g2.print("aufstellen und");
+  u8g2.setCursor(10, 44);
+  u8g2.print("OK druecken.");
+  u8g2.sendBuffer();
+  
+  delay(1000);
+  while ((digitalRead(button_start_pin)) == LOW) {};
+  fmenge = ((((int(scale.read())) - tara_raw) / faktor) - tara);
+  
+          u8g2.setCursor(100, 12);
+          u8g2.print("OK");
+          u8g2.sendBuffer();
+          delay(2000);
+          i = 0;
+          preferences.begin("EEPROM", false);
+          preferences.putUInt("fmenge", fmenge);
+          preferences.end();
+  u8g2.clearBuffer();
+}
+
+
 void setupFuellmenge(void) {
   u8g2.setCursor(0, 50);
   u8g2.print("*");
@@ -258,13 +408,14 @@ void setupFuellmenge(void) {
       u8g2.setFont(u8g2_font_courB14_tf);
       u8g2.clearBuffer();
       u8g2.setCursor(10, 12);
-      u8g2.print(" 500g");
+      u8g2.print(" "+(String)glas4+"g");
       u8g2.setCursor(10, 28);
-      u8g2.print(" 250g");
+      u8g2.print(" "+(String)glas3+"g");
       u8g2.setCursor(10, 44);
-      u8g2.print("  50g");
+      u8g2.print(" "+(String)glas2+"g");
       u8g2.setCursor(10, 60);
-      u8g2.print("  20g");
+      //u8g2.print(" "+(String)glas1+"g");
+      u8g2.print(" Auto");
       u8g2.sendBuffer();
       
       if (pos == 1) {
@@ -273,7 +424,7 @@ void setupFuellmenge(void) {
         u8g2.sendBuffer();
         
         if ((digitalRead(button_start_pin)) == HIGH) {
-          fmenge = 500;
+          fmenge = glas4;
           u8g2.setCursor(100, 12);
           u8g2.print("OK");
           u8g2.sendBuffer();
@@ -291,7 +442,7 @@ void setupFuellmenge(void) {
         u8g2.sendBuffer();
         
         if ((digitalRead(button_start_pin)) == HIGH) {
-          fmenge = 250;
+          fmenge = glas3;
           u8g2.setCursor(100, 28);
           u8g2.print("OK");
           u8g2.sendBuffer();
@@ -309,7 +460,7 @@ void setupFuellmenge(void) {
         u8g2.sendBuffer();
         
         if ((digitalRead(button_start_pin)) == HIGH) {
-          fmenge = 50;
+          fmenge = glas2;
           u8g2.setCursor(100, 44);
           u8g2.print("OK");
           u8g2.sendBuffer();
@@ -327,7 +478,9 @@ void setupFuellmenge(void) {
         u8g2.sendBuffer();
         
         if ((digitalRead(button_start_pin)) == HIGH) {
-          fmenge = 20;
+          setupGlas1();
+          /*
+          fmenge = glas1;
           u8g2.setCursor(100, 60);
           u8g2.print("OK");
           u8g2.sendBuffer();
@@ -336,6 +489,7 @@ void setupFuellmenge(void) {
           preferences.begin("EEPROM", false);
           preferences.putUInt("fmenge", fmenge);
           preferences.end();
+          */
         }
       }
     }
@@ -443,8 +597,10 @@ void processSetup(void) {
 
 void processBetrieb(void)
 {
-  pos = (map(analogRead(poti_pin), 0, 4095, 0, 100));
+  //pos = (map(analogRead(poti_pin), 0, 4095, 0, 100));
+  pos = counter_pos;
   gewicht = ((((int(scale.read())) - tara_raw) / faktor) - tara);
+  fmenge = glas[(int)(counter_glas/10)];
   
   if ((autostart == 1) && (gewicht <= 5) && (gewicht >= -5) && (a == 0)) {
     delay(1000);
@@ -455,7 +611,7 @@ void processBetrieb(void)
       u8g2.setCursor(20, 43);
       u8g2.print("START");
       u8g2.sendBuffer();
-      delay(3000);
+      delay(500);
       a = 1;
     }
   }
@@ -499,7 +655,7 @@ void processBetrieb(void)
   
   servo.write(winkel);
   float y = ((fmenge + korrektur - gewicht) / fein_dosier_gewicht);
-  Serial.println(y);
+  //Serial.println(y);
   
   #ifdef isDebug
     Serial.print(scale.read_average(3));
@@ -563,7 +719,8 @@ void processBetrieb(void)
     u8g2.setCursor(58, 13);
     u8g2.print("AS");
   }
-  
+  //marc
+  korrektur = (int)(counter_k / 5);
   u8g2.setCursor(0, 64);
   u8g2.print("k=");
   u8g2.setCursor(24, 64);
@@ -572,6 +729,7 @@ void processBetrieb(void)
   u8g2.print("f=");
   u8g2.setCursor(97, 64);
   u8g2.print(fmenge);
+  //u8g2.print("123");
   
   if (pos < 100) {
     u8g2.setCursor(98, 13);
@@ -593,7 +751,9 @@ void processBetrieb(void)
 
 void processHandbetrieb(void)
 {
-  pos = (map(analogRead(poti_pin), 0, 4095, 0, 100));
+  //checkRotary();
+  //pos = (map(analogRead(poti_pin), 0, 4095, 0, 100));
+  pos = counter_pos;
   gewicht = ((((int(scale.read())) - tara_raw) / faktor) - tara);
   
   if ((digitalRead(button_start_pin)) == HIGH) {
@@ -694,6 +854,15 @@ void setup()
   pinMode(switch_setup_pin, INPUT_PULLDOWN);
   pinMode(LED_BUILTIN, OUTPUT);
 
+  // Rotary
+  pinMode(outputA,INPUT);
+  pinMode(outputB,INPUT);
+  aLastState = digitalRead(outputA);
+  //attachInterrupt(outputA, rotaryCheck, CHANGE);
+  pinMode(outputSW, INPUT_PULLUP);
+  //attachInterrupt(outputSW, isr1, FALLING);
+  attachInterrupt(outputA, isr2, CHANGE);
+ 
   // switch Vcc / GND on normal pins for convenient wiring
   // output 5V for VCC
   digitalWrite (switch_vcc_pin, HIGH); 
@@ -736,3 +905,5 @@ void loop()
       && (digitalRead(switch_setup_pin) == LOW))
     processHandbetrieb();
 }
+
+// Rotary
