@@ -135,7 +135,7 @@ void IRAM_ATTR isr2() {
           if (counter_pos>0) {counter_pos--;}
         } 
         else {
-          if (counter_pos<100) { counter_pos++;}
+          if (counter_pos<200) { counter_pos++;}
         }
       }
     } 
@@ -556,7 +556,7 @@ void processBetrieb(void)
 {
   //pos = (map(analogRead(poti_pin), 0, 4095, 0, 100));
   int pos_tmp = pos;
-  pos = counter_pos;
+  pos = counter_pos / 2;
   if (pos != pos_tmp) {
      preferences.begin("EEPROM", false);
      preferences.putUInt("pos", counter_pos);
