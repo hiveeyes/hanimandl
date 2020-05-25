@@ -140,7 +140,7 @@ void IRAM_ATTR isr2() {
    else {
      if (aState != aLastState){     
        if (digitalRead(outputB) != aState) { 
-          if (Betriebsmodus == Betrieb) {
+          if (Betriebsmodus != Setup) {
             if (counter_pos>0) {counter_pos--;}
           }
           else {
@@ -151,7 +151,7 @@ void IRAM_ATTR isr2() {
 
            
           else {
-             if (Betriebsmodus == Betrieb) {
+             if (Betriebsmodus != Setup) {
                if (counter_pos<200) { counter_pos++;}
              }
              else {
@@ -759,7 +759,7 @@ void processHandbetrieb(void)
 {
   //checkRotary();
   //pos = (map(analogRead(poti_pin), 0, 4095, 0, 100));
-  pos = counter_pos;
+  pos = counter_pos / 2;
   gewicht = ((((int(scale.read())) - tara_raw) / faktor) - tara);
   
   if ((digitalRead(button_start_pin)) == HIGH) {
