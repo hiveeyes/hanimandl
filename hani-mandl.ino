@@ -256,7 +256,7 @@ void setupCalibration(void) {
     u8g2.setCursor(10, 28);
     u8g2.print("aufstellen");
     u8g2.setCursor(10, 44);
-    u8g2.print("& mit Start");
+    u8g2.print("& mit OK");
     u8g2.setCursor(10, 60);
     u8g2.print("bestaetigen");
     u8g2.sendBuffer();
@@ -277,7 +277,7 @@ void setupCalibration(void) {
     u8g2.setCursor(10, 28);
     u8g2.print("leeren");
     u8g2.setCursor(10, 44);
-    u8g2.print("& mit Start");
+    u8g2.print("& mit OK");
     u8g2.setCursor(10, 60);
     u8g2.print("bestaetigen");
     u8g2.sendBuffer();
@@ -294,6 +294,7 @@ void setupCalibration(void) {
         preferences.putUInt("faktor2", (faktor * 10000));
         preferences.putUInt("tara_raw", tara_raw);
         preferences.end();
+        counter_poti = 0;
       }
     }
   }
@@ -513,6 +514,7 @@ void setupAutostart(void) {
           u8g2.setCursor(105, 12);
           u8g2.print("OK");
           u8g2.sendBuffer();
+          counter_poti = 0;
           delay(2000);
           i = 0;
           preferences.begin("EEPROM", false);
@@ -532,6 +534,7 @@ void setupAutostart(void) {
           u8g2.setCursor(105, 28);
           u8g2.print("OK");
           u8g2.sendBuffer();
+          counter_poti = 0;
           delay(2000);
           i = 0;
           preferences.begin("EEPROM", false);
@@ -853,6 +856,12 @@ void processHandbetrieb(void)
 
 void setup()
 {
+  u8g2.begin();
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_courB24_tf);
+  u8g2.setCursor(20, 43);
+  u8g2.print("Moin!");
+  u8g2.sendBuffer();
   // enable internal pull downs for digital inputs 
   pinMode(button_start_pin, INPUT_PULLDOWN);
   pinMode(button_stop_pin, INPUT_PULLDOWN);
@@ -887,13 +896,14 @@ void setup()
   while (!Serial) {
   }
   
-  u8g2.begin();
+  //u8g2.begin();
   scale.begin(hx711_dt_pin, hx711_sck_pin);
   scale.power_up();
 
   servo.attach(servo_pin, 750, 2500);
 
   getPreferences();
+  delay(3000);
 }
 
 
