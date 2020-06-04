@@ -46,6 +46,7 @@
 #define isDebug 
 #undef Autokorrektur
 #undef HARDWARE_V1       // originales Layout, Schalter auf Pin 19/22/21
+#define POTISCALE
 
 #define MODE_SETUP       0
 #define MODE_AUTOMATIK   1
@@ -159,12 +160,16 @@ int autofill = 0; // Für Automatikmodus - System ein/aus?
 int waage_vorhanden = 0;
 
 // Simuliert die Dauer des Wägeprozess, wenn keine Waage angeschlossen ist. Wirkt sich auf die Blinkfrequenz im Automatikmodus aus.
-int simulate_scale(int n) {
+long simulate_scale(int n) {
+    long sim_gewicht = 9500;
 //    while (n >= 1) { 
 //      delay(80);
 //      n--;
 //    }
-    return 9500;
+#ifdef POTISCALE
+    sim_gewicht = (map(analogRead(poti_pin), 0, 4095, 0, 50000));
+#endif   
+    return sim_gewicht;
 }
 
 // Rotary Taster. Der Interrupt kommt nur im Automatikmodus zum Tragen und nur wenn der Servo inaktiv ist. 
@@ -173,7 +178,7 @@ void IRAM_ATTR isr1() {
   unsigned long interrupt_time = millis();
 
   if (interrupt_time - last_interrupt_time > 300) {   // If interrupts come faster than 200ms, assume it's a bounce and ignore
-    if ( modus == MODE_AUTOMATIK && servo_aktiv == 0 ) {          // nur im Automatik-Modus interessiert uns der Click
+    if ( modus == MODE_AUTOMATIK && autofill == 0 ) {          // nur im Automatik-Modus interessiert uns der Click
       rotary_select = (rotary_select + 1) % 3;
 #ifdef isDebug
     Serial.print("Rotary Button changed to ");
@@ -224,7 +229,9 @@ void getPreferences(void) {
         delay(50);
         digitalWrite(LED_BUILTIN, LOW);
 //        }
+#ifndef POTISCALE
       faktor2 = 10000;   // Für brauchbare Anzeige, sonst Division durch Null!
+#endif
     }
 #endif
   
@@ -257,6 +264,7 @@ void getPreferences(void) {
     Serial.println("Preferences:");
     Serial.print("pos = ");          Serial.println(pos);
     Serial.print("faktor = ");       Serial.println(faktor);
+    Serial.print("faktor2 = ");       Serial.println(faktor2);
     Serial.print("tara = ");         Serial.println(tara);
     Serial.print("tara_raw = ");     Serial.println(tara_raw);
     Serial.print("fmenge = ");       Serial.println(fmenge);
@@ -276,6 +284,8 @@ void getPreferences(void) {
 }
 
 void setPreferences(void) {
+    pos = rotaries[SW_WINKEL].Value;
+    
     preferences.begin("EEPROM", false);
 
     preferences.putUInt("pos", pos);
@@ -295,8 +305,29 @@ void setPreferences(void) {
       preferences.putInt(ausgabe, glaeser[i].Tara);
       i++;
     }
-
     preferences.end();
+
+#ifdef isDebug
+    Serial.println("Set Preferences:");
+    Serial.print("pos = ");          Serial.println(pos);
+    Serial.print("faktor = ");       Serial.println(faktor);
+    Serial.print("faktor2 = ");       Serial.println(faktor2);
+    Serial.print("tara = ");         Serial.println(tara);
+    Serial.print("tara_raw = ");     Serial.println(tara_raw);
+    Serial.print("fmenge = ");       Serial.println(fmenge);
+    Serial.print("korrektur = ");    Serial.println(korrektur);
+    Serial.print("autostart = ");    Serial.println(autostart);
+    Serial.print("fmenge_index = "); Serial.println(fmenge_index);
+    Serial.print("winkel_max = ");   Serial.println(winkel_max);
+    Serial.print("winkel_fein = ");  Serial.println(winkel_dosier_min);
+
+    i = 0;
+    while( i < 5 ) {
+      sprintf(ausgabe, "tara%d = ", i);
+      Serial.print(ausgabe);         Serial.println(glaeser[i].Tara);
+      i++;
+    }
+#endif
 }
 
 void clearPreferences(void) {
@@ -378,7 +409,8 @@ void setupCalibration(void) {
         delay(1000);
         i = 0;
         faktor = ((gewicht_raw - tara_raw) / 500.000);
-
+        faktor2 = faktor * 10000;
+        
         preferences.begin("EEPROM", false);  // faktor und tara ins eeprom schreiben
         preferences.putUInt("faktor2", (faktor * 10000));
         preferences.putUInt("tara_raw", tara_raw);
@@ -744,6 +776,7 @@ void processHandbetrieb(void)
      servo_aktiv = 0;                        // Servo-Betrieb aus
      servo.write(winkel);
      rotary_select = SW_WINKEL;
+     tara = 0;
   }
 
 //  pos = (map(analogRead(poti_pin), 0, 4095, 100, 0));
