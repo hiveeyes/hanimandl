@@ -43,10 +43,18 @@
 #include <ESP32_Servo.h>  /* https://github.com/jkb-git/ESP32Servo */
 #include <Preferences.h>  /* aus dem BSP von expressif */
 
-#define isDebug 
-#undef Autokorrektur
-#undef HARDWARE_V1       // originales Layout, Schalter auf Pin 19/22/21
-#define POTISCALE
+
+//
+// Hier den Code auf die verwendete Hardware einstellen
+//
+#define isDebug 3        // debug-Ausgabe aktivieren. auf "undef" ändern zum deaktiveren
+#undef HARDWARE_V1       // definieren für originales Layout, Schalter auf Pin 19/22/21
+#define ROTARY_SCALE 2   // in welchen Schritten springt unser Rotary Encoder
+// 
+// Ab hier nur verstellen wenn Du genau weisst, was Du tust!
+//
+#undef Autokorrektur     // nicht aktivieren! Code-Fragment
+#define POTISCALE        // Poti simuliert eine Wägezelle
 
 #define MODE_SETUP       0
 #define MODE_AUTOMATIK   1
@@ -86,9 +94,9 @@ struct rotary {
 #define SW_WINKEL    0
 #define SW_KORREKTUR 1
 #define SW_MENU      2
-struct rotary rotaries[3] = { { 0,   0, 100, 5 },     // Winkel
-                              { 0, -20,  20, 1 },     // Korrektur
-                              { 0,   0,   5, 1 } };   // für Menuauswahlen
+struct rotary rotaries[3] = { { 0,   0*ROTARY_SCALE, 100*ROTARY_SCALE, 5 },     // Winkel
+                              { 0, -20*ROTARY_SCALE,  20*ROTARY_SCALE, 1 },     // Korrektur
+                              { 0,   0*ROTARY_SCALE,   5*ROTARY_SCALE, 1 } };   // für Menuauswahlen
 int rotary_select = SW_WINKEL;
 
 struct glas { 
@@ -193,7 +201,7 @@ void IRAM_ATTR isr1() {
 // SW_WINKEL    = Einstellung des Servo-Winkels
 // SW_KORREKTUR = Korrekturfaktor für Füllgewicht
 // SW_MENU      = Zähler für Menuauswahlen 
-void IRAM_ATTR isr2() { 
+void IRAM_ATTR isr2() {
   if ( rotating ) delay (1);  // wait a little until the bouncing is done
    
   aState = digitalRead(outputA); // Reads the "current" state of the outputA
@@ -210,7 +218,7 @@ void IRAM_ATTR isr2() {
       rotating = false;
 #ifdef isDebug
       Serial.print("Rotary Value changed to ");
-      Serial.println(rotaries[rotary_select].Value);
+      Serial.println(rotaries[rotary_select].Value / ROTARY_SCALE);
 #endif 
     }
     aLastState = aState; // Updates the previous state of the outputA with the current state
@@ -256,9 +264,9 @@ void getPreferences(void) {
     preferences.end();
 
     // Parameter für den Rotary Encoder setzen
-    rotaries[SW_KORREKTUR].Value = korrektur;
-    rotaries[SW_WINKEL].Value = pos;
-    rotaries[SW_MENU].Value = fmenge_index;
+    rotaries[SW_KORREKTUR].Value = korrektur * ROTARY_SCALE;
+    rotaries[SW_WINKEL].Value = pos * ROTARY_SCALE;
+    rotaries[SW_MENU].Value = fmenge_index * ROTARY_SCALE;
     
 #ifdef isDebug
     Serial.println("Preferences:");
@@ -284,7 +292,7 @@ void getPreferences(void) {
 }
 
 void setPreferences(void) {
-    pos = rotaries[SW_WINKEL].Value;
+    pos = rotaries[SW_WINKEL].Value / ROTARY_SCALE;
     
     preferences.begin("EEPROM", false);
 
@@ -338,7 +346,7 @@ void clearPreferences(void) {
 
 void setupTara(void) {
     int j;
-    rotaries[SW_MENU] = { 0, 0, 4, -1};      // Set Encoder to Menu Mode, four Selections, inverted count
+    rotaries[SW_MENU] = { 0, 0*ROTARY_SCALE, 4*ROTARY_SCALE, -1};      // Set Encoder to Menu Mode, four Selections, inverted count
     tara = 0;
     
     i = 0;
@@ -358,12 +366,12 @@ void setupTara(void) {
         }
         j++;
       }
-      u8g2.setCursor(0, 10+((rotaries[SW_MENU].Value)*13));    
+      u8g2.setCursor(0, 10+(((rotaries[SW_MENU].Value/ROTARY_SCALE))*13));    
       u8g2.print("*");
       u8g2.sendBuffer();
 
       if ( digitalRead(outputSW) == LOW ) {
-        glaeser[rotaries[SW_MENU].Value].Tara = ((int(SCALE_READAVERAGE(30)) - tara_raw) / faktor);
+        glaeser[(rotaries[SW_MENU].Value/ROTARY_SCALE)].Tara = ((int(SCALE_READAVERAGE(30)) - tara_raw) / faktor);
 
         u8g2.clearBuffer();
         j = 0;
@@ -378,7 +386,7 @@ void setupTara(void) {
           }
           j++;
         }
-        u8g2.setCursor(0, 10+((rotaries[SW_MENU].Value)*13));    
+        u8g2.setCursor(0, 10+(((rotaries[SW_MENU].Value/ROTARY_SCALE))*13));    
         u8g2.print("*");
         u8g2.sendBuffer();
        
@@ -438,7 +446,7 @@ void setupKorrektur(void) {
     i = 1;
     while (i > 0) {
 //      pos = (map(analogRead(poti_pin), 0, 4095, 10, -50));
-      pos = rotaries[SW_KORREKTUR].Value;
+      pos = rotaries[SW_KORREKTUR].Value/ROTARY_SCALE;
       u8g2.setFont(u8g2_font_courB14_tf);
       u8g2.clearBuffer();
       u8g2.setCursor(10, 12);
@@ -467,12 +475,12 @@ void setupKorrektur(void) {
 // Funktion zum anpassen eines beliebigen Zahlwerts (Öffnungswinkel Maximum und Feindosierung) 
 // Könnte auch für Korrektur genutzt werden, der Wert hat aber seine eigene Datenstruktur
 void setupZahlwert(int *param, int min, int max, char *name) {
-    rotaries[SW_MENU] = { *param, min, max, 1};      // Set Encoder to Menu Mode, two Selections, inverted count
+    rotaries[SW_MENU] = { *param, min*ROTARY_SCALE, max*ROTARY_SCALE, 1};      // Set Encoder to Menu Mode, two Selections, inverted count
         
     i = 1;
     while (i > 0) {
 //      pos = (map(analogRead(poti_pin), 0, 4095, 10, -50));
-      pos = rotaries[SW_MENU].Value;
+      pos = rotaries[SW_MENU].Value/ROTARY_SCALE;
       u8g2.setFont(u8g2_font_courB12_tf);
       u8g2.clearBuffer();
       u8g2.setCursor(10, 12);
@@ -496,13 +504,13 @@ void setupZahlwert(int *param, int min, int max, char *name) {
 
 void setupFuellmenge(void) {
     int j;
-    rotaries[SW_MENU] = { 0, 0, 4, -1};      // Set Encoder to Menu Mode, four Selections, inverted count
+    rotaries[SW_MENU] = { 0, 0*ROTARY_SCALE, 4*ROTARY_SCALE, -1};      // Set Encoder to Menu Mode, four Selections, inverted count
     
     u8g2.setFont(u8g2_font_courB10_tf);
     i = 1;
     while (i > 0) {
 //      pos = (map(analogRead(poti_pin), 0, 4095, 1, 4));
-      pos = rotaries[SW_MENU].Value;
+      pos = rotaries[SW_MENU].Value/ROTARY_SCALE;
 
       u8g2.clearBuffer();
       j = 0;
@@ -511,7 +519,7 @@ void setupFuellmenge(void) {
         u8g2.print(glaeser[j].Gewicht);
         j++;
       }
-      u8g2.setCursor(0, 10+((rotaries[SW_MENU].Value)*13));    
+      u8g2.setCursor(0, 10+(((rotaries[SW_MENU].Value/ROTARY_SCALE))*13));    
       u8g2.print("*");
       u8g2.sendBuffer();
 
@@ -520,7 +528,7 @@ void setupFuellmenge(void) {
         tara   = glaeser[pos].Tara;
         fmenge_index = pos; 
         
-        u8g2.setCursor(100, 10+(rotaries[SW_MENU].Value*13));
+        u8g2.setCursor(100, 10+((rotaries[SW_MENU].Value/ROTARY_SCALE)*13));
         u8g2.print("OK");
         u8g2.sendBuffer();
         delay(1000);
@@ -535,7 +543,7 @@ void setupAutostart(void) {
   i = 1;
   while (i > 0) {
 //    pos = (map(analogRead(poti_pin), 0, 4095, 1, 2));
-    pos = rotaries[SW_MENU].Value;
+    pos = rotaries[SW_MENU].Value/ROTARY_SCALE;
     u8g2.setFont(u8g2_font_courB14_tf);
     u8g2.clearBuffer();
     u8g2.setCursor(10, 12);    u8g2.print("Auto EIN");
@@ -568,11 +576,11 @@ void processSetup(void) {
      winkel = winkel_min;          // Hahn schliessen
      servo_aktiv = 0;                          // Servo-Betrieb aus
      servo.write(winkel);
-     rotaries[SW_MENU] = { 1, 1, 8, -1};
+     rotaries[SW_MENU] = { 1*ROTARY_SCALE, 1*ROTARY_SCALE, 8*ROTARY_SCALE, -1};
      rotary_select = SW_MENU;
   }
 //  pos = (map(analogRead(poti_pin), 0, 4095, 1, 5));
-  pos = rotaries[SW_MENU].Value;
+  pos = rotaries[SW_MENU].Value/ROTARY_SCALE;
 
   u8g2.setFont(u8g2_font_courB10_tf);
   u8g2.clearBuffer();
@@ -614,7 +622,7 @@ void processSetup(void) {
     setPreferences();
 
     if (pos == 8)   clearPreferences();       // EEPROM löschen
-    rotaries[SW_MENU] = { lastpos, 1, 8, -1}; // Menu-Parameter könnten verstellt worden sein
+    rotaries[SW_MENU] = { lastpos, 1*ROTARY_SCALE, 8*ROTARY_SCALE, -1}; // Menu-Parameter könnten verstellt worden sein
   }
 }
 
@@ -635,13 +643,13 @@ void processAutomatik(void) {
      autofill = 0;                 // automatische Füllung starten
      tara_glas = 0;
      rotary_select = SW_WINKEL;                      // Einstellung für Winkel über Rotary
-     rotaries[SW_MENU] = { fmenge_index, 0, 4, 1 };  // Einstellung für Füllmenge über Rotary
+     rotaries[SW_MENU] = { fmenge_index, 0*ROTARY_SCALE, 4*ROTARY_SCALE, 1 };  // Einstellung für Füllmenge über Rotary
   }
 
 //  pos = (map(analogRead(poti_pin), 0, 4095, 100, 0));
-  pos =          rotaries[SW_WINKEL].Value;
-  korrektur =    rotaries[SW_KORREKTUR].Value;
-  fmenge_index = rotaries[SW_MENU].Value;
+  pos =          (rotaries[SW_WINKEL].Value / ROTARY_SCALE);
+  korrektur =    (rotaries[SW_KORREKTUR].Value / ROTARY_SCALE);
+  fmenge_index = (rotaries[SW_MENU].Value / ROTARY_SCALE);
   tara   = glaeser[fmenge_index].Tara;
   fmenge = glaeser[fmenge_index].Gewicht;
 
@@ -693,7 +701,7 @@ void processAutomatik(void) {
     if ((gewicht <= 5) && (gewicht >= -5)) {
       tara_glas   = gewicht;
 #ifdef Autokorrektur
-      rotaries[SW_KORREKTUR].Value -= ((gewicht_vorher - zielgewicht_vorher)/2);
+      rotaries[SW_KORREKTUR].Value -= ((gewicht_vorher - zielgewicht_vorher)/2)*ROTARY_SCALE;
 #endif
       servo_aktiv = 1;
     }
@@ -737,14 +745,16 @@ void processAutomatik(void) {
   
   servo.write(winkel);
   
-  #ifdef isDebug
+#ifdef isDebug
+#if isDebug >= 4
     Serial.print(" Tara_raw:");    Serial.print(tara_raw);
     Serial.print(" Tara_glas:");   Serial.print(tara_glas);
     Serial.print(" Faktor ");      Serial.print(faktor);
     Serial.print(" Gewicht ");     Serial.print(gewicht);
     Serial.print(" Zielgewicht "); Serial.print(zielgewicht);
     Serial.print(" Winkel ");      Serial.println(winkel);
-  #endif
+#endif 
+#endif
 
   u8g2.clearBuffer();
   
@@ -765,17 +775,17 @@ void processAutomatik(void) {
   u8g2.setFont(u8g2_font_courB12_tf);
 
   u8g2.setCursor(0, 11);
-  sprintf(ausgabe,"W=%-3d %2s %3d%%", winkel, (autostart==1)?"AS":"  ", rotaries[SW_WINKEL].Value);
+  sprintf(ausgabe,"W=%-3d %2s %3d%%", winkel, (autostart==1)?"AS":"  ", pos);
   u8g2.print(ausgabe);
 
   time = millis() % 9;
   u8g2.setCursor(0, 64);   // blinken des ausgewählten Parameters 
   if( rotary_select == SW_KORREKTUR && time < 3 ) {
-    sprintf(ausgabe,"k=     f=%4d", glaeser[rotaries[SW_MENU].Value].Gewicht );
+    sprintf(ausgabe,"k=     f=%4d", glaeser[(rotaries[SW_MENU].Value/ROTARY_SCALE)].Gewicht );
   } else if ( rotary_select == SW_MENU && time < 3 ) {
-    sprintf(ausgabe,"k=%-3d  f=" , rotaries[SW_KORREKTUR].Value);
+    sprintf(ausgabe,"k=%-3d  f=" , (rotaries[SW_KORREKTUR].Value/ROTARY_SCALE));
   } else {
-    sprintf(ausgabe,"k=%-3d  f=%4d", rotaries[SW_KORREKTUR].Value, glaeser[rotaries[SW_MENU].Value].Gewicht );
+    sprintf(ausgabe,"k=%-3d  f=%4d", (rotaries[SW_KORREKTUR].Value/ROTARY_SCALE), glaeser[(rotaries[SW_MENU].Value/ROTARY_SCALE)].Gewicht );
   }
   u8g2.print(ausgabe);
 
@@ -794,7 +804,7 @@ void processHandbetrieb(void)
   }
 
 //  pos = (map(analogRead(poti_pin), 0, 4095, 100, 0));
-  pos = rotaries[SW_WINKEL].Value;
+  pos = (rotaries[SW_WINKEL].Value / ROTARY_SCALE);
   gewicht = ((((int(SCALE_READAVERAGE(SCALE_READS))) - tara_raw) / faktor) - tara);
   
   if ((digitalRead(button_start_pin)) == HIGH) {
@@ -817,12 +827,14 @@ void processHandbetrieb(void)
   servo.write(winkel);
   
 #ifdef isDebug
+#if isDebug >= 4
 //    Serial.print(SCALE_READAVERAGE(SCALE_READS));     // erneutes Lesen der Waage verfälscht die Debug-Ausgabe!
     Serial.print(" Tara_raw:");    Serial.print(tara_raw);
     Serial.print(" Faktor ");      Serial.print(faktor);
     Serial.print(" Gewicht ");     Serial.print(gewicht);
     Serial.print(" Winkel ");      Serial.print(winkel);
     Serial.print(" servo_aktiv "); Serial.println(servo_aktiv);
+#endif
 #endif
   
   u8g2.clearBuffer();
