@@ -119,7 +119,7 @@ int a;
 int z;
 
 const int Anzahl_Glaeser = 6;
-int glas[Anzahl_Glaeser] = {125, 250, 440, 500, 535, 700};
+int glas[Anzahl_Glaeser] = {85, 125, 250, 440, 500, 700};
 const int glas4 = 535;
 const int glas3 = 500;
 const int glas2 = 440;
@@ -213,12 +213,12 @@ void getPreferences(void) {
   #endif
   
   faktor = (faktor2 / 10000.00);
-  tara_glas[0] = preferences.getUInt("tara0", 0);
-  tara_glas[1] = preferences.getUInt("tara1", 0);
-  tara_glas[2] = preferences.getUInt("tara2", 0);
-  tara_glas[3] = preferences.getUInt("tara3", 0);
-  tara_glas[4] = preferences.getUInt("tara4", 0);
-  tara_glas[5] = preferences.getUInt("tara5", 0);
+  tara_glas[0] = preferences.getUInt("tara0", 999);
+  tara_glas[1] = preferences.getUInt("tara1", 999);
+  tara_glas[2] = preferences.getUInt("tara2", 999);
+  tara_glas[3] = preferences.getUInt("tara3", 999);
+  tara_glas[4] = preferences.getUInt("tara4", 999);
+  tara_glas[5] = preferences.getUInt("tara5", 999);
   tara_raw = preferences.getUInt("tara_raw", 0);
   counter_glas = preferences.getUInt("fmenge", 0);
   counter_k = preferences.getUInt("korrektur", 0);
@@ -267,6 +267,12 @@ void setupTara(void) {
     preferences.end();
   }
 }
+
+void clearPreferences(void) {
+    preferences.begin("EEPROM", false);
+    preferences.clear();
+    preferences.end();
+}   
 
 void setupCalibration(void) {
   u8g2.setCursor(0, 22);
@@ -968,7 +974,7 @@ u8g2.drawXBM( 0, 0, 128, 64, myBitmap);
   u8g2.setCursor(12, 64);
   u8g2.print("rotary-dev 0.9b");
   u8g2.sendBuffer();
-  
+  //clearPreferences();
   // enable internal pull downs for digital inputs 
   pinMode(button_start_pin, INPUT_PULLDOWN);
   pinMode(button_stop_pin, INPUT_PULLDOWN);
