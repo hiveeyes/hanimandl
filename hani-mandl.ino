@@ -167,7 +167,7 @@ long simulate_scale(int n) {
 //      n--;
 //    }
 #ifdef POTISCALE
-    sim_gewicht = (map(analogRead(poti_pin), 0, 4095, 0, 50000));
+    sim_gewicht = (map(analogRead(poti_pin), 0, 4095, 0, 10000));
 #endif   
     return sim_gewicht;
 }
@@ -194,7 +194,7 @@ void IRAM_ATTR isr1() {
 // SW_KORREKTUR = Korrekturfaktor für Füllgewicht
 // SW_MENU      = Zähler für Menuauswahlen 
 void IRAM_ATTR isr2() { 
-  if ( rotating ) delay (10);  // wait a little until the bouncing is done
+  if ( rotating ) delay (1);  // wait a little until the bouncing is done
    
   aState = digitalRead(outputA); // Reads the "current" state of the outputA
     if (aState != aLastState) {     
@@ -311,7 +311,7 @@ void setPreferences(void) {
     Serial.println("Set Preferences:");
     Serial.print("pos = ");          Serial.println(pos);
     Serial.print("faktor = ");       Serial.println(faktor);
-    Serial.print("faktor2 = ");       Serial.println(faktor2);
+    Serial.print("faktor2 = ");      Serial.println(faktor2);
     Serial.print("tara = ");         Serial.println(tara);
     Serial.print("tara_raw = ");     Serial.println(tara_raw);
     Serial.print("fmenge = ");       Serial.println(fmenge);
@@ -339,7 +339,8 @@ void clearPreferences(void) {
 void setupTara(void) {
     int j;
     rotaries[SW_MENU] = { 0, 0, 4, -1};      // Set Encoder to Menu Mode, four Selections, inverted count
-
+    tara = 0;
+    
     i = 0;
     while ( i == 0 ) {
       u8g2.setFont(u8g2_font_courB10_tf);
@@ -348,7 +349,13 @@ void setupTara(void) {
       j = 0;
       while( j < 5  ) {
         u8g2.setCursor(10, 10+(j*13));   u8g2.print( glaeser[j].Gewicht);
-        u8g2.setCursor(65, 10+(j*13));   u8g2.print((glaeser[j].Tara < 0) ? "not set" : "set");
+        u8g2.setCursor(65, 10+(j*13)); //  u8g2.print((glaeser[j].Tara < 0) ? "not set" : "set");
+        if ( glaeser[j].Tara > 0 ) { 
+          sprintf(ausgabe, "%5d g", glaeser[j].Tara); 
+          u8g2.print(ausgabe);
+        } else {
+          u8g2.print("not set");
+        }
         j++;
       }
       u8g2.setCursor(0, 10+((rotaries[SW_MENU].Value)*13));    
@@ -362,7 +369,13 @@ void setupTara(void) {
         j = 0;
         while( j < 5  ) {
           u8g2.setCursor(10, 10+(j*13));   u8g2.print( glaeser[j].Gewicht);
-          u8g2.setCursor(65, 10+(j*13));   u8g2.print((glaeser[j].Tara < 0) ? "not set" : "set");
+          u8g2.setCursor(65, 10+(j*13));  // u8g2.print((glaeser[j].Tara < 0) ? "not set" : "set");
+          if ( glaeser[j].Tara > 0 ) {
+            sprintf(ausgabe, "%5d g", glaeser[j].Tara); 
+            u8g2.print(ausgabe);
+          } else {
+            u8g2.print("not set");
+          }
           j++;
         }
         u8g2.setCursor(0, 10+((rotaries[SW_MENU].Value)*13));    
@@ -632,7 +645,8 @@ void processAutomatik(void) {
   tara   = glaeser[fmenge_index].Tara;
   fmenge = glaeser[fmenge_index].Gewicht;
 
-  if ((digitalRead(button_start_pin)) == HIGH) {
+  // wir starten nur, wenn das Tara für die Füllmenge gesetzt ist!
+  if (((digitalRead(button_start_pin)) == HIGH) && (tara > 0)) {
     autofill      = 1;             // automatisches Füllen aktivieren
     rotary_select = SW_WINKEL;     // falls während der Parameter-Änderung auf Start gedrückt wird    
     setPreferences();              // falls Parameter über den Rotary verändert wurden
@@ -724,25 +738,25 @@ void processAutomatik(void) {
   servo.write(winkel);
   
   #ifdef isDebug
-    Serial.print(" Tara_raw:");
-    Serial.print(tara_raw);
-    Serial.print(" Tara_glas:");
-    Serial.print(tara_glas);
-    Serial.print(" Faktor ");
-    Serial.print(faktor);
-    Serial.print(" Gewicht ");
-    Serial.print(gewicht);
-    Serial.print(" Zielgewicht ");
-    Serial.print(zielgewicht);
-    Serial.print(" Winkel ");
-    Serial.println(winkel);
+    Serial.print(" Tara_raw:");    Serial.print(tara_raw);
+    Serial.print(" Tara_glas:");   Serial.print(tara_glas);
+    Serial.print(" Faktor ");      Serial.print(faktor);
+    Serial.print(" Gewicht ");     Serial.print(gewicht);
+    Serial.print(" Zielgewicht "); Serial.print(zielgewicht);
+    Serial.print(" Winkel ");      Serial.println(winkel);
   #endif
 
   u8g2.clearBuffer();
   
-  u8g2.setFont(u8g2_font_courB24_tf);
-  u8g2.setCursor(10, 42);
-  sprintf(ausgabe,"%5dg", gewicht - tara_glas);
+  if ( tara > 0 ) {
+     u8g2.setCursor(10, 42);
+     u8g2.setFont(u8g2_font_courB24_tf);
+     sprintf(ausgabe,"%5dg", gewicht - tara_glas);
+  } else {
+     u8g2.setCursor(42, 38);
+     u8g2.setFont(u8g2_font_courB14_tf);
+     sprintf(ausgabe,"%6s", "no tara!");
+  }
   u8g2.print(ausgabe);
 
   u8g2.setFont(u8g2_font_open_iconic_play_2x_t);
@@ -790,7 +804,11 @@ void processHandbetrieb(void)
   if ((digitalRead(button_stop_pin)) == HIGH) {
     servo_aktiv = 0;
   }
-  
+
+  if ((digitalRead(outputSW)) == LOW) {
+    tara = ((int(SCALE_READAVERAGE(SCALE_READS)) - tara_raw) / faktor);
+  }
+
   if (servo_aktiv == 1) {
     winkel = ((winkel_max * pos) / 100);
   } else { 
@@ -798,19 +816,14 @@ void processHandbetrieb(void)
   }
   servo.write(winkel);
   
-  #ifdef isDebug
+#ifdef isDebug
 //    Serial.print(SCALE_READAVERAGE(SCALE_READS));     // erneutes Lesen der Waage verfälscht die Debug-Ausgabe!
-    Serial.print(" Tara_raw:");
-    Serial.print(tara_raw);
-    Serial.print(" Faktor ");
-    Serial.print(faktor);
-    Serial.print(" Gewicht ");
-    Serial.print(gewicht);
-    Serial.print(" Winkel ");
-    Serial.print(winkel);
-    Serial.print(" servo_aktiv ");
-    Serial.println(servo_aktiv);
-  #endif
+    Serial.print(" Tara_raw:");    Serial.print(tara_raw);
+    Serial.print(" Faktor ");      Serial.print(faktor);
+    Serial.print(" Gewicht ");     Serial.print(gewicht);
+    Serial.print(" Winkel ");      Serial.print(winkel);
+    Serial.print(" servo_aktiv "); Serial.println(servo_aktiv);
+#endif
   
   u8g2.clearBuffer();
 
@@ -827,7 +840,8 @@ void processHandbetrieb(void)
   sprintf(ausgabe,"W=%-3d    %3d%%", winkel, pos);
   u8g2.print(ausgabe);
   u8g2.setCursor(0, 64);
-  u8g2.print("Handbetrieb");
+  sprintf(ausgabe, "Manuell  %s", (tara>0?"Tara":"    "));
+  u8g2.print(ausgabe);
 
   u8g2.sendBuffer();
 }
