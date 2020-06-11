@@ -168,10 +168,10 @@ void IRAM_ATTR isr2() {
   else {
     if (aState != aLastState){     
        if (digitalRead(outputB) != aState) { 
-         if (counter_k<100) { counter_k++;}
+         if (counter_k<200) { counter_k++;}
        } 
        else {      
-         if (counter_k>-100) {counter_k--;}
+         if (counter_k>-200) {counter_k--;}
        }
      }
    }   
