@@ -64,8 +64,7 @@
 //
 // Ab hier nur verstellen wenn Du genau weisst, was Du tust!
 //
-//#define isDebug 4        // serielle debug-Ausgabe aktivieren. auf "undef" ändern zum deaktiveren. Mit >3 wird jeder Messdurchlauf ausgegeben
-#undef isDebug
+#define isDebug 4        // serielle debug-Ausgabe aktivieren. auf "undef" ändern zum deaktiveren. Mit >3 wird jeder Messdurchlauf ausgegeben
 #undef Autokorrektur     // nicht aktivieren! Code-Fragment
 #define POTISCALE        // Poti simuliert eine Wägezelle
 
