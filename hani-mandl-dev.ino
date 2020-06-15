@@ -20,10 +20,11 @@
                                wird verkauft als "New Wifi Kit 32" oder "Wifi Kit 32 V2"
                                - Änderungen siehe https://community.hiveeyes.org/t/side-project-hanimandl-halbautomatischer-honig-abfullbehalter/768/43 
                                  und https://community.hiveeyes.org/t/side-project-hanimandl-halbautomatischer-honig-abfullbehalter/768/44
-                               - der code ist mit der geänderten pin-Belegung nicht mehr abwärskompatibel zur alten Heltec-Version   
+                               - der code ist mit der geänderten pin-Belegung nicht mehr abwärtskompatibel zur alten Heltec-Version   
   2020-05 Andreas Holzhammer | Tara pro abzufüllendem Glas automatisch anpassen (Variable tara_glas)
                                Code läuft auch ohne Waage
-  2020-06 Andreas Holzhammer | Grosser Codeumbau, Anpassung auf Rotary Encoder
+  2020-06 Andreas Holzhammer | - Code wahlweise mit Heltec V1 oder V2 nutzbar
+                               - Code wahlweise mit Poti oder Rotary nutzbar
                                - Tara pro Glas einstellbar
                                - Öffnungswinkel für Maximale Öffnung und Feindosierung im Setup konfigurierbar
                                - Korrektur und Glasgröße im Automatikmodus per Rotary Encoder Button wählbar
@@ -37,15 +38,15 @@
    
   Hinweise zur Hardware
   ---------------------
-  - bei allen digitalen Eingänge sind interne pull downs aktiviert, keine externen-Widerständen nötig! 
+  - bei allen digitalen Eingängen sind interne pull downs aktiviert, keine externen-Widerständen nötig! 
 */
 
 #include <Arduino.h>
 #include <Wire.h>
 #include <U8g2lib.h>      /* aus dem Bibliotheksverwalter */
-#include <HX711.h>        /* https://github.com/bogde/HX711 */
-#include <ESP32_Servo.h>  /* https://github.com/jkb-git/ESP32Servo */
-#include <Preferences.h>  /* aus dem BSP von expressif */
+#include <HX711.h>        /* aus dem Bibliotheksverwalter */
+#include <ESP32_Servo.h>  /* aus dem Bibliotheksverwalter */
+#include <Preferences.h>  /* aus dem BSP von expressif, wird verfügbar wenn das richtige Board ausgewählt ist */
 
 //
 // Hier den Code auf die verwendete Hardware einstellen
@@ -64,20 +65,27 @@
 //
 // Ab hier nur verstellen wenn Du genau weisst, was Du tust!
 //
-#define isDebug 4        // serielle debug-Ausgabe aktivieren. auf "undef" ändern zum deaktiveren. Mit >3 wird jeder Messdurchlauf ausgegeben
+#define isDebug 4        // serielle debug-Ausgabe aktivieren. Mit >3 wird jeder Messdurchlauf ausgegeben
 #undef Autokorrektur     // nicht aktivieren! Code-Fragment
-#define POTISCALE        // Poti simuliert eine Wägezelle
+//#define POTISCALE        // Poti simuliert eine Wägezelle, nur für Testbetrieb!
 
+// Rotary Encoder Taster zieht Pegel auf Low, Start/Stop auf High!
+#ifdef USE_ROTARY_SW
+#define SELECT_SW outputSW
+#define SELECT_PEGEL LOW
+#else
+#define SELECT_SW button_start_pin
+#define SELECT_PEGEL HIGH
+#endif
+
+// Betriebsmodi 
 #define MODE_SETUP       0
 #define MODE_AUTOMATIK   1
 #define MODE_HANDBETRIEB 2
 
-#define SCALE_READS 3     // Parameter für scale.read_average()
-#define SCALE_GETUNITS(n)    (waage_vorhanden ? scale.get_units(n) : simulate_scale(n) )
-
-Servo servo;
-HX711 scale;
-Preferences preferences;
+// Ansteuerung der Waage
+#define SCALE_READS 3      // Parameter für hx711 Library. Messwert wird aus der Anzahl gemittelt
+#define SCALE_GETUNITS(n)  (waage_vorhanden ? scale.get_units(n) : simulate_scale(n) )
 
 // ** Definition der pins 
 // ----------------------
@@ -85,26 +93,58 @@ Preferences preferences;
 // OLED fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
 U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
 
-// Rotary
-#define outputA 33
-#define outputB 26
-#define outputSW 32
-int aState;
-int aLastState;  
-static boolean rotating = false;      // debounce management
+// Rotary Encoder
+const int outputA  = 33;
+const int outputB  = 26;
+const int outputSW = 32;
 
-struct rotary {
+// Servo
+const int servo_pin = 2;
+
+// 3x Schalter Ein 1 - Aus - Ein 2
+#if HARDWARE_LEVEL == 1
+const int switch_betrieb_pin = 19;
+const int switch_vcc_pin     = 22;     // <- Vcc 
+const int switch_setup_pin   = 21;
+#elif HARDWARE_LEVEL == 2
+const int switch_betrieb_pin = 23;
+const int switch_vcc_pin     = 19;     // <- Vcc 
+const int switch_setup_pin   = 22;
+const int vext_ctrl_pin      = 21;     // Vext control pin
+#else
+#error Hardware Level nicht definiert! Korrektes #define setzen!
+#endif
+
+// Taster 
+const int button_start_vcc_pin = 13;  // <- Vcc 
+const int button_start_pin     = 12;
+const int button_stop_vcc_pin  = 14;  // <- Vcc 
+const int button_stop_pin      = 27;
+
+// Poti
+const int poti_pin = 39;
+
+// Wägezelle-IC 
+const int hx711_sck_pin = 17;
+const int hx711_dt_pin  = 5;
+
+Servo servo;
+HX711 scale;
+Preferences preferences;
+
+// Datenstrukturen für Rotary Encoder
+struct rotary {                        
   int Value;
   int Minimum;
   int Maximum;
   int Step;
 };
-
 #define SW_WINKEL    0
 #define SW_KORREKTUR 1
 #define SW_MENU      2
-struct rotary rotaries[3]; // Werden in setup() initialisiert
+struct rotary rotaries[3];         // Werden in setup() initialisiert
 int rotary_select = SW_WINKEL;
+static boolean rotating = false;   // debounce management für Rotary Encoder
 
 // Füllmengen für 5 Gläser
 struct glas { 
@@ -117,75 +157,36 @@ struct glas glaeser[5] = { {  125, -9999 },
                            {  500, -9999 },
                            { 1000, -9999 } };
 
-// Servo
-const int servo_pin = 2;
-
-#if HARDWARE_LEVEL == 1
-// 3x Schalter Ein 1 - Aus - Ein 2
-const int switch_betrieb_pin = 19;
-const int switch_vcc_pin = 22;        // <- Vcc 
-const int switch_setup_pin = 21;
-#elif HARDWARE_LEVEL == 2
-// 3x Schalter Ein 1 - Aus - Ein 2
-const int switch_betrieb_pin = 23;
-const int switch_vcc_pin = 19;        // <- Vcc 
-const int switch_setup_pin = 22;
-// Vext control pin
-const int vext_ctrl_pin = 21;
-#else
-#error Hardware Level nicht definiert! Korrektes #define setzen!
-#endif
-
-// Taster 
-const int button_start_vcc_pin = 13;  // <- Vcc 
-const int button_start_pin = 12;
-const int button_stop_vcc_pin = 14;   // <- Vcc 
-const int button_stop_pin = 27;
-
-#ifdef USE_ROTARY_SW
-#define SELECT_SW outputSW
-#define SELECT_PEGEL LOW
-#else
-#define SELECT_SW button_start_pin
-#define SELECT_PEGEL HIGH
-#endif
-
-// Poti
-const int poti_pin = 39;
-
-// Wägezelle-IC 
-const int hx711_sck_pin = 17;
-const int hx711_dt_pin = 5;
-
-int i;
-int pos;
-int gewicht;
-int tara;             // Tara für das Standard-Glas, für Automatikmodus
-int tara_glas;        // Tara für das aktuelle Glas, falls Glasgewicht abweicht
-long gewicht_leer;     // leere Waage
-float faktor;         // Skalierungsfaktor für Werte der Waage
-int fmenge;
-int fmenge_index;
-int korrektur;
-int autostart;
-int winkel;                    // aktueller Servo-Winkel
-int winkel_hard_min = 0;       // Hard-Limit für Servo
-int winkel_hard_max = 155;     // Hard-Limit für Servo
-int winkel_min = 0;            // nicht einstellbar, wird per Hardware angepasst!
-int winkel_max = 85;           // konfigurierbar im Setup
-int winkel_fein = 35;    // konfigurierbar im Setup
+// Allgemeine Variablen
+int i;                          // allgemeine Zählvariable
+int pos;                        // aktuelle Position des Poti bzw. Rotary 
+int gewicht;                    // aktuelles Gewicht
+int tara;                       // Tara für das ausgewählte Glas, für Automatikmodus
+int tara_glas;                  // Tara für das aktuelle Glas, falls Glasgewicht abweicht
+long gewicht_leer;              // Gewicht der leeren Waage
+float faktor;                   // Skalierungsfaktor für Werte der Waage
+int fmenge;                     // ausgewählte Füllmenge
+int fmenge_index;               // Index in gläser[]
+int korrektur;                  // Korrekturwert für Abfüllmenge
+int autostart;                  // Vollautomatik ein/aus
+int winkel;                     // aktueller Servo-Winkel
+int winkel_hard_min = 0;        // Hard-Limit für Servo
+int winkel_hard_max = 155;      // Hard-Limit für Servo
+int winkel_min = 0;             // nicht einstellbar, wird per Hardware angepasst!
+int winkel_max = 85;            // konfigurierbar im Setup
+int winkel_fein = 35;           // konfigurierbar im Setup
 float fein_dosier_gewicht = 60; // float wegen Berechnung des Schliesswinkels
 int servo_aktiv = 0;            // Servo aktivieren ja/nein
-char ausgabe[30]; // Fontsize 12 = 13 Zeichen maximal in einer Zeile
-int modus = -1;   // Bei Modus-Wechsel den Servo auf Minimum fahren
-int auto_aktiv = 0; // Für Automatikmodus - System ein/aus?
-int waage_vorhanden = 0;
+char ausgabe[30];               // Fontsize 12 = 13 Zeichen maximal in einer Zeile
+int modus = -1;                 // Bei Modus-Wechsel den Servo auf Minimum fahren
+int auto_aktiv = 0;             // Für Automatikmodus - System ein/aus?
+int waage_vorhanden = 0;        // HX711 nicht ansprechen, wenn keine Waage angeschlossen ist, sonst Crash
 
 // Simuliert die Dauer des Wägeprozess, wenn keine Waage angeschlossen ist. Wirkt sich auf die Blinkfrequenz im Automatikmodus aus.
 long simulate_scale(int n) {
     long sim_gewicht = 9500;
     while (n-- >= 1) { 
-      delay(40);    // empirisch ermittelt
+      delay(40);    // empirisch ermittelt. n=2: 10, n=3: 40, n=4: 50
     }
 #ifdef POTISCALE
     sim_gewicht = (map(analogRead(poti_pin), 0, 4095, 0, 700));
@@ -194,7 +195,8 @@ long simulate_scale(int n) {
 }
 
 #ifdef USE_ROTARY_SW
-// Rotary Taster. Der Interrupt kommt nur im Automatikmodus zum Tragen und nur wenn der Servo inaktiv ist. 
+// Rotary Taster. Der Interrupt kommt nur im Automatikmodus zum Tragen und nur wenn der Servo inaktiv ist.
+// Der Taster schaltet in einen von drei Modi, in denen unterschiedliche Werte gezählt werden.
 void IRAM_ATTR isr1() {
   static unsigned long last_interrupt_time = 0; 
   unsigned long interrupt_time = millis();
@@ -213,11 +215,14 @@ void IRAM_ATTR isr1() {
 #endif
 
 #ifdef USE_ROTARY
-// Rotary Encoder. Der Taster schaltet in einen von drei Modi, in denen unterschiedliche Werte gezählt werden.
+// Rotary Encoder. Zählt in eine von drei Datenstrukturen: 
 // SW_WINKEL    = Einstellung des Servo-Winkels
 // SW_KORREKTUR = Korrekturfaktor für Füllgewicht
-// SW_MENU      = Zähler für Menuauswahlen 
+// SW_MENU      = Zähler für Menuauswahlen  
 void IRAM_ATTR isr2() {
+  static int aState;
+  static int aLastState = 2;  // reale Werte sind 0 und 1
+  
   if ( rotating ) delay (1);  // wait a little until the bouncing is done
    
   aState = digitalRead(outputA); // Reads the "current" state of the outputA
@@ -233,7 +238,7 @@ void IRAM_ATTR isr2() {
 
       rotating = false;
 #ifdef isDebug
-      Serial.print("Rotary Value changed to ");
+      Serial.print(" Rotary Value changed to ");
       Serial.println(getRotariesValue(rotary_select));
 #endif 
     }
@@ -268,12 +273,12 @@ void initRotaries( int rotary_mode, int rotary_value, int rotary_min, int rotary
     rotaries[rotary_mode].Step      = rotary_step;
 
 #ifdef isDebug
-    Serial.print("Rotary Mode: "); Serial.print(rotary_mode);
-    Serial.print(" rotary_value: ");      Serial.print(rotary_value);
-    Serial.print(" Value: ");      Serial.print(rotaries[rotary_mode].Value);
-    Serial.print(" Min: ");        Serial.print(rotaries[rotary_mode].Minimum);
-    Serial.print(" Max: ");        Serial.print(rotaries[rotary_mode].Maximum);
-    Serial.print(" Step: ");       Serial.println(rotaries[rotary_mode].Step);
+    Serial.print("Rotary Mode: ");   Serial.print(rotary_mode);
+    Serial.print(" rotary_value: "); Serial.print(rotary_value);
+    Serial.print(" Value: ");        Serial.print(rotaries[rotary_mode].Value);
+    Serial.print(" Min: ");          Serial.print(rotaries[rotary_mode].Minimum);
+    Serial.print(" Max: ");          Serial.print(rotaries[rotary_mode].Maximum);
+    Serial.print(" Step: ");         Serial.println(rotaries[rotary_mode].Step);
 #endif
 }
 // Ende Funktionen für den Rotary Encoder
@@ -282,25 +287,9 @@ void initRotaries( int rotary_mode, int rotary_value, int rotary_min, int rotary
 
 void getPreferences(void) {
     preferences.begin("EEPROM", false);            // Parameter aus dem EEPROM lesen
-    faktor = preferences.getFloat("faktor", 0.0);  // falls das nicht gesetzt ist -> Waage ist nicht kalibriert
 
-#if 0   // machen wir in setup()
-#ifdef isDebug
-    if (faktor == 0) {
-      Serial.println("Waage ist nicht kalibiert!");
-//        for (int i=0; i < 200; i++) {    // Geben Sie mir ein Blink, Vasily!
-        delay(50);
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(50);
-        digitalWrite(LED_BUILTIN, LOW);
-//        }
-    }
-#endif
-#endif
-  
+    faktor       = preferences.getFloat("faktor", 0.0);  // falls das nicht gesetzt ist -> Waage ist nicht kalibriert
     pos          = preferences.getUInt("pos", 0);
-//    tara_raw     = preferences.getUInt("tara_raw", 0);  // Weg, sollte über Faktor und Tara zu regeln sein  
-//    fmenge      = preferences.getUInt("fmenge", 0);     // Weg, Füllmenge als Index in die Gläser
     gewicht_leer = preferences.getUInt("gewicht_leer", 0); 
     korrektur    = preferences.getUInt("korrektur", 0);
     autostart    = preferences.getUInt("autostart", 0);
@@ -317,19 +306,11 @@ void getPreferences(void) {
 
     preferences.end();
 
-    // Parameter für den Rotary Encoder setzen
-    setRotariesValue(SW_WINKEL,    pos);   
-    setRotariesValue(SW_KORREKTUR, korrektur);
-    setRotariesValue(SW_MENU,      fmenge_index);
-          
 #ifdef isDebug
     Serial.println("Preferences:");
     Serial.print("pos = ");          Serial.println(pos);
     Serial.print("faktor = ");       Serial.println(faktor);
     Serial.print("gewicht_leer = "); Serial.println(gewicht_leer);
-//    Serial.print("tara_raw = ");     Serial.println(tara_raw);
-//    Serial.print("fmenge = ");       Serial.println(fmenge);
-//    Serial.print("tara = ");         Serial.println(tara);
     Serial.print("korrektur = ");    Serial.println(korrektur);
     Serial.print("autostart = ");    Serial.println(autostart);
     Serial.print("fmenge_index = "); Serial.println(fmenge_index);
@@ -352,14 +333,11 @@ void setPreferences(void) {
     preferences.putFloat("faktor", faktor);
     preferences.putUInt("gewicht_leer", gewicht_leer);
     preferences.putUInt("pos", winkel);
-//    preferences.putUInt("tara_raw", tara_raw);   // Weg, sollte über Faktor und Tara zu regeln sein
     preferences.putUInt("korrektur", korrektur);
     preferences.putUInt("autostart", autostart);
     preferences.putUInt("winkel_max", winkel_max);
     preferences.putUInt("winkel_fein", winkel_fein);
     preferences.putUInt("fmenge_index", fmenge_index);
-//    preferences.putUInt("fmenge", fmenge);    // Weg, Index in Gläser
-//    preferences.putUInt("tara", tara);        // Weg, Wert pro Glas
 
     i = 0;
     while( i < 5 ) {
@@ -374,8 +352,6 @@ void setPreferences(void) {
     Serial.print("pos = ");          Serial.println(winkel);
     Serial.print("faktor = ");       Serial.println(faktor);
     Serial.print("gewicht_leer = "); Serial.println(gewicht_leer);
-//    Serial.print("tara_raw = ");     Serial.println(tara_raw);
-//    Serial.print("fmenge = ");       Serial.println(fmenge);
     Serial.print("korrektur = ");    Serial.println(korrektur);
     Serial.print("autostart = ");    Serial.println(autostart);
     Serial.print("fmenge_index = "); Serial.println(fmenge_index);
@@ -420,7 +396,7 @@ void setupTara(void) {
           sprintf(ausgabe, "%6dg", glaeser[j].Tara); 
           u8g2.print(ausgabe);
         } else {
-          u8g2.print("not set");
+          u8g2.print("  fehlt");
         }
         j++;
       }
@@ -437,7 +413,7 @@ void setupCalibration(void) {
     u8g2.clearBuffer();
     u8g2.setCursor(0, 12);    u8g2.print("Bitte Waage");
     u8g2.setCursor(0, 28);    u8g2.print("leeren");
-    u8g2.setCursor(0, 44);    u8g2.print("und mit Start");
+    u8g2.setCursor(0, 44);    u8g2.print("und mit OK");
     u8g2.setCursor(0, 60);    u8g2.print("bestaetigen");
     u8g2.sendBuffer();
     
@@ -454,7 +430,7 @@ void setupCalibration(void) {
     u8g2.clearBuffer();
     u8g2.setCursor(0, 12);    u8g2.print("Bitte 500g");
     u8g2.setCursor(0, 28);    u8g2.print("aufstellen");
-    u8g2.setCursor(0, 44);    u8g2.print("und mit Start");
+    u8g2.setCursor(0, 44);    u8g2.print("und mit OK");
     u8g2.setCursor(0, 60);    u8g2.print("bestaetigen");
     u8g2.sendBuffer();
     
@@ -466,8 +442,6 @@ void setupCalibration(void) {
         scale.set_scale(faktor);
         gewicht_leer = scale.get_offset();    // leergewicht der Waage speichern
 #ifdef isDebug
-//        Serial.print("gewicht_raw = ");
-//        Serial.print(gewicht_raw);
         Serial.print("gewicht_leer = ");
         Serial.print(gewicht_leer);
         Serial.print(" Faktor = ");
@@ -679,10 +653,6 @@ void processSetup(void) {
     if (pos == 4)   setupAutostart();         // Autostart 
     if (pos == 5)   setupZahlwert(&winkel_max, winkel_fein, winkel_hard_max, "Servo Max" );  // Maximaler Öffnungswinkel
     if (pos == 6)   setupZahlwert(&winkel_fein, winkel_hard_min, winkel_max, "Servo Fein" ); // Minimaler Abfüllwinkel
-
-    Serial.print("setup gewicht_leer = ");
-    Serial.println(gewicht_leer);
-    
     setPreferences();
 
     if (pos == 7)   setupClearPrefs();        // EEPROM löschen
@@ -690,7 +660,8 @@ void processSetup(void) {
   }
 }
 
-void processAutomatik(void) {
+void processAutomatik(void)
+{
   int zielgewicht;           // Glas + Korrektur
   int time;
 #ifdef Autokorrektur
@@ -870,9 +841,6 @@ Serial.println("blink!");
 
 void processHandbetrieb(void)
 {
-  int gewicht2;
-  int time;
-  
   if ( modus != MODE_HANDBETRIEB ) {
      modus = MODE_HANDBETRIEB;
      winkel = winkel_min;          // Hahn schliessen
@@ -883,8 +851,6 @@ void processHandbetrieb(void)
   }
 
   pos = getRotariesValue(SW_WINKEL);
-  time = millis();
-
   gewicht = SCALE_GETUNITS(SCALE_READS) - tara;
 
   if ((digitalRead(button_start_pin)) == HIGH) {
@@ -967,13 +933,8 @@ void setup()
 #ifdef USE_ROTARY
   pinMode(outputA,INPUT);
   pinMode(outputB,INPUT);
-  aLastState = digitalRead(outputA);
   attachInterrupt(outputA, isr2, CHANGE);
 #endif
-  // die drei Datenstrukturen initialisieren
-  initRotaries(SW_WINKEL,    0,   0, 100, 5 );     // Winkel
-  initRotaries(SW_KORREKTUR, 0, -20,  20, 1 );     // Korrektur
-  initRotaries(SW_MENU,      0,   0,   7, 1 );     // Menuauswahlen
 
 // switch Vcc / GND on normal pins for convenient wiring
 // output is 3.3V for VCC
@@ -992,9 +953,9 @@ void setup()
 //  servo.attach(servo_pin, 750, 2500);
   servo.attach(servo_pin);
   servo.write(winkel_min);
- 
+
+// Boot Screen
   u8g2.begin();
-  // print Boot Screen
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_courB24_tf);
   u8g2.setCursor(20, 43);    u8g2.print("BOOT");
@@ -1016,39 +977,58 @@ void setup()
     delay(2000);
   }
 
-// Wurde die Waage bereits kalibriert?  
+// Preferences aus dem EEPROM lesen
   getPreferences();
+
+// Wurde die Waage bereits kalibriert?  
   if ( faktor == 0 ) {
     u8g2.clearBuffer();
-    u8g2.setCursor( 14, 24); u8g2.print("Nicht");
-    u8g2.setCursor( 6, 56);  u8g2.print("Kalib.");
+    u8g2.setFont(u8g2_font_courB18_tf);
+    u8g2.setCursor( 24, 24); u8g2.print("Nicht");
+    u8g2.setCursor( 10, 56); u8g2.print("kalibr.");
     u8g2.sendBuffer();
 #ifdef isDebug
     Serial.println("Waage nicht kalibriert!");
 #endif
     delay(2000);
   } else {
-    scale.set_scale(faktor);
-    scale.set_offset(long(gewicht_leer));
+    if (waage_vorhanden == 1) {   // kalibriert und Waage angeschlossen
+      scale.set_scale(faktor);
+      scale.set_offset(long(gewicht_leer));
 #ifdef isDebug
-    Serial.println("Waage initialisiert");
+      Serial.println("Waage initialisiert");
 #endif
+    }
   }
+  
+// initiale Kalibrierung des Leergewichts wegen Temperaturschwankungen
+  if (waage_vorhanden == 1) {
+    gewicht = SCALE_GETUNITS(SCALE_READS);
+    if ( (gewicht > -20) && (gewicht < 20) ) {
+      scale.tare(SCALE_READS);
+#ifdef isDebug
+      Serial.print("Tara angepasst um: ");
+      Serial.println(gewicht);
+#endif
+    } else {
+      u8g2.clearBuffer();
+      u8g2.setFont(u8g2_font_courB18_tf);
+      u8g2.setCursor( 24, 24); u8g2.print("Waage");
+      u8g2.setCursor( 10, 56); u8g2.print("pruefen");
+      u8g2.sendBuffer();
+      delay(5000);
+    }
+  }
+  
+// die drei Datenstrukturen des Rotaries initialisieren
+  initRotaries(SW_WINKEL,    0,   0, 100, 5 );     // Winkel
+  initRotaries(SW_KORREKTUR, 0, -20,  20, 1 );     // Korrektur
+  initRotaries(SW_MENU,      0,   0,   7, 1 );     // Menuauswahlen
 
-  gewicht = SCALE_GETUNITS(SCALE_READS);
-  if ( (gewicht > -20) && (gewicht < 20) ) {
-    scale.tare(SCALE_READS);
-#ifdef isDebug
-    Serial.print("Tara angepasst um: ");
-    Serial.println(gewicht);
-#endif
-  } else {
-    u8g2.clearBuffer();
-    u8g2.setCursor( 14, 24); u8g2.print("Waage");
-    u8g2.setCursor( 0, 56);  u8g2.print("pruefen");
-    u8g2.sendBuffer();
-    delay(5000);
-  }
+// Parameter aus den Preferences für den Rotary Encoder setzen
+  setRotariesValue(SW_WINKEL,    pos);   
+  setRotariesValue(SW_KORREKTUR, korrektur);
+  setRotariesValue(SW_MENU,      fmenge_index);
 }
 
 void loop()
