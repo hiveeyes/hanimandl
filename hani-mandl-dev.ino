@@ -769,7 +769,6 @@ void processAutomatik(void)
   if ((servo_aktiv == 1) && ((gewicht - korrektur - tara_glas) >= fmenge)) {
     winkel      = winkel_min;
     servo_aktiv = 0;
-    tara_glas   = 0;
     if ( autostart != 1 ) {
       auto_aktiv = 0;
     }
@@ -784,7 +783,6 @@ void processAutomatik(void)
   
 #ifdef isDebug
 #if isDebug >= 4
-//    Serial.print(" Tara_raw:");    Serial.print(tara_raw);
     Serial.print(" Tara_glas:");   Serial.print(tara_glas);
     Serial.print(" Faktor ");      Serial.print(faktor);
     Serial.print(" Gewicht ");     Serial.print(gewicht);
@@ -802,7 +800,6 @@ void processAutomatik(void)
    
      time = millis() % 9;
      if( (autostart == 1) && (auto_aktiv == 1 ) && (servo_aktiv == 0) && (gewicht >= -5) && (gewicht - tara_glas < fmenge) && (time < 3) ) {
-Serial.println("blink!");
        sprintf(ausgabe,"%5s", "     ");
      } else {
        sprintf(ausgabe,"%5dg", gewicht - tara_glas);
@@ -1014,7 +1011,7 @@ void setup()
       u8g2.clearBuffer();
       u8g2.setFont(u8g2_font_courB18_tf);
       u8g2.setCursor( 24, 24); u8g2.print("Waage");
-      u8g2.setCursor( 10, 56); u8g2.print("pruefen");
+      u8g2.setCursor( 10, 56); u8g2.print("leeren!");
       u8g2.sendBuffer();
       delay(5000);
     }
