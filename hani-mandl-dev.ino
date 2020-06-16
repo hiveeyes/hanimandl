@@ -45,7 +45,7 @@
 #include <Wire.h>
 #include <U8g2lib.h>      /* aus dem Bibliotheksverwalter */
 #include <HX711.h>        /* aus dem Bibliotheksverwalter */
-#include <ESP32_Servo.h>  /* aus dem Bibliotheksverwalter */
+#include <ESP32_Servo.h>   /* https://github.com/jkb-git/ESP32Servo */
 #include <Preferences.h>  /* aus dem BSP von expressif, wird verfügbar wenn das richtige Board ausgewählt ist */
 
 //
@@ -53,6 +53,8 @@
 //
 #define HARDWARE_LEVEL 2 // 1 = originales Layout mit Schalter auf Pin 19/22/21
                          // 2 = Layout für V2 mit Schalter auf Pin 23/19/22
+//#define USE_ORIGINAL_SERVO_VARS // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde
+                                  // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
 #define ROTARY_SCALE 2   // in welchen Schritten springt unser Rotary Encoder. 
                          // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
 #define USE_ROTARY       // Rotary benutzen
@@ -66,7 +68,6 @@
 // Ab hier nur verstellen wenn Du genau weisst, was Du tust!
 //
 #define isDebug 4        // serielle debug-Ausgabe aktivieren. Mit >3 wird jeder Messdurchlauf ausgegeben
-#undef Autokorrektur     // nicht aktivieren! Code-Fragment
 //#define POTISCALE        // Poti simuliert eine Wägezelle, nur für Testbetrieb!
 
 // Rotary Encoder Taster zieht Pegel auf Low, Start/Stop auf High!
@@ -278,7 +279,8 @@ void initRotaries( int rotary_mode, int rotary_value, int rotary_min, int rotary
     Serial.print(" Value: ");        Serial.print(rotaries[rotary_mode].Value);
     Serial.print(" Min: ");          Serial.print(rotaries[rotary_mode].Minimum);
     Serial.print(" Max: ");          Serial.print(rotaries[rotary_mode].Maximum);
-    Serial.print(" Step: ");         Serial.println(rotaries[rotary_mode].Step);
+    Serial.print(" Step: ");         Serial.print(rotaries[rotary_mode].Step);
+    Serial.print(" Scale: ");        Serial.println(ROTARY_SCALE);
 #endif
 }
 // Ende Funktionen für den Rotary Encoder
@@ -664,11 +666,6 @@ void processAutomatik(void)
 {
   int zielgewicht;           // Glas + Korrektur
   int time;
-#ifdef Autokorrektur
-  static int gewicht_vorher; // Gewicht des vorher gefüllten Glases
-  static int time_vorher;
-  static int zielgewicht_vorher;
-#endif
 
   if ( modus != MODE_AUTOMATIK ) {
      modus = MODE_AUTOMATIK;
@@ -682,6 +679,12 @@ void processAutomatik(void)
   }
 
   pos          = getRotariesValue(SW_WINKEL);
+  // nur bis winkel_fein regeln, oder über initRotaries lösen?
+  if ( pos < ((winkel_fein*100)/winkel_max) ) {                      
+    pos = ((winkel_fein*100)/winkel_max);
+    setRotariesValue(SW_WINKEL, pos);
+  }
+
 #ifdef USE_ROTARY
   korrektur    = getRotariesValue(SW_KORREKTUR);
   fmenge_index = getRotariesValue(SW_MENU);
@@ -704,14 +707,6 @@ void processAutomatik(void)
   }
 
   gewicht = (int(SCALE_GETUNITS(SCALE_READS))) - tara;
-#ifdef Autokorrektur
-  // für eine halbe Sekunde das Nachtropfen messen
-  if ( (time_vorher - millis() < 500) ) {
-    if ( abs(gewicht - gewicht_vorher) < 10 ) { 
-      gewicht_vorher = gewicht;
-    }
-  }
-#endif
   
   // Glas entfernt -> Servo schliessen
   if (gewicht < -20) {
@@ -737,9 +732,6 @@ void processAutomatik(void)
 
     if ((gewicht <= 5) && (gewicht >= -5)) {
       tara_glas   = gewicht;
-#ifdef Autokorrektur
-      rotaries[SW_KORREKTUR].Value -= ((gewicht_vorher - zielgewicht_vorher)/2)*ROTARY_SCALE;
-#endif
       servo_aktiv = 1;
     }
   }
@@ -772,11 +764,6 @@ void processAutomatik(void)
     if ( autostart != 1 ) {
       auto_aktiv = 0;
     }
-#ifdef Autokorrektur
-    time_vorher = millis();
-    gewicht_vorher = gewicht;
-    zielgewicht_vorher = zielgewicht;
-#endif
   }
   
   servo.write(winkel);
@@ -947,8 +934,11 @@ void setup()
   // short delay to let chip power up
   delay (100); 
 
-//  servo.attach(servo_pin, 750, 2500);
-  servo.attach(servo_pin);
+#ifdef USE_ORIGINAL_SERVO_VARS
+  servo.attach(servo_pin, 750, 2500);  // originale Initialisierung, steuert nicht jeden Servo an
+#else
+  servo.attach(servo_pin);             // default Werte. Achtung, steuert den Nullpunkt weniger weit aus!  
+#endif
   servo.write(winkel_min);
 
 // Boot Screen
