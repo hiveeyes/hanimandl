@@ -7,6 +7,12 @@ Das Verhalten des Codes wird über mehrere defines gesteuert:
   1 für originales Layout mit Schalter auf Pin 19/22/21
   2 für neues Layout für "New Heltec Wifi Kit 32" (V2) mit Schalter auf Pin 23/19/22
 
+#define USE_ORIGINAL_SERVO_VARS
+  aktivieren, falls ein Automat mit Software 0.1.4 aktualisiert wird und der Servo nicht ganz schliesst.
+  Der neue Code verwendet Default-Werte für die Ansteuerung des Servos, um mehr Servos anzusprechen. Der
+  0.1.4 Code hatte spezielle Werte, bei denen die 0-Stellung niedriger war.
+  Über dieses Define können die Werte des 0.1.4 Codes aktiviert werden. Alternative: Hardware anpassen 
+
 #define ROTARY_SCALE 2   
   Die Rotary Encoder liefern unterschiedliche Increments pro Stufe. Das kann hier angepasst werden.
   Beispiele: KY-040 = 2, HW-040 = 1
