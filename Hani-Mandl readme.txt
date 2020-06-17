@@ -1,5 +1,5 @@
-Programm kopilieren und aufspielen
-==================================
+Programm kompilieren und aufspielen
+===================================
 
 Das Verhalten des Codes wird über mehrere defines gesteuert:
 
@@ -25,12 +25,15 @@ Das Verhalten des Codes wird über mehrere defines gesteuert:
 
 Die weiteren defines und Variablen müssen bei einer Standard-Schaltung nicht angepasst werden.
 
+
 Hardware-Aufbau
 ===============
+
 Es wird empfohlen, den Servo erst nach dem ersten Einschalten der Elekronik mit dem Quetschhahn zu verbinden!
 Der Servo fährt automatisch in die Nullstellung. Diese ist im Programm nicht einstellbar und muss daher 
 über die Hardware (Stellung des Servoarms und Länge der Gelenkstange) eingestellt werden.
 Dann kann im Modus "Handbetrieb" die maximale Öffnung ermittelt und im Setup hinterlegt werden.
+
 
 Betrieb
 =======
@@ -41,6 +44,7 @@ Bei Benutzung eines Rotary Encoders mit Taster wirkt der Taster aus Auswahl-Tast
 Wird ein Poti oder Rotary Encoder ohne Taster verwendet, wird der grüne Button im Setup als Auswahl
 genutzt. Die Funktion "Tara" im Handbetrieb und die direkte Verstellung des Korrekturwerts und
 der Füllmenge im Automatikmodus stehen nur bei einem Rotary Encoder mit Taster zur Verfügung!
+
 
 Setup:
 ------
