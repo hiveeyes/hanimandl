@@ -1,28 +1,29 @@
 /*
-  Abfuellwaage Version 0.2.2
+  Abfuellwaage Version 0.2.3
   --------------------------
-  Copyright (C) 2018-2019 by Marc Vasterling, Marc Wetzel, Clemens Gruber  
+  Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer 
             
-  2018-05 Marc Vasterling | initial version, 
-                            published in the Facebook group "Imkerei und Technik. Eigenbau",
-                            Marc Vasterling: "meinen Code kann jeder frei verwenden, ändern und hochladen wo er will, solange er nicht seinen eigenen Namen drüber setzt."
-  2018-06 Marc Vasterling | improved version, 
-                            published in the Facebook group also
-  2019-01 Marc Wetzel     | Refakturierung und Dokumentation, 
-                            published in the Facebook group also
-  2019-02 Clemens Gruber  | code beautifying mit kleineren Umbenennungen bei Funktionen und Variablen
-                            Anpssung fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
-                            - pins bei OLED-Initialisierung geaendert
-                            - pins geaendert, um Konflikte mit hard wired pins des OLEDs zu vermeiden 
-  2019-02 Clemens Gruber  | Aktivierung der internen pull downs für alle digitalen Eingaenge
-  2019-02 Clemens Gruber  | "normale" pins zu Vcc / GND geaendert um die Verkabelung etwas einfacher und angenehmer zu machen
+  2018-05 Marc Vasterling    | initial version, 
+                               published in the Facebook group "Imkerei und Technik. Eigenbau",
+                               Marc Vasterling: "meinen Code kann jeder frei verwenden, ändern und hochladen wo er will, solange er nicht seinen eigenen Namen drüber setzt."
+  2018-06 Marc Vasterling    | improved version, 
+                               published in the Facebook group also
+  2019-01 Marc Wetzel        | Refakturierung und Dokumentation, 
+                               published in the Facebook group also
+  2019-02 Clemens Gruber     | code beautifying mit kleineren Umbenennungen bei Funktionen und Variablen
+                               Anpssung fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
+                               - pins bei OLED-Initialisierung geaendert
+                               - pins geaendert, um Konflikte mit hard wired pins des OLEDs zu vermeiden 
+  2019-02 Clemens Gruber     | Aktivierung der internen pull downs für alle digitalen Eingaenge
+  2019-02 Clemens Gruber     | "normale" pins zu Vcc / GND geaendert um die Verkabelung etwas einfacher und angenehmer zu machen
   2020-05 Andreas Holzhammer | Anpassungen an das veränderte ;-( pin-Layout der Version 2 des Heltec 
                                wird verkauft als "New Wifi Kit 32" oder "Wifi Kit 32 V2"
-                               - Änderungen siehe https://community.hiveeyes.org/t/side-project-hanimandl-halbautomatischer-honig-abfullbehalter/768/43 
-                                 und https://community.hiveeyes.org/t/side-project-hanimandl-halbautomatischer-honig-abfullbehalter/768/44
-                               - der code ist mit der geänderten pin-Belegung nicht mehr abwärtskompatibel zur alten Heltec-Version   
-  2020-05 Andreas Holzhammer | Tara pro abzufüllendem Glas automatisch anpassen (Variable tara_glas)
-                               Code läuft auch ohne Waage
+  2020-05 Marc Junker        | - Erweiterung von Poti auf Rotary Encoder 
+                               - alle Serial.prints in #ifdef eingeschlossen
+                               - "Glas" nun als Array mit individuellem Tara
+                               - Korrekturwert und Auswahl der Füllmenge über Drücken & Drehen des Rotary einstellbar
+  2020-05 Andreas Holzhammer | - Tara pro abzufüllendem Glas automatisch anpassen (Variable tara_glas)
+                               - Code läuft auch ohne Waage
   2020-06 Andreas Holzhammer | - Code wahlweise mit Heltec V1 oder V2 nutzbar
                                - Code wahlweise mit Poti oder Rotary nutzbar
                                - Tara pro Glas einstellbar
@@ -31,7 +32,7 @@
                                - Preferences löschbar über Setup
                                - Gewicht blinkt bei Vollautomatik, wenn nicht vollständig gefüllt
                                - Nicht kalibrierte Waage anzeigen, fehlende Waage anzeigen
-                               - Tara wird nur >20g gesetzt. Verhindert den Autostart bei leerer Waage
+                               - Tara wird nur bei >20g gesetzt, verhindert den Autostart bei leerer Waage
                                - Tarieren der Waage bei jedem Start bis +-20g. Sonst Warnung
  
   This code is in the public domain.
