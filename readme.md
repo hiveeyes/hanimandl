@@ -1,10 +1,12 @@
 # HaniMandl 
+# HaniMandl
 
 Ein halbautomatischer Honig-Abfüll-Roboter. 
+Ein halbautomatischer Honig-Abfüll-Roboter.
 
-Websites: 
+Websites:
 - Code, Infos zur Hardware, Fotos und Videos initial publiziert in der Facebook-Gruppe ["Imkerei und Technik. Eigenbau"](https://www.facebook.com/groups/139671009967454)
-- weitere Infos unter: https://community.hiveeyes.org/t/side-project-hanimandl-halbautomatischer-honig-abfullbehalter/768
+- Weitere Infos unter: [HaniMandl, halbautomatischer Honig-Abfüllbehälter](https://community.hiveeyes.org/t/side-project-hanimandl-halbautomatischer-honig-abfullbehalter/768)
 
 ---
 
@@ -15,7 +17,7 @@ Websites:
 Das Verhalten des Codes wird über mehrere defines gesteuert:
 
 ```
-#define HARDWARE_LEVEL 2 
+#define HARDWARE_LEVEL 2
   1 für originales pinout Layout mit Schalter auf Pin 19/22/21
   2 für neues Layout für "New Heltec Wifi Kit 32" (V2) mit Schalter auf Pin 23/19/22
 
@@ -23,7 +25,7 @@ Das Verhalten des Codes wird über mehrere defines gesteuert:
   aktivieren, falls ein Automat mit Software 0.1.4 aktualisiert wird und der Servo nicht ganz schliesst.
   Der neue Code verwendet default-Werte für die Ansteuerung des Servos, um mehr Servos anzusprechen. Der
   0.1.4 Code hatte spezielle Werte, bei denen die 0-Stellung niedriger war.
-  Über dieses Define können die Werte des 0.1.4 Codes aktiviert werden. Alternative: Hardware anpassen 
+  Über dieses Define können die Werte des 0.1.4 Codes aktiviert werden. Alternative: Hardware anpassen
 
 #define ROTARY_SCALE 2   
   Verschiedene Rotary Encoder liefern unterschiedliche Increments pro Stufe. Das kann hier angepasst werden.
@@ -47,7 +49,7 @@ Die weiteren defines und Variablen müssen bei einer Standard-Schaltung nicht an
 ## Hardware-Aufbau
 
 Es wird empfohlen, den Servo erst nach dem ersten Einschalten der Elekronik mit dem Quetschhahn zu verbinden!
-Der Servo fährt automatisch in die Nullstellung. Diese ist im Programm nicht einstellbar und muss daher 
+Der Servo fährt automatisch in die Nullstellung. Diese ist im Programm nicht einstellbar und muss daher
 über die Hardware (Stellung des Servoarms und Länge der Gelenkstange) eingestellt werden.
 Dann kann im Modus "Handbetrieb" die maximale Öffnung ermittelt und im Setup hinterlegt werden.
 
@@ -63,11 +65,11 @@ der Füllmenge im Automatikmodus stehen nur bei einem Rotary Encoder mit integri
 
 Setup:
 ------
-In Schalterstellung II (oder I je nachdem wie der 3-fach-Schalter verbaut wurde) könnne verschiedene 
+In Schalterstellung II (oder I je nachdem wie der 3-fach-Schalter verbaut wurde) könnne verschiedene
 Grundeinstellungen vorgenommen werden:
 
 1. Tara  
-Für jede Füllmenge bzw. das entsprechende Glas kann ein Leergewicht ("Tara") definiert werden. 
+Für jede Füllmenge bzw. das entsprechende Glas kann ein Leergewicht ("Tara") definiert werden.
 Die hinterlegten Tara-Werte werden im Menu angezeigt.
 Einstellung: Füllmenge wählen, leeres Glas aufstellen und über die Auswahl-Taste speichern
 
@@ -75,7 +77,7 @@ Einstellung: Füllmenge wählen, leeres Glas aufstellen und über die Auswahl-Ta
 Menügeführte Kalibrierung der Wägezelle
 
 3. Korrektur  
-Einstellen des Korrekturwerts. Je nach Temperatur und Konsistenz des Honigs bzw. Füllmenge im 
+Einstellen des Korrekturwerts. Je nach Temperatur und Konsistenz des Honigs bzw. Füllmenge im
 Abfüllbehälter wird durch die Trägheit des Systems der eingestellte Wert überschritten.
 Der Korrekturwert dient dazu, das anzupassen bzw. ein paar Gramm mehr einzufüllen, um die Richtlinien
 zu erfüllen.  
@@ -112,7 +114,7 @@ Der Servo wird über die grüne Taste aktiviert und über rote Taste deaktivert.
 über das Play/Pause Symbol links angezeigt.
 
 Das Gewicht wird permanent angezeigt. Über den Auswahl-Taster kann das aktuelle Gewicht als Tara eingestellt
-werden, d.h. die Waage springt auf Null und zählt ab dem aktuellen Gewicht. Zurückgestellt wird über einen 
+werden, d.h. die Waage springt auf Null und zählt ab dem aktuellen Gewicht. Zurückgestellt wird über einen
 Tastendruck bei leerer Waage.
 
 Der Modus dient zum manuellen Füllen und zum ermitteln der Werte für den maximalen und minimalen Winkel
@@ -120,11 +122,11 @@ des Servos für das Setup.
 
 Automatik:
 ----------
-Der Automatik-Modus hat zwei Betriebsarten, die über das Setup "Autostart" gewählt werden. Der aktive 
+Der Automatik-Modus hat zwei Betriebsarten, die über das Setup "Autostart" gewählt werden. Der aktive
 Autostart wird in der obersten Zeile mit "AS" angezeigt. Ausserdem sind dort der absolute und relative
 Öffnungswinkel zu finden.
 
-Die untere Zeile zeigt die Werte für die Korrektur und die Füllmenge. 
+Die untere Zeile zeigt die Werte für die Korrektur und die Füllmenge.
 
 Der Automatik-Modus muss über die grüne Taste aktiviert werden. Rot stoppt die Automatik und schliesst
 den Servo.
@@ -133,8 +135,8 @@ den Servo.
 Autostart nicht aktiv:
 ----------------------
 Wenn der Autostart nicht aktiv ist, dann startet der Servo nur, wenn ein leeres oder teilweise gefülltes
-Glas auf der Waage steht. Dieses Glas wird bis zur eingestellten Füllmenge befüllt, dann stoppt das 
-Programm. 
+Glas auf der Waage steht. Dieses Glas wird bis zur eingestellten Füllmenge befüllt, dann stoppt das
+Programm.
 
 Eine erneute Befüllung muss wieder mit der grünen Taste aktiviert werden (Halbautomatik).
 
@@ -145,7 +147,7 @@ Autostart aktiv:
 ----------------
 Der Autostart-Modus wird ebenfalls über die grüne Taste aktiviert (Play/Pause Symbol).  
 
-Danach startet der Füll-Vorgang automatisch, sobald ein passendes, leeres Glas aufgesetzt wird. Wenn das 
+Danach startet der Füll-Vorgang automatisch, sobald ein passendes, leeres Glas aufgesetzt wird. Wenn das
 gefüllte Glas entnommen wird und ein weiteres Glas aufgesetzt wird, startet der nächste Füll-Vorgang ohne
 weitere Bestätigung (Vollautomatik).
 
@@ -157,3 +159,16 @@ Ein teilgefülltes Glas wird nicht befüllt!
 Wenn kein Füllvorgang aktiv ist (der Hahn also geschlossen ist), kann in beiden Modi über den Auswahl-Taster
 direkt der Korrekturwert und die Füllmenge zur Verstellung angewählt werden. Der jeweils zu verstellende
 Wert blinkt.
+
+
+## Verwendung mit PlatformIO
+
+Just type:
+```
+make
+```
+
+After successfully building it, you will find firmware images at
+
+- .pio/build/heltec/firmware.bin
+- .pio/build/heltec/firmware.elf
