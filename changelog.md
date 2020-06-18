@@ -1,4 +1,5 @@
-Änderungen gegenüber der 0.1.4:
+# Change Log
+## 2020-06-15, v0.2.3
 
 Hardware:
 - Angepasst an Heltec NEW Wifi Kit 32 mit angepasster Beschaltung
