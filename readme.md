@@ -1,7 +1,5 @@
 # HaniMandl 
-# HaniMandl
 
-Ein halbautomatischer Honig-Abfüll-Roboter. 
 Ein halbautomatischer Honig-Abfüll-Roboter.
 
 Websites:
