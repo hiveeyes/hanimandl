@@ -38,7 +38,10 @@
                                - SCALE_READS auf 2 setzen? ca. 100ms schneller als 3, schwankt aber um +-1g
                                - Reihenfolge der Boot-Meldungen optimiert, damit nur relevante Warnungen ausgegeben werden
                                - Autokorrektur implementiert
-                               - LOGO!
+                               - LOGO und Umlaute!
+                               - Stop-Taste verlässt Setup-Untermenüs
+                               - Preferences nur bei Änderung speichern
+                               
  
   This code is in the public domain.
    
@@ -74,8 +77,7 @@
 //
 // Ab hier nur verstellen wenn Du genau weisst, was Du tust!
 //
-#define isDebug 4        // serielle debug-Ausgabe aktivieren. Mit >3 wird jeder Messdurchlauf ausgegeben
-#define AUTOKORREKTUR    // automatische Anpassung des Korrekturwerts
+#define isDebug 4          // serielle debug-Ausgabe aktivieren. Mit >3 wird jeder Messdurchlauf ausgegeben
 //#define POTISCALE        // Poti simuliert eine Wägezelle, nur für Testbetrieb!
 
 // Ansteuerung der Waage
@@ -192,6 +194,7 @@ char ausgabe[30];               // Fontsize 12 = 13 Zeichen maximal in einer Zei
 int modus = -1;                 // Bei Modus-Wechsel den Servo auf Minimum fahren
 int auto_aktiv = 0;             // Für Automatikmodus - System ein/aus?
 int waage_vorhanden = 0;        // HX711 nicht ansprechen, wenn keine Waage angeschlossen ist, sonst Crash
+long preferences_chksum;        // Checksumme, damit wir nicht sinnlos Prefs schreiben
 
 // Simuliert die Dauer des Wägeprozess, wenn keine Waage angeschlossen ist. Wirkt sich auf die Blinkfrequenz im Automatikmodus aus.
 long simulate_scale(int n) {
@@ -244,9 +247,9 @@ void IRAM_ATTR isr2() {
       } else {    // counter-clockwise
          rotaries[rotary_select].Value += rotaries[rotary_select].Step;
       }
-      if ( rotaries[rotary_select].Value < rotaries[rotary_select].Minimum ) { rotaries[rotary_select].Value = rotaries[rotary_select].Minimum; }
-      if ( rotaries[rotary_select].Value > rotaries[rotary_select].Maximum ) { rotaries[rotary_select].Value = rotaries[rotary_select].Maximum; }
-
+//      if ( rotaries[rotary_select].Value < rotaries[rotary_select].Minimum ) { rotaries[rotary_select].Value = rotaries[rotary_select].Minimum; }
+//      if ( rotaries[rotary_select].Value > rotaries[rotary_select].Maximum ) { rotaries[rotary_select].Value = rotaries[rotary_select].Maximum; }
+      rotaries[rotary_select].Value = constrain( rotaries[rotary_select].Value, rotaries[rotary_select].Minimum, rotaries[rotary_select].Maximum );
       rotating = false;
 #ifdef isDebug
       Serial.print(" Rotary Value changed to ");
@@ -310,10 +313,13 @@ void getPreferences(void) {
     winkel_max   = preferences.getUInt("winkel_max", winkel_max);
     winkel_fein  = preferences.getUInt("winkel_fein", winkel_fein);
 
+    preferences_chksum = faktor + pos + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_max + winkel_fein;
+
     i = 0;
     while( i < 5 ) {
       sprintf(ausgabe, "tara%d", i);
       glaeser[i].Tara= preferences.getInt(ausgabe, -9999);
+      preferences_chksum += glaeser[i].Tara;
       i++;
     }
 
@@ -341,7 +347,23 @@ void getPreferences(void) {
 }
 
 void setPreferences(void) {
+    long preferences_newchksum;
     int winkel = getRotariesValue(SW_WINKEL);
+
+    preferences_newchksum = faktor + winkel + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_max + winkel_fein;
+    i = 0;
+    while( i < 5 ) {
+      preferences_newchksum += glaeser[i].Tara;
+      i++;
+    }
+
+    if( preferences_newchksum == preferences_chksum ) {
+#ifdef isDebug
+       Serial.println("Preferences unverändert");
+#endif
+       return;
+    }
+    preferences_chksum = preferences_newchksum;
     
     preferences.begin("EEPROM", false);
     preferences.putFloat("faktor", faktor);
@@ -387,10 +409,13 @@ void setupTara(void) {
     int j;
     tara = 0;
 
-    initRotaries( SW_MENU, 0, 0, 4, -1 );   // Set Encoder to Menu Mode, four Selections, inverted count
+    initRotaries( SW_MENU, fmenge_index, 0, 4, -1 );   // Set Encoder to Menu Mode, four Selections, inverted count
       
     i = 0;
     while ( i == 0 ) {
+      if ((digitalRead(button_stop_pin)) == HIGH)
+         return;
+      
       if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) {
         tara = (int(SCALE_GETUNITS(10)));
         if ( tara > 20 ) {                  // Gläser müssen mindestens 20g haben
@@ -435,6 +460,9 @@ void setupCalibration(void) {
     
     i = 1;
     while (i > 0) {
+      if ((digitalRead(button_stop_pin)) == HIGH)
+         return;
+         
       if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
          scale.set_scale();
          scale.tare();
@@ -472,12 +500,19 @@ void setupCalibration(void) {
 
 
 void setupKorrektur(void) {
+    int korrektur_alt = getRotariesValue(SW_KORREKTUR);
+
     rotary_select = SW_KORREKTUR;
 
     i = 1;
     while (i > 0) {
+      if ((digitalRead(button_stop_pin)) == HIGH) {
+         setRotariesValue(SW_KORREKTUR, korrektur_alt);
+         return;
+      }
+      
       korrektur = getRotariesValue(SW_KORREKTUR);
-      u8g2.setFont(u8g2_font_courB14_tf);
+      u8g2.setFont(u8g2_font_courB12_tf);
       u8g2.clearBuffer();
       u8g2.setCursor(10, 12);
       u8g2.print("Korrektur");
@@ -503,6 +538,9 @@ void setupFuellmenge(void) {
     u8g2.setFont(u8g2_font_courB10_tf);
     i = 1;
     while (i > 0) {
+      if ((digitalRead(button_stop_pin)) == HIGH)
+         return;
+      
       pos = getRotariesValue(SW_MENU);
 
       u8g2.clearBuffer();
@@ -532,25 +570,28 @@ void setupFuellmenge(void) {
 }
 
 void setupAutostart(void) {
-  initRotaries(SW_MENU, 1, 1, 2, -1);
+  initRotaries(SW_MENU, autostart, 0, 1, -1);
   
   i = 1;
   while (i > 0) {
-    pos = getRotariesValue(SW_MENU);
-    u8g2.setFont(u8g2_font_courB14_tf);
-    u8g2.clearBuffer();
-    u8g2.setCursor(10, 12);    u8g2.print("Auto EIN");
-    u8g2.setCursor(10, 28);    u8g2.print("Auto AUS");
+      if ((digitalRead(button_stop_pin)) == HIGH)
+         return;
     
-    u8g2.setCursor(0, 12+((pos-1)*16));
+    pos = getRotariesValue(SW_MENU);
+    u8g2.setFont(u8g2_font_courB12_tf);
+    u8g2.clearBuffer();
+    u8g2.setCursor(10, 12);    u8g2.print("Auto Aus");
+    u8g2.setCursor(10, 28);    u8g2.print("Auto Ein");
+    
+    u8g2.setCursor(0, 12+(pos*16));
     u8g2.print("*");
     u8g2.sendBuffer();
  
     if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
+      if (pos == 0) { autostart = 0; }
       if (pos == 1) { autostart = 1; }
-      if (pos == 2) { autostart = 2; }
 
-      u8g2.setCursor(105, 12+((pos-1)*16));
+      u8g2.setCursor(105, 12+(pos*16));
       u8g2.print("OK");
       u8g2.sendBuffer();
       delay(1000);
@@ -564,6 +605,9 @@ void setupAutokorrektur(void) {
   
   i = 1;
   while (i > 0) {
+    if ((digitalRead(button_stop_pin)) == HIGH)
+      return;
+
     pos = getRotariesValue(SW_MENU);
     u8g2.setFont(u8g2_font_courB12_tf);
     u8g2.clearBuffer();
@@ -600,6 +644,9 @@ void setupZahlwert(int *param, int min, int max, char *name) {
           
     i = 1;
     while (i > 0) {
+      if ((digitalRead(button_stop_pin)) == HIGH)
+         return;
+      
       pos = getRotariesValue(SW_MENU);
       u8g2.setFont(u8g2_font_courB12_tf);
       u8g2.clearBuffer();
@@ -625,11 +672,14 @@ void setupClearPrefs(void) {
   
   i = 1;
   while (i > 0) {
+    if ((digitalRead(button_stop_pin)) == HIGH)
+       return;
+    
     pos = getRotariesValue(SW_MENU);
     u8g2.setFont(u8g2_font_courB10_tf);
     u8g2.clearBuffer();
-    u8g2.setCursor(10, 12);    u8g2.print("Loeschen");
-    u8g2.setCursor(10, 28);    u8g2.print("Zurueck!");
+    u8g2.setCursor(10, 12);    u8g2.print("Löschen");
+    u8g2.setCursor(10, 28);    u8g2.print("Zurück!");
     
     u8g2.setCursor(0, 12+((pos)*16));
     u8g2.print("*");
@@ -669,7 +719,7 @@ void processSetup(void) {
      u8g2.setCursor(10, 10);   u8g2.print("Tara");
      u8g2.setCursor(10, 23);   u8g2.print("Kalibrieren");
      u8g2.setCursor(10, 36);   u8g2.print("Korrektur");
-     u8g2.setCursor(10, 49);   u8g2.print("Fuellmenge");
+     u8g2.setCursor(10, 49);   u8g2.print("Füllmenge");
      u8g2.setCursor(10, 62);   u8g2.print("Autostart");
      u8g2.setFont(u8g2_font_open_iconic_arrow_2x_t);
      u8g2.drawGlyph(112, 64, 0x40);  
@@ -887,7 +937,8 @@ void processAutomatik(void)
     Serial.print(" Autokorrektur: ");  Serial.print(autokorrektur_gr);
     Serial.print(" Zielgewicht ");     Serial.print(zielgewicht);
     Serial.print(" Erzwinge Servo: "); Serial.print(erzwinge_servo_aktiv);
-    Serial.print(" servo_aktiv ");     Serial.println(servo_aktiv);
+    Serial.print(" servo_aktiv ");     Serial.print(servo_aktiv);
+    Serial.print(" auto_aktiv ");      Serial.println(auto_aktiv);
 #endif 
 #endif
   time_vorher = millis();
@@ -1070,6 +1121,7 @@ void setup()
 
 // Boot Screen
   u8g2.begin();
+  u8g2.enableUTF8Print();
   u8g2.clearBuffer();
 //  u8g2.setFont(u8g2_font_courB24_tf);
 //  u8g2.setCursor(20, 43);    u8g2.print("BOOT");
@@ -1200,6 +1252,6 @@ void print_logo() {
   u8g2.setCursor(85, 27);    u8g2.print("HANI");
   u8g2.setCursor(75, 43);    u8g2.print("MANDL");
   u8g2.setFont(u8g2_font_courB08_tf);
-  u8g2.setCursor(85, 64);    u8g2.print("v.0.2.3");
+  u8g2.setCursor(85, 64);    u8g2.print("v.0.2.4");
   u8g2.sendBuffer();
 }
