@@ -38,8 +38,8 @@
                                - SCALE_READS auf 2 setzen? ca. 100ms schneller als 3, schwankt aber um +-1g
                                - Reihenfolge der Boot-Meldungen optimiert, damit nur relevante Warnungen ausgegeben werden
                                - Autokorrektur implementiert
-                               - LOGO und Umlaute!
-                               - Stop-Taste verlässt Setup-Untermenüs
+                               - LOGO! und Umlaute (Anregung von Johannes Kuder)
+                               - Stop-Taste verlässt Setup-Untermenüs (Anregung von Johannes Kuder)
                                - Preferences nur bei Änderung speichern
                                
  
@@ -77,7 +77,8 @@
 //
 // Ab hier nur verstellen wenn Du genau weisst, was Du tust!
 //
-#define isDebug 4          // serielle debug-Ausgabe aktivieren. Mit >3 wird jeder Messdurchlauf ausgegeben
+//#define isDebug 3          // serielle debug-Ausgabe aktivieren. Mit >3 wird jeder Messdurchlauf ausgegeben
+                           // ACHTUNG: zu viel Serieller Output kann einen ISR-Watchdog Reset auslösen!
 //#define POTISCALE        // Poti simuliert eine Wägezelle, nur für Testbetrieb!
 
 // Ansteuerung der Waage
@@ -252,8 +253,10 @@ void IRAM_ATTR isr2() {
       rotaries[rotary_select].Value = constrain( rotaries[rotary_select].Value, rotaries[rotary_select].Minimum, rotaries[rotary_select].Maximum );
       rotating = false;
 #ifdef isDebug
+#if isDebug >= 5
       Serial.print(" Rotary Value changed to ");
       Serial.println(getRotariesValue(rotary_select));
+#endif 
 #endif 
     }
     aLastState = aState; // Updates the previous state of the outputA with the current state
@@ -455,7 +458,7 @@ void setupCalibration(void) {
     u8g2.setCursor(0, 12);    u8g2.print("Bitte Waage");
     u8g2.setCursor(0, 28);    u8g2.print("leeren");
     u8g2.setCursor(0, 44);    u8g2.print("und mit OK");
-    u8g2.setCursor(0, 60);    u8g2.print("bestaetigen");
+    u8g2.setCursor(0, 60);    u8g2.print("bestätigen");
     u8g2.sendBuffer();
     
     i = 1;
@@ -475,7 +478,7 @@ void setupCalibration(void) {
     u8g2.setCursor(0, 12);    u8g2.print("Bitte 500g");
     u8g2.setCursor(0, 28);    u8g2.print("aufstellen");
     u8g2.setCursor(0, 44);    u8g2.print("und mit OK");
-    u8g2.setCursor(0, 60);    u8g2.print("bestaetigen");
+    u8g2.setCursor(0, 60);    u8g2.print("bestätigen");
     u8g2.sendBuffer();
     
     i = 1;
@@ -508,6 +511,8 @@ void setupKorrektur(void) {
     while (i > 0) {
       if ((digitalRead(button_stop_pin)) == HIGH) {
          setRotariesValue(SW_KORREKTUR, korrektur_alt);
+         korrektur = korrektur_alt;
+         rotary_select = SW_MENU;
          return;
       }
       
@@ -518,6 +523,12 @@ void setupKorrektur(void) {
       u8g2.print("Korrektur");
       u8g2.setCursor(40, 28);
       u8g2.print(korrektur);
+
+      u8g2.setCursor(10, 48);     // A.P.
+      u8g2.print("alter Wert");   // A.P.
+      u8g2.setCursor(40, 64);     // A.P.
+      u8g2.print(korrektur_alt);  // A.P.
+      
       u8g2.sendBuffer();
       
       if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
@@ -640,6 +651,9 @@ void setupAutokorrektur(void) {
 // Funktion zum anpassen eines beliebigen Zahlwerts (Öffnungswinkel-Maximum und -Feindosierung) 
 // Könnte auch für Korrektur genutzt werden, der Wert hat aber seine eigene Datenstruktur
 void setupZahlwert(int *param, int min, int max, char *name) {
+    int old = *param;
+    int wert;
+    
     initRotaries(SW_MENU, *param, min, max, 1);
           
     i = 1;
@@ -647,17 +661,22 @@ void setupZahlwert(int *param, int min, int max, char *name) {
       if ((digitalRead(button_stop_pin)) == HIGH)
          return;
       
-      pos = getRotariesValue(SW_MENU);
+      wert = getRotariesValue(SW_MENU);
       u8g2.setFont(u8g2_font_courB12_tf);
       u8g2.clearBuffer();
       u8g2.setCursor(10, 12);
       u8g2.print(name);
       u8g2.setCursor(40, 28);
-      u8g2.print(pos);
+      u8g2.print(wert);
+      u8g2.setCursor(10, 48);     // A.P.
+      u8g2.print("alter Wert");   // A.P.
+      u8g2.setCursor(40, 64);     // A.P.
+      u8g2.print(old);  // A.P.
+
       u8g2.sendBuffer();
       
       if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
-        *param = pos;
+        *param = wert;
         u8g2.setCursor(100, 28);
         u8g2.print("OK");
         u8g2.sendBuffer();
@@ -711,11 +730,12 @@ void processSetup(void) {
      rotary_select = SW_MENU;
      initRotaries(SW_MENU, 0, 0, 8, -1);
   }
-  pos = getRotariesValue(SW_MENU);
+
+  int menuitem = getRotariesValue(SW_MENU);
 
   u8g2.setFont(u8g2_font_courB10_tf);
   u8g2.clearBuffer();
-  if( pos < 5 ) {
+  if( menuitem < 5 ) {
      u8g2.setCursor(10, 10);   u8g2.print("Tara");
      u8g2.setCursor(10, 23);   u8g2.print("Kalibrieren");
      u8g2.setCursor(10, 36);   u8g2.print("Korrektur");
@@ -732,7 +752,7 @@ void processSetup(void) {
      u8g2.drawGlyph(112, 16, 0x43);  
   }
   u8g2.setFont(u8g2_font_courB10_tf);
-  u8g2.setCursor(0, 10 + (((pos)%5) * 13));
+  u8g2.setCursor(0, 10 + (((menuitem)%5) * 13));
   u8g2.print("*");
   u8g2.sendBuffer();
 
@@ -743,21 +763,21 @@ void processSetup(void) {
     }
 #ifdef isDebug 
     Serial.print("Setup Position: ");
-    Serial.println(pos);
+    Serial.println(menuitem);
 #endif
 
-    int lastpos = pos;
-    if (pos == 0)   setupTara();              // Tara 
-    if (pos == 1)   setupCalibration();       // Kalibrieren 
-    if (pos == 2)   setupKorrektur();         // Korrektur 
-    if (pos == 3)   setupFuellmenge();        // Füllmenge 
-    if (pos == 4)   setupAutostart();         // Autostart 
-    if (pos == 5)   setupZahlwert(&winkel_max, winkel_fein, winkel_hard_max, "Servo Max" );  // Maximaler Öffnungswinkel
-    if (pos == 6)   setupZahlwert(&winkel_fein, winkel_hard_min, winkel_max, "Servo Fein" ); // Minimaler Abfüllwinkel
-    if (pos == 7)   setupAutokorrektur();     // Autokorrektur 
+    int lastpos = menuitem;
+    if (menuitem == 0)   setupTara();              // Tara 
+    if (menuitem == 1)   setupCalibration();       // Kalibrieren 
+    if (menuitem == 2)   setupKorrektur();         // Korrektur 
+    if (menuitem == 3)   setupFuellmenge();        // Füllmenge 
+    if (menuitem == 4)   setupAutostart();         // Autostart 
+    if (menuitem == 5)   setupZahlwert(&winkel_max, winkel_fein, winkel_hard_max, "Servo Max" );  // Maximaler Öffnungswinkel
+    if (menuitem == 6)   setupZahlwert(&winkel_fein, winkel_hard_min, winkel_max, "Servo Fein" ); // Minimaler Abfüllwinkel
+    if (menuitem == 7)   setupAutokorrektur();     // Autokorrektur 
     setPreferences();
 
-    if (pos == 8)   setupClearPrefs();        // EEPROM löschen
+    if (menuitem == 8)   setupClearPrefs();        // EEPROM löschen
     initRotaries(SW_MENU, lastpos, 0, 8, -1); // Menu-Parameter könnten verstellt worden sein
   }
 }
@@ -931,13 +951,13 @@ void processAutomatik(void)
     Serial.print(" Gewicht: ");        Serial.print(gewicht);
     Serial.print(" Winkel: ");         Serial.print(winkel);
 //    Serial.print(" Dauer ");           Serial.print(millis() - scaletime);
-    Serial.print(" Füllmenge: ");      Serial.print(fmenge);
-    Serial.print(" Korrektur: ");      Serial.print(korrektur);
-    Serial.print(" Tara_glas:");       Serial.print(tara_glas);
+//    Serial.print(" Füllmenge: ");      Serial.print(fmenge);
+//    Serial.print(" Korrektur: ");      Serial.print(korrektur);
+//    Serial.print(" Tara_glas:");       Serial.print(tara_glas);
     Serial.print(" Autokorrektur: ");  Serial.print(autokorrektur_gr);
     Serial.print(" Zielgewicht ");     Serial.print(zielgewicht);
-    Serial.print(" Erzwinge Servo: "); Serial.print(erzwinge_servo_aktiv);
-    Serial.print(" servo_aktiv ");     Serial.print(servo_aktiv);
+//    Serial.print(" Erzwinge Servo: "); Serial.print(erzwinge_servo_aktiv);
+//    Serial.print(" servo_aktiv ");     Serial.print(servo_aktiv);
     Serial.print(" auto_aktiv ");      Serial.println(auto_aktiv);
 #endif 
 #endif
@@ -976,6 +996,11 @@ void processAutomatik(void)
   sprintf(ausgabe,"W=%-3d %2s %3d%%", winkel, (autostart==1)?"AS":"  ", pos);
   u8g2.print(ausgabe);
 
+//  u8g2.setFont(u8g2_font_courR10_tf);
+//  u8g2.setCursor(0,20); 
+//  u8g2.print("Autost./-korr.");
+  
+  u8g2.setFont(u8g2_font_courB12_tf);
   // Zeile unten, aktuell zu verstellende Werte blinken. 
   // Verstellung nur wenn Automatik inaktiv, gesteuert über Interrupt-Funktion 
   if( autokorrektur == 1 ){
@@ -1254,4 +1279,38 @@ void print_logo() {
   u8g2.setFont(u8g2_font_courB08_tf);
   u8g2.setCursor(85, 64);    u8g2.print("v.0.2.4");
   u8g2.sendBuffer();
+
+  return;
+
+#if 0    // Display-Test
+  u8g2.clearBuffer();
+  u8g2.setCursor(20, 46);
+  u8g2.setFont(u8g2_font_courB18_tf);
+  u8g2.print("  1234 ");
+  u8g2.setCursor(20, 42);
+  u8g2.print("      g");
+
+  // Play/Pause Icon, ob die Automatik aktiv ist
+  u8g2.setFont(u8g2_font_open_iconic_play_2x_t);
+  u8g2.drawGlyph(0, 46, (auto_aktiv==1)?0x45:0x44 );
+
+  u8g2.setFont(u8g2_font_courB12_tf);
+  // Zeile oben, Öffnungswinkel absolut und Prozent, Anzeige Autostart
+  u8g2.setCursor(0, 11);
+  sprintf(ausgabe,"W=%-3d %2s %3d%%", winkel, (autostart==1)?"AS":"  ", pos);
+  u8g2.print(ausgabe);
+
+  u8g2.setFont(u8g2_font_courR10_tf);
+  u8g2.setCursor(4,25); 
+  u8g2.print("Autost./-korr.");
+
+  u8g2.setCursor(0, 64);
+
+  u8g2.setFont(u8g2_font_courB12_tf);
+  sprintf(ausgabe,"k=%-3d  f=%4d", -4, glaeser[fmenge_index].Gewicht );
+  u8g2.print(ausgabe);
+
+  u8g2.sendBuffer();
+  delay(10000);
+#endif
 }
