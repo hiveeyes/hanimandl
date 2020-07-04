@@ -1,5 +1,5 @@
 /*
-  Abfuellwaage Version 0.2.4
+  Abfuellwaage Version 0.2.5
   --------------------------
   Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer
             
@@ -41,13 +41,14 @@
                                - LOGO! und Umlaute (Anregung von Johannes Kuder)
                                - Stop-Taste verlässt Setup-Untermenüs (Anregung von Johannes Kuder)
                                - Preferences nur bei Änderung speichern
-                               
+  2020-07 Andreas Holzhammer | - Anzeige der vorherigen Werte im Setup
+                               - Kulanzwert für Autokorrektur einstellbar
  
   This code is in the public domain.
    
   Hinweise zur Hardware
   ---------------------
-  - bei allen digitalen Eingängen sind interne pull downs aktiviert, keine externen-Widerständen nötig! 
+  - bei allen digitalen Eingängen sind interne pull downs aktiviert, keine externen-Widerstände nötig! 
 */
 
 #include <Arduino.h>
@@ -69,7 +70,6 @@
 #define USE_ROTARY              // Rotary benutzen
 #define USE_ROTARY_SW           // Taster des Rotary benutzen
 //#define USE_POTI              // Poti benutzen -> ACHTUNG, im Normalfall auch USE_ROTARY_SW deaktivieren!
-#define KULANZ_AUTOKORREKTUR 5  // gewollte Überfüllung im Autokorrekturmodus in Gramm
 //
 // Ende Benutzereinstellungen!
 // 
@@ -183,6 +183,7 @@ int fmenge_index;               // Index in gläser[]
 int korrektur;                  // Korrekturwert für Abfüllmenge
 int autostart;                  // Vollautomatik ein/aus
 int autokorrektur;              // Autokorrektur ein/aus
+int kulanz_gr;                  // gewollte Überfüllung im Autokorrekturmodus in Gramm
 int winkel;                     // aktueller Servo-Winkel
 int winkel_hard_min = 0;        // Hard-Limit für Servo
 int winkel_hard_max = 155;      // Hard-Limit für Servo
@@ -312,11 +313,12 @@ void getPreferences(void) {
     korrektur    = preferences.getUInt("korrektur", 0);
     autostart    = preferences.getUInt("autostart", 0);
     autokorrektur = preferences.getUInt("autokorrektur", 0);
+    kulanz_gr    = preferences.getUInt("kulanz_gr", 5);
     fmenge_index = preferences.getUInt("fmenge_index", 3);
     winkel_max   = preferences.getUInt("winkel_max", winkel_max);
     winkel_fein  = preferences.getUInt("winkel_fein", winkel_fein);
 
-    preferences_chksum = faktor + pos + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_max + winkel_fein;
+    preferences_chksum = faktor + pos + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_max + winkel_fein + kulanz_gr;
 
     i = 0;
     while( i < 5 ) {
@@ -336,6 +338,7 @@ void getPreferences(void) {
     Serial.print("korrektur = ");    Serial.println(korrektur);
     Serial.print("autostart = ");    Serial.println(autostart);
     Serial.print("autokorrektur = ");Serial.println(autokorrektur);
+    Serial.print("kulanz_gr = ");    Serial.println(kulanz_gr);
     Serial.print("fmenge_index = "); Serial.println(fmenge_index);
     Serial.print("winkel_max = ");   Serial.println(winkel_max);
     Serial.print("winkel_fein = ");  Serial.println(winkel_fein);
@@ -353,7 +356,7 @@ void setPreferences(void) {
     long preferences_newchksum;
     int winkel = getRotariesValue(SW_WINKEL);
 
-    preferences_newchksum = faktor + winkel + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_max + winkel_fein;
+    preferences_newchksum = faktor + winkel + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_max + winkel_fein + kulanz_gr;
     i = 0;
     while( i < 5 ) {
       preferences_newchksum += glaeser[i].Tara;
@@ -375,6 +378,7 @@ void setPreferences(void) {
     preferences.putUInt("korrektur", korrektur);
     preferences.putUInt("autostart", autostart);
     preferences.putUInt("autokorrektur", autokorrektur);
+    preferences.putUInt("kulanz_gr", kulanz_gr);
     preferences.putUInt("winkel_max", winkel_max);
     preferences.putUInt("winkel_fein", winkel_fein);
     preferences.putUInt("fmenge_index", fmenge_index);
@@ -395,6 +399,7 @@ void setPreferences(void) {
     Serial.print("korrektur = ");    Serial.println(korrektur);
     Serial.print("autostart = ");    Serial.println(autostart);
     Serial.print("autokorrektur = ");Serial.println(autokorrektur);
+    Serial.print("kulanz_gr = ");    Serial.println(kulanz_gr);
     Serial.print("fmenge_index = "); Serial.println(fmenge_index);
     Serial.print("winkel_max = ");   Serial.println(winkel_max);
     Serial.print("winkel_fein = ");  Serial.println(winkel_fein);
@@ -499,8 +504,6 @@ void setupCalibration(void) {
       }
     }
 }
-
-
 
 void setupKorrektur(void) {
     int korrektur_alt = getRotariesValue(SW_KORREKTUR);
@@ -624,7 +627,7 @@ void setupAutokorrektur(void) {
     u8g2.clearBuffer();
     u8g2.setCursor(10, 12);    u8g2.print("Autok. Aus");
     u8g2.setCursor(10, 28);    u8g2.print("Autok. Ein");
-    sprintf(ausgabe,"Kulanz: %dg", KULANZ_AUTOKORREKTUR);
+    sprintf(ausgabe,"Kulanz: %dg", kulanz_gr);
     u8g2.setCursor(10, 44);    u8g2.print(ausgabe);
     
     u8g2.setCursor(0, 12+(pos*16));
@@ -636,17 +639,16 @@ void setupAutokorrektur(void) {
       if (pos == 1) { autokorrektur = 1; }
 
       u8g2.setFont(u8g2_font_open_iconic_check_2x_t);
-      u8g2.drawGlyph(112, 14+(pos*16), 0x40);
-
 //      u8g2.setCursor(110, 12+(pos*16));
 //      u8g2.print("OK");
+      u8g2.drawGlyph(112, 14+(pos*16), 0x40);
+
       u8g2.sendBuffer();
       delay(1000);
       i = 0;
     }
   }
 }
-
 
 // Funktion zum anpassen eines beliebigen Zahlwerts (Öffnungswinkel-Maximum und -Feindosierung) 
 // Könnte auch für Korrektur genutzt werden, der Wert hat aber seine eigene Datenstruktur
@@ -728,7 +730,7 @@ void processSetup(void) {
      servo_aktiv = 0;              // Servo-Betrieb aus
      servo.write(winkel);
      rotary_select = SW_MENU;
-     initRotaries(SW_MENU, 0, 0, 8, -1);
+     initRotaries(SW_MENU, 0, 0, 9, -1);
   }
 
   int menuitem = getRotariesValue(SW_MENU);
@@ -747,7 +749,8 @@ void processSetup(void) {
      u8g2.setCursor(10, 10);   u8g2.print("Servo Max");
      u8g2.setCursor(10, 23);   u8g2.print("Servo Fein");
      u8g2.setCursor(10, 36);   u8g2.print("Autokorrektur");
-     u8g2.setCursor(10, 49);   u8g2.print("Clear Pref's");
+     u8g2.setCursor(10, 49);   u8g2.print("Kulanz");
+     u8g2.setCursor(10, 62);   u8g2.print("Clear Pref's");
      u8g2.setFont(u8g2_font_open_iconic_arrow_2x_t);
      u8g2.drawGlyph(112, 16, 0x43);  
   }
@@ -775,10 +778,11 @@ void processSetup(void) {
     if (menuitem == 5)   setupZahlwert(&winkel_max, winkel_fein, winkel_hard_max, "Servo Max" );  // Maximaler Öffnungswinkel
     if (menuitem == 6)   setupZahlwert(&winkel_fein, winkel_hard_min, winkel_max, "Servo Fein" ); // Minimaler Abfüllwinkel
     if (menuitem == 7)   setupAutokorrektur();     // Autokorrektur 
+    if (menuitem == 8)   setupZahlwert(&kulanz_gr, 0, 99, "Kulanz" ); // Kulanz bei Autokorrektur
     setPreferences();
 
-    if (menuitem == 8)   setupClearPrefs();        // EEPROM löschen
-    initRotaries(SW_MENU, lastpos, 0, 8, -1); // Menu-Parameter könnten verstellt worden sein
+    if (menuitem == 9)   setupClearPrefs();        // EEPROM löschen
+    initRotaries(SW_MENU, lastpos, 0, 9, -1); // Menu-Parameter könnten verstellt worden sein
   }
 }
 
@@ -791,7 +795,6 @@ void processAutomatik(void)
 
   static int gewicht_vorher;    // Gewicht des vorher gefüllten Glases
   static long time_vorher;      // Messung der Durchlaufzeit
-  static int kulanz_gr = KULANZ_AUTOKORREKTUR; // Feste Kulanzgröße
   static int sammler_num = 5;   // Anzahl identischer Messungen für Nachtropfen
 
   if ( modus != MODE_AUTOMATIK ) {
@@ -826,6 +829,7 @@ void processAutomatik(void)
   // wir starten nur, wenn das Tara für die Füllmenge gesetzt ist!
   // Ein erneuter Druck auf Start erzwingt die Aktivierung des Servo
   if (((digitalRead(button_start_pin)) == HIGH) && (tara > 0)) {
+    delay(100);                    // einfaches Debounce
     if ( auto_aktiv == 1 ) {
       erzwinge_servo_aktiv = 1;
 #ifdef isDebug
@@ -876,6 +880,7 @@ void processAutomatik(void)
       Serial.print("gewicht: ");            Serial.print(gewicht);
       Serial.print(" gewicht_vorher: ");    Serial.print(gewicht_vorher);
       Serial.print(" zielgewicht: ");       Serial.print(fmenge + korrektur + tara_glas + autokorrektur_gr);
+      Serial.print(" kulanz: ");            Serial.print(kulanz_gr);
       Serial.print(" Autokorrektur: ");     Serial.println(autokorrektur_gr);
 #endif      
       servo_aktiv = 1;
@@ -884,7 +889,8 @@ void processAutomatik(void)
   }
   zielgewicht = fmenge + korrektur + tara_glas + autokorrektur_gr;
 
-  if ( autokorrektur == 1 )                               // anpassen des Autokorrektur-Werts
+  // Anpassung des Autokorrektur-Werts
+  if ( autokorrektur == 1 )
   {                                                       
     if ( (auto_aktiv == 1)                                // Automatik ist aktiviert
        && (servo_aktiv == 0 ) && (winkel == winkel_min)   // Hahn ist geschlossen
@@ -898,6 +904,13 @@ void processAutomatik(void)
       sammler_num = 0;
     } else if ( sammler_num == 5 ) {                      // gewicht ist 5x identisch, autokorrektur bestimmen
       autokorrektur_gr = (fmenge + kulanz_gr + tara_glas) - (gewicht - autokorrektur_gr);
+      if ( korrektur + autokorrektur_gr > kulanz_gr ) {   // Autokorrektur darf nicht überkorrigieren, max Füllmenge plus Kulanz
+        autokorrektur_gr = kulanz_gr - korrektur;
+#ifdef isDebug
+        Serial.print("Autokorrektur begrenzt auf ");
+        Serial.println(autokorrektur_gr);
+#endif
+      }
       sammler_num++;                                      // Korrekturwert für diesen Durchlauf erreicht
     }
 #ifdef isDebug
@@ -1277,7 +1290,7 @@ void print_logo() {
   u8g2.setCursor(85, 27);    u8g2.print("HANI");
   u8g2.setCursor(75, 43);    u8g2.print("MANDL");
   u8g2.setFont(u8g2_font_courB08_tf);
-  u8g2.setCursor(85, 64);    u8g2.print("v.0.2.4");
+  u8g2.setCursor(85, 64);    u8g2.print("v.0.2.5");
   u8g2.sendBuffer();
 
   return;
