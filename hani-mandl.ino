@@ -41,8 +41,10 @@
                                - LOGO! und Umlaute (Anregung von Johannes Kuder)
                                - Stop-Taste verlässt Setup-Untermenüs (Anregung von Johannes Kuder)
                                - Preferences nur bei Änderung speichern
+                               0.2.5
   2020-07 Andreas Holzhammer | - Anzeige der vorherigen Werte im Setup
                                - Kulanzwert für Autokorrektur einstellbar
+                               - Setup aufgeräumt, minimaler Servowinkel einstellbar
  
   This code is in the public domain.
    
@@ -186,8 +188,8 @@ int autokorrektur;              // Autokorrektur ein/aus
 int kulanz_gr;                  // gewollte Überfüllung im Autokorrekturmodus in Gramm
 int winkel;                     // aktueller Servo-Winkel
 int winkel_hard_min = 0;        // Hard-Limit für Servo
-int winkel_hard_max = 155;      // Hard-Limit für Servo
-int winkel_min = 0;             // nicht einstellbar, wird per Hardware angepasst!
+int winkel_hard_max = 180;      // Hard-Limit für Servo
+int winkel_min = 0;             // konfigurierbar im Setup
 int winkel_max = 85;            // konfigurierbar im Setup
 int winkel_fein = 35;           // konfigurierbar im Setup
 float fein_dosier_gewicht = 60; // float wegen Berechnung des Schliesswinkels
@@ -315,10 +317,11 @@ void getPreferences(void) {
     autokorrektur = preferences.getUInt("autokorrektur", 0);
     kulanz_gr    = preferences.getUInt("kulanz_gr", 5);
     fmenge_index = preferences.getUInt("fmenge_index", 3);
+    winkel_min   = preferences.getUInt("winkel_min", winkel_min);
     winkel_max   = preferences.getUInt("winkel_max", winkel_max);
     winkel_fein  = preferences.getUInt("winkel_fein", winkel_fein);
 
-    preferences_chksum = faktor + pos + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_max + winkel_fein + kulanz_gr;
+    preferences_chksum = faktor + pos + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_min + winkel_max + winkel_fein + kulanz_gr;
 
     i = 0;
     while( i < 5 ) {
@@ -340,6 +343,7 @@ void getPreferences(void) {
     Serial.print("autokorrektur = ");Serial.println(autokorrektur);
     Serial.print("kulanz_gr = ");    Serial.println(kulanz_gr);
     Serial.print("fmenge_index = "); Serial.println(fmenge_index);
+    Serial.print("winkel_min = ");   Serial.println(winkel_min);
     Serial.print("winkel_max = ");   Serial.println(winkel_max);
     Serial.print("winkel_fein = ");  Serial.println(winkel_fein);
 
@@ -356,7 +360,7 @@ void setPreferences(void) {
     long preferences_newchksum;
     int winkel = getRotariesValue(SW_WINKEL);
 
-    preferences_newchksum = faktor + winkel + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_max + winkel_fein + kulanz_gr;
+    preferences_newchksum = faktor + winkel + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_min + winkel_max + winkel_fein + kulanz_gr;
     i = 0;
     while( i < 5 ) {
       preferences_newchksum += glaeser[i].Tara;
@@ -379,6 +383,7 @@ void setPreferences(void) {
     preferences.putUInt("autostart", autostart);
     preferences.putUInt("autokorrektur", autokorrektur);
     preferences.putUInt("kulanz_gr", kulanz_gr);
+    preferences.putUInt("winkel_min", winkel_min);
     preferences.putUInt("winkel_max", winkel_max);
     preferences.putUInt("winkel_fein", winkel_fein);
     preferences.putUInt("fmenge_index", fmenge_index);
@@ -401,6 +406,7 @@ void setPreferences(void) {
     Serial.print("autokorrektur = ");Serial.println(autokorrektur);
     Serial.print("kulanz_gr = ");    Serial.println(kulanz_gr);
     Serial.print("fmenge_index = "); Serial.println(fmenge_index);
+    Serial.print("winkel_min = ");   Serial.println(winkel_min);
     Serial.print("winkel_max = ");   Serial.println(winkel_max);
     Serial.print("winkel_fein = ");  Serial.println(winkel_fein);
 
@@ -545,6 +551,216 @@ void setupKorrektur(void) {
     rotary_select = SW_MENU;
 }
 
+void setupServoWinkel(void) {
+  int menuitem;
+  int lastmin  = winkel_min;
+  int lastfein = winkel_fein;
+  int lastmax  = winkel_max;
+  int wert_alt;
+  bool wert_aendern = false;
+  bool servo_live = false;
+  
+  initRotaries(SW_MENU, 0, 0, 4, -1);
+
+  u8g2.setFont(u8g2_font_courB10_tf);
+  i = 1;
+  while (i > 0) {
+    if ((digitalRead(button_stop_pin)) == HIGH) {
+       winkel_min  = lastmin;
+       winkel_fein = lastfein;
+       winkel_max  = lastmax;
+       return;
+    }
+
+    if ( wert_aendern == false ) {
+      menuitem = getRotariesValue(SW_MENU);
+    } else {
+      switch (menuitem) {
+        case 0: servo_live  = getRotariesValue(SW_MENU);
+                break;
+        case 1: winkel_min  = getRotariesValue(SW_MENU);
+                if ( servo_live == true ) servo.write(winkel_min);
+                break;
+        case 2: winkel_fein = getRotariesValue(SW_MENU);
+                if ( servo_live == true ) servo.write(winkel_fein);
+                break;
+        case 3: winkel_max  = getRotariesValue(SW_MENU);
+                if ( servo_live == true ) servo.write(winkel_max);
+                break;
+      }
+    }
+
+    u8g2.clearBuffer();
+    u8g2.setCursor(10, 23); sprintf(ausgabe,"Minimum   %3d", winkel_min);  u8g2.print(ausgabe);
+    u8g2.setCursor(10, 36); sprintf(ausgabe,"Feindos.  %3d", winkel_fein); u8g2.print(ausgabe);
+    u8g2.setCursor(10, 49); sprintf(ausgabe,"Maximum   %3d", winkel_max);  u8g2.print(ausgabe);
+    u8g2.setCursor(10, 62); u8g2.print(     "Speichern");
+
+    if ( wert_aendern == false ) {
+       u8g2.setCursor(10, 10); sprintf(ausgabe,"Livesetup %3s", (servo_live==false?"aus":"ein")); u8g2.print(ausgabe);
+       u8g2.setCursor( 0, 10+(menuitem*13)); u8g2.print("*");
+    } else {
+       if ( menuitem != 0 ) { 
+          u8g2.setCursor(10, 10); sprintf(ausgabe,"  vorher: %3d", wert_alt); u8g2.print(ausgabe);
+       } else {
+          u8g2.setCursor(10, 10); sprintf(ausgabe,"Livesetup %3s", (servo_live==false?"aus":"ein")); u8g2.print(ausgabe);
+       }   
+       u8g2.setFont(u8g2_font_open_iconic_arrow_1x_t);
+       u8g2.drawGlyph(0, 10+(menuitem*13), 0x42);
+       u8g2.setFont(u8g2_font_courB10_tf);     
+    }
+    u8g2.sendBuffer();
+
+    if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) 
+         && (menuitem < 4 )
+         && (wert_aendern == false) ) {
+
+         // debounce
+         delay(10);  
+         while( digitalRead(SELECT_SW) == SELECT_PEGEL )
+            ;
+         delay(10);
+           
+         switch (menuitem) { 
+           case 0: initRotaries(SW_MENU, servo_live, 0, 1, 1);
+                   break;
+           case 1: initRotaries(SW_MENU, winkel_min,  winkel_hard_min, winkel_fein,     1);
+                   wert_alt = lastmin;
+                   break;
+           case 2: initRotaries(SW_MENU, winkel_fein, winkel_min,      winkel_max,      1);
+                   wert_alt = lastfein;
+                   break;
+           case 3: initRotaries(SW_MENU, winkel_max,  winkel_fein,     winkel_hard_max, 1);
+                   wert_alt = lastmax;
+                   break;
+         }
+         wert_aendern = true;
+      }
+
+      if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) 
+           && (menuitem < 4 )
+           && (wert_aendern == true) ) {
+
+         // debounce
+         delay(10);
+         while( digitalRead(SELECT_SW) == SELECT_PEGEL )
+            ;
+         delay(10);
+
+         if ( servo_live == true ) servo.write(winkel_min);
+         initRotaries(SW_MENU, menuitem, 0, 4, -1);
+         wert_aendern = false;
+      }
+
+      if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) && (menuitem == 4) ) {
+        u8g2.setCursor(108, 10+(menuitem*13));
+        u8g2.print("OK");
+        u8g2.sendBuffer();
+        delay(1000);
+        i = 0;
+      }
+    }
+}
+
+void setupAutomatik(void) {
+  int menuitem;
+  int lastautostart     = autostart;
+  int lastautokorrektur = autokorrektur;
+  int lastkulanz        = kulanz_gr;
+  bool wert_aendern = false;
+
+  initRotaries(SW_MENU, 0, 0, 3, -1);
+
+  u8g2.setFont(u8g2_font_courB10_tf);
+  i = 1;
+  while (i > 0) {
+    if ((digitalRead(button_stop_pin)) == HIGH) {
+       autostart     = lastautostart;
+       autokorrektur = lastautokorrektur;
+       kulanz_gr     = lastkulanz;
+       return;
+    }
+
+    if ( wert_aendern == false ) {
+      menuitem = getRotariesValue(SW_MENU);
+      if ( menuitem == 3 )
+         menuitem = 4;  // Eine Zeile Abstand zu "Speichern"
+    } else {
+      switch (menuitem) {
+        case 0: autostart     = getRotariesValue(SW_MENU);
+                break;
+        case 1: autokorrektur = getRotariesValue(SW_MENU);
+                break;
+        case 2: kulanz_gr     = getRotariesValue(SW_MENU);
+                break;
+      }
+    }
+
+    // Menu
+    u8g2.clearBuffer();
+    u8g2.setCursor(10, 10); sprintf(ausgabe,"Autostart %3s", (autostart==0?"aus":"ein"));     u8g2.print(ausgabe);
+    u8g2.setCursor(10, 23); sprintf(ausgabe,"Autokorr. %3s", (autokorrektur==0?"aus":"ein")); u8g2.print(ausgabe);
+    u8g2.setCursor(10, 36); sprintf(ausgabe,"-> Kulanz %2dg", kulanz_gr);                     u8g2.print(ausgabe);
+    u8g2.setCursor(10, 62); u8g2.print(     "Speichern");
+
+    // Positionsanzeige im Menu. "*" wenn nicht ausgewählt, Pfeil wenn ausgewählt
+    if ( wert_aendern == false ) {
+       u8g2.setCursor(0, 10+(menuitem*13)); u8g2.print("*");
+    } else {
+       u8g2.setFont(u8g2_font_open_iconic_arrow_1x_t);
+       u8g2.drawGlyph(0, 10+(menuitem*13), 0x42);
+       u8g2.setFont(u8g2_font_courB10_tf);     
+    }
+    u8g2.sendBuffer();
+
+    // Menupunkt zum Ändern ausgewählt
+    if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) 
+         && (menuitem < 3 )
+         && (wert_aendern == false) ) {
+
+         // debounce
+         delay(10);  
+         while( digitalRead(SELECT_SW) == SELECT_PEGEL )
+            ;
+         delay(10);
+           
+         switch (menuitem) { 
+           case 0: initRotaries(SW_MENU, autostart, 0, 1, 1);
+                   break;
+           case 1: initRotaries(SW_MENU, autokorrektur, 0, 1, 1);
+                   break;
+           case 2: initRotaries(SW_MENU, kulanz_gr, 0, 99, 1);
+                   break;
+         }
+         wert_aendern = true;
+      }
+
+      // Änderung im Menupunkt übernehmen
+      if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) 
+           && (menuitem < 3 )
+           && (wert_aendern == true) ) {
+
+         // debounce
+         delay(10);
+         while( digitalRead(SELECT_SW) == SELECT_PEGEL )
+            ;
+         delay(10);
+
+         initRotaries(SW_MENU, menuitem, 0, 3, -1);
+         wert_aendern = false;
+      }
+
+      // Menu verlassen 
+      if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) && (menuitem == 4) ) {
+        u8g2.setCursor(108, 10+(menuitem*13));
+        u8g2.print("OK");
+        u8g2.sendBuffer();
+        delay(1000);
+        i = 0;
+      }
+    }
+}
+
 void setupFuellmenge(void) {
     int j;
     initRotaries(SW_MENU, fmenge_index, 0, 4, -1);
@@ -575,111 +791,6 @@ void setupFuellmenge(void) {
         fmenge_index = pos; 
         
         u8g2.setCursor(100, 10+(getRotariesValue(SW_MENU)*13));
-        u8g2.print("OK");
-        u8g2.sendBuffer();
-        delay(1000);
-        i = 0;
-      }
-    }
-}
-
-void setupAutostart(void) {
-  initRotaries(SW_MENU, autostart, 0, 1, -1);
-  
-  i = 1;
-  while (i > 0) {
-      if ((digitalRead(button_stop_pin)) == HIGH)
-         return;
-    
-    pos = getRotariesValue(SW_MENU);
-    u8g2.setFont(u8g2_font_courB12_tf);
-    u8g2.clearBuffer();
-    u8g2.setCursor(10, 12);    u8g2.print("Auto Aus");
-    u8g2.setCursor(10, 28);    u8g2.print("Auto Ein");
-    
-    u8g2.setCursor(0, 12+(pos*16));
-    u8g2.print("*");
-    u8g2.sendBuffer();
- 
-    if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
-      if (pos == 0) { autostart = 0; }
-      if (pos == 1) { autostart = 1; }
-
-      u8g2.setCursor(105, 12+(pos*16));
-      u8g2.print("OK");
-      u8g2.sendBuffer();
-      delay(1000);
-      i = 0;
-    }
-  }
-}
-
-void setupAutokorrektur(void) {
-  initRotaries(SW_MENU, autokorrektur, 0, 1, -1);
-  
-  i = 1;
-  while (i > 0) {
-    if ((digitalRead(button_stop_pin)) == HIGH)
-      return;
-
-    pos = getRotariesValue(SW_MENU);
-    u8g2.setFont(u8g2_font_courB12_tf);
-    u8g2.clearBuffer();
-    u8g2.setCursor(10, 12);    u8g2.print("Autok. Aus");
-    u8g2.setCursor(10, 28);    u8g2.print("Autok. Ein");
-    sprintf(ausgabe,"Kulanz: %dg", kulanz_gr);
-    u8g2.setCursor(10, 44);    u8g2.print(ausgabe);
-    
-    u8g2.setCursor(0, 12+(pos*16));
-    u8g2.print("*");
-    u8g2.sendBuffer();
- 
-    if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
-      if (pos == 0) { autokorrektur = 0; }
-      if (pos == 1) { autokorrektur = 1; }
-
-      u8g2.setFont(u8g2_font_open_iconic_check_2x_t);
-//      u8g2.setCursor(110, 12+(pos*16));
-//      u8g2.print("OK");
-      u8g2.drawGlyph(112, 14+(pos*16), 0x40);
-
-      u8g2.sendBuffer();
-      delay(1000);
-      i = 0;
-    }
-  }
-}
-
-// Funktion zum anpassen eines beliebigen Zahlwerts (Öffnungswinkel-Maximum und -Feindosierung) 
-// Könnte auch für Korrektur genutzt werden, der Wert hat aber seine eigene Datenstruktur
-void setupZahlwert(int *param, int min, int max, char *name) {
-    int old = *param;
-    int wert;
-    
-    initRotaries(SW_MENU, *param, min, max, 1);
-          
-    i = 1;
-    while (i > 0) {
-      if ((digitalRead(button_stop_pin)) == HIGH)
-         return;
-      
-      wert = getRotariesValue(SW_MENU);
-      u8g2.setFont(u8g2_font_courB12_tf);
-      u8g2.clearBuffer();
-      u8g2.setCursor(10, 12);
-      u8g2.print(name);
-      u8g2.setCursor(40, 28);
-      u8g2.print(wert);
-      u8g2.setCursor(10, 48);     // A.P.
-      u8g2.print("alter Wert");   // A.P.
-      u8g2.setCursor(40, 64);     // A.P.
-      u8g2.print(old);  // A.P.
-
-      u8g2.sendBuffer();
-      
-      if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
-        *param = wert;
-        u8g2.setCursor(100, 28);
         u8g2.print("OK");
         u8g2.sendBuffer();
         delay(1000);
@@ -730,7 +841,7 @@ void processSetup(void) {
      servo_aktiv = 0;              // Servo-Betrieb aus
      servo.write(winkel);
      rotary_select = SW_MENU;
-     initRotaries(SW_MENU, 0, 0, 9, -1);
+     initRotaries(SW_MENU, 0, 0, 6, -1);
   }
 
   int menuitem = getRotariesValue(SW_MENU);
@@ -742,15 +853,12 @@ void processSetup(void) {
      u8g2.setCursor(10, 23);   u8g2.print("Kalibrieren");
      u8g2.setCursor(10, 36);   u8g2.print("Korrektur");
      u8g2.setCursor(10, 49);   u8g2.print("Füllmenge");
-     u8g2.setCursor(10, 62);   u8g2.print("Autostart");
+     u8g2.setCursor(10, 62);   u8g2.print("Automatik");
      u8g2.setFont(u8g2_font_open_iconic_arrow_2x_t);
      u8g2.drawGlyph(112, 64, 0x40);  
   } else {
-     u8g2.setCursor(10, 10);   u8g2.print("Servo Max");
-     u8g2.setCursor(10, 23);   u8g2.print("Servo Fein");
-     u8g2.setCursor(10, 36);   u8g2.print("Autokorrektur");
-     u8g2.setCursor(10, 49);   u8g2.print("Kulanz");
-     u8g2.setCursor(10, 62);   u8g2.print("Clear Pref's");
+     u8g2.setCursor(10, 10);   u8g2.print("Servowinkel");
+     u8g2.setCursor(10, 23);   u8g2.print("Clear Pref's");
      u8g2.setFont(u8g2_font_open_iconic_arrow_2x_t);
      u8g2.drawGlyph(112, 16, 0x43);  
   }
@@ -774,15 +882,12 @@ void processSetup(void) {
     if (menuitem == 1)   setupCalibration();       // Kalibrieren 
     if (menuitem == 2)   setupKorrektur();         // Korrektur 
     if (menuitem == 3)   setupFuellmenge();        // Füllmenge 
-    if (menuitem == 4)   setupAutostart();         // Autostart 
-    if (menuitem == 5)   setupZahlwert(&winkel_max, winkel_fein, winkel_hard_max, "Servo Max" );  // Maximaler Öffnungswinkel
-    if (menuitem == 6)   setupZahlwert(&winkel_fein, winkel_hard_min, winkel_max, "Servo Fein" ); // Minimaler Abfüllwinkel
-    if (menuitem == 7)   setupAutokorrektur();     // Autokorrektur 
-    if (menuitem == 8)   setupZahlwert(&kulanz_gr, 0, 99, "Kulanz" ); // Kulanz bei Autokorrektur
+    if (menuitem == 4)   setupAutomatik();         // Autostart/Autokorrektur konfigurieren 
+    if (menuitem == 5)   setupServoWinkel();       // Servostellungen Minimum, Maximum und Feindosierung
     setPreferences();
 
-    if (menuitem == 9)   setupClearPrefs();        // EEPROM löschen
-    initRotaries(SW_MENU, lastpos, 0, 9, -1); // Menu-Parameter könnten verstellt worden sein
+    if (menuitem == 6)   setupClearPrefs();        // EEPROM löschen
+    initRotaries(SW_MENU, lastpos, 0, 6, -1);      // Menu-Parameter könnten verstellt worden sein
   }
 }
 
@@ -829,7 +934,12 @@ void processAutomatik(void)
   // wir starten nur, wenn das Tara für die Füllmenge gesetzt ist!
   // Ein erneuter Druck auf Start erzwingt die Aktivierung des Servo
   if (((digitalRead(button_start_pin)) == HIGH) && (tara > 0)) {
-    delay(100);                    // einfaches Debounce
+    // debounce
+    delay(10);  
+    while( digitalRead(button_start_pin) == HIGH )
+       ;
+    delay(10);
+
     if ( auto_aktiv == 1 ) {
       erzwinge_servo_aktiv = 1;
 #ifdef isDebug
@@ -1150,6 +1260,9 @@ void setup()
   // short delay to let chip power up
   delay (100); 
 
+// Preferences aus dem EEPROM lesen
+  getPreferences();
+
 #ifdef USE_ORIGINAL_SERVO_VARS
   servo.attach(servo_pin, 750, 2500);  // originale Initialisierung, steuert nicht jeden Servo an
 #else
@@ -1161,13 +1274,8 @@ void setup()
   u8g2.begin();
   u8g2.enableUTF8Print();
   u8g2.clearBuffer();
-//  u8g2.setFont(u8g2_font_courB24_tf);
-//  u8g2.setCursor(20, 43);    u8g2.print("BOOT");
   print_logo();
   delay(3000);
-
-// Preferences aus dem EEPROM lesen
-  getPreferences();
 
 // Waage erkennen
   scale.begin(hx711_dt_pin, hx711_sck_pin);
@@ -1292,38 +1400,4 @@ void print_logo() {
   u8g2.setFont(u8g2_font_courB08_tf);
   u8g2.setCursor(85, 64);    u8g2.print("v.0.2.5");
   u8g2.sendBuffer();
-
-  return;
-
-#if 0    // Display-Test
-  u8g2.clearBuffer();
-  u8g2.setCursor(20, 46);
-  u8g2.setFont(u8g2_font_courB18_tf);
-  u8g2.print("  1234 ");
-  u8g2.setCursor(20, 42);
-  u8g2.print("      g");
-
-  // Play/Pause Icon, ob die Automatik aktiv ist
-  u8g2.setFont(u8g2_font_open_iconic_play_2x_t);
-  u8g2.drawGlyph(0, 46, (auto_aktiv==1)?0x45:0x44 );
-
-  u8g2.setFont(u8g2_font_courB12_tf);
-  // Zeile oben, Öffnungswinkel absolut und Prozent, Anzeige Autostart
-  u8g2.setCursor(0, 11);
-  sprintf(ausgabe,"W=%-3d %2s %3d%%", winkel, (autostart==1)?"AS":"  ", pos);
-  u8g2.print(ausgabe);
-
-  u8g2.setFont(u8g2_font_courR10_tf);
-  u8g2.setCursor(4,25); 
-  u8g2.print("Autost./-korr.");
-
-  u8g2.setCursor(0, 64);
-
-  u8g2.setFont(u8g2_font_courB12_tf);
-  sprintf(ausgabe,"k=%-3d  f=%4d", -4, glaeser[fmenge_index].Gewicht );
-  u8g2.print(ausgabe);
-
-  u8g2.sendBuffer();
-  delay(10000);
-#endif
 }
