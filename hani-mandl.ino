@@ -1,5 +1,5 @@
 /*
-  Abfuellwaage Version 0.2.5
+  Abfuellwaage Version 0.2.6
   --------------------------
   Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer
             
@@ -45,6 +45,8 @@
   2020-07 Andreas Holzhammer | - Anzeige der vorherigen Werte im Setup
                                - Kulanzwert für Autokorrektur einstellbar
                                - Setup aufgeräumt, minimaler Servowinkel einstellbar
+                               0.2.6
+                               - Kalibrierung der Waage verbessert; Messewerte runden; Waage "aufheizen" vor Bootscreen
  
   This code is in the public domain.
    
@@ -85,7 +87,7 @@
 
 // Ansteuerung der Waage
 #define SCALE_READS 2      // Parameter für hx711 Library. Messwert wird aus der Anzahl gemittelt
-#define SCALE_GETUNITS(n)  (waage_vorhanden ? scale.get_units(n) : simulate_scale(n) )
+#define SCALE_GETUNITS(n)  (waage_vorhanden ? round(scale.get_units(n)) : simulate_scale(n) )
 
 // Rotary Encoder Taster zieht Pegel auf Low, Start/Stop auf High!
 #ifdef USE_ROTARY_SW
@@ -463,7 +465,7 @@ void setupTara(void) {
 }
 
 void setupCalibration(void) {
-    long gewicht_raw;
+    float gewicht_raw;
     
     u8g2.clearBuffer();
     u8g2.setCursor(0, 12);    u8g2.print("Bitte Waage");
@@ -479,7 +481,7 @@ void setupCalibration(void) {
          
       if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
          scale.set_scale();
-         scale.tare();
+         scale.tare(10);
          i = 0;
       }
     }
@@ -495,7 +497,7 @@ void setupCalibration(void) {
     i = 1;
     while (i > 0) {
       if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
-        gewicht_raw  = (int(SCALE_GETUNITS(10)));
+        gewicht_raw  = scale.get_units(10);
         faktor       = gewicht_raw / 500.0;
         scale.set_scale(faktor);
         gewicht_leer = scale.get_offset();    // leergewicht der Waage speichern
@@ -569,6 +571,7 @@ void setupServoWinkel(void) {
        winkel_min  = lastmin;
        winkel_fein = lastfein;
        winkel_max  = lastmax;
+       if ( servo_live == true ) servo.write(winkel_min);
        return;
     }
 
@@ -1270,6 +1273,16 @@ void setup()
 #endif
   servo.write(winkel_min);
 
+// Waage erkennen - machen wir vor dem Boot-Screen, dann hat sie 3 Sekunden Zeit zum aufwärmen
+  scale.begin(hx711_dt_pin, hx711_sck_pin);
+  if (scale.wait_ready_timeout(1000)) {               // Waage angeschlossen?
+    scale.power_up();
+    waage_vorhanden = 1;
+#ifdef isDebug
+      Serial.println("Waage erkannt");
+#endif
+  }
+
 // Boot Screen
   u8g2.begin();
   u8g2.enableUTF8Print();
@@ -1277,12 +1290,8 @@ void setup()
   print_logo();
   delay(3000);
 
-// Waage erkennen
-  scale.begin(hx711_dt_pin, hx711_sck_pin);
-  if (scale.wait_ready_timeout(1000)) {               // Waage angeschlossen?
-    scale.power_up();
-    waage_vorhanden = 1;
-
+// Setup der Waage, Skalierungsfaktor setzen
+  if (waage_vorhanden ==1 ) {                         // Waage angeschlossen?
     if ( faktor == 0 ) {                              // Vorhanden aber nicht kalibriert
       u8g2.clearBuffer();
       u8g2.setFont(u8g2_font_courB18_tf);
@@ -1317,7 +1326,7 @@ void setup()
   if (waage_vorhanden == 1) {
     gewicht = SCALE_GETUNITS(SCALE_READS);
     if ( (gewicht > -20) && (gewicht < 20) ) {
-      scale.tare(SCALE_READS);
+      scale.tare(10);
 #ifdef isDebug
       Serial.print("Tara angepasst um: ");
       Serial.println(gewicht);
@@ -1328,7 +1337,21 @@ void setup()
       u8g2.setCursor( 24, 24); u8g2.print("Waage");
       u8g2.setCursor( 10, 56); u8g2.print("leeren!");
       u8g2.sendBuffer();
+#ifdef isDebug
+        Serial.print("Gewicht auf der Waage: ");
+        Serial.println(gewicht);
+#endif
       delay(5000);
+
+      // Neuer Versuch, falls Gewicht entfernt wurde
+      gewicht = SCALE_GETUNITS(SCALE_READS);
+      if ( (gewicht > -20) && (gewicht < 20) ) {
+        scale.tare(10);
+#ifdef isDebug
+        Serial.print("Tara angepasst um: ");
+        Serial.println(gewicht);
+#endif
+      }
     }
   }
   
@@ -1398,6 +1421,6 @@ void print_logo() {
   u8g2.setCursor(85, 27);    u8g2.print("HANI");
   u8g2.setCursor(75, 43);    u8g2.print("MANDL");
   u8g2.setFont(u8g2_font_courB08_tf);
-  u8g2.setCursor(85, 64);    u8g2.print("v.0.2.5");
+  u8g2.setCursor(85, 64);    u8g2.print("v.0.2.6");
   u8g2.sendBuffer();
 }
