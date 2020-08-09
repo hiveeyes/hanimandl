@@ -170,3 +170,8 @@ After successfully building it, you will find firmware images at
 
 - .pio/build/heltec/firmware.bin
 - .pio/build/heltec/firmware.elf
+
+# Halterung aus 3D Drucker
+Um dies einfacher zu montieren, wurde ein 3D Drucker Model gezeichnet. Hierbei kann sehr einfach dies sehr einfach montiert werden.
+https://www.thingiverse.com/thing:4564453
+
