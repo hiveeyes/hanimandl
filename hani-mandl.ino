@@ -34,18 +34,18 @@
                                - Nicht kalibrierte Waage anzeigen, fehlende Waage anzeigen
                                - Tara wird nur bei >20g gesetzt, verhindert den Autostart bei leerer Waage
                                - Tarieren der Waage bei jedem Start bis +-20g. Sonst Warnung
-                               0.2.4
+  2020-07 Andreas Holzhammer | Version 0.2.4
                                - SCALE_READS auf 2 setzen? ca. 100ms schneller als 3, schwankt aber um +-1g
                                - Reihenfolge der Boot-Meldungen optimiert, damit nur relevante Warnungen ausgegeben werden
                                - Autokorrektur implementiert
                                - LOGO! und Umlaute (Anregung von Johannes Kuder)
                                - Stop-Taste verlässt Setup-Untermenüs (Anregung von Johannes Kuder)
                                - Preferences nur bei Änderung speichern
-                               0.2.5
-  2020-07 Andreas Holzhammer | - Anzeige der vorherigen Werte im Setup
+  2020-07 Andreas Holzhammer | Version 0.2.5
+                               - Anzeige der vorherigen Werte im Setup
                                - Kulanzwert für Autokorrektur einstellbar
                                - Setup aufgeräumt, minimaler Servowinkel einstellbar
-                               0.2.6
+  2020-07 Andreas Holzhammer | Version 0.2.6
                                - Kalibrierung der Waage verbessert; Messewerte runden; Waage "aufheizen" vor Bootscreen
  
   This code is in the public domain.
@@ -59,7 +59,7 @@
 #include <Wire.h>
 #include <U8g2lib.h>      /* aus dem Bibliotheksverwalter */
 #include <HX711.h>        /* aus dem Bibliotheksverwalter */
-#include <ESP32_Servo.h>   /* https://github.com/jkb-git/ESP32Servo */
+#include <ESP32_Servo.h>  /* https://github.com/jkb-git/ESP32Servo */
 #include <Preferences.h>  /* aus dem BSP von expressif, wird verfügbar wenn das richtige Board ausgewählt ist */
 
 //
