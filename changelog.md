@@ -1,4 +1,19 @@
 # Change Log
+## 2020-08-13, (v0.2.4 bis) v0.2.6 
+
+Display:
+- Logo und Umlaute implementiert
+- Stop-Taste verlässt Setup-Untermenüs
+- Anzeige der vorherigen Werte im Setup
+- minimaler Servowinkel einstellbar
+- Reihenfolge der Boot-Meldungen optimiert
+
+Programmlogik:
+- Autokorrektur implementiert
+- Kulanzwert für Autokorrektur einstellbar
+- Kalibrierung der Waage verbessert
+
+
 ## 2020-06-15, v0.2.3
 
 Hardware:

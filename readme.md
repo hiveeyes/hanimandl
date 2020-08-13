@@ -46,10 +46,9 @@ Die weiteren defines und Variablen müssen bei einer Standard-Schaltung nicht an
 
 ## Hardware-Aufbau
 
-Es wird empfohlen, den Servo erst nach dem ersten Einschalten der Elekronik mit dem Quetschhahn zu verbinden!
-Der Servo fährt automatisch in die Nullstellung. Diese ist im Programm nicht einstellbar und muss daher
-über die Hardware (Stellung des Servoarms und Länge der Gelenkstange) eingestellt werden.
-Dann kann im Modus "Handbetrieb" die maximale Öffnung ermittelt und im Setup hinterlegt werden.
+Es wird empfohlen, den Servo erst nach dem ersten Einschalten der Elektronik mit dem Quetschhahn zu verbinden!
+Der Servo fährt automatisch in die Nullstellung. Im manuellen Modus kann dann der minimale und maximale 
+Öffnungswinkel (W=...) ermittelt werden und diese im Setup eingetragen werden.
 
 
 ## Betrieb
@@ -84,22 +83,26 @@ Wert über Drehregler einstellen und mit Auswahl bestätigen
 4. Füllmenge  
 Auswahl der Abfüllmenge
 
-5. Autostart  
-Automatischer oder manueller Start der Abfüllung im Automatikmodus
+5. Automatik
+Einstellen der beiden Automatiken "Autostart" und "Autokorrektur" sowie des Kulanzwerts für die Autokorrektur.
+- Autostart beginnt den Füllvorgang, wenn ein passendes, leeres Glas aufgesetzt wird
+- Autokorrektur ermittelt einen automatischen Korrekturwert, um die Gläser bei sinkendem Druck im Behälter 
+  bis zur Füllmenge + Kulanz zu befüllen
 
-6. Servo Max  
-Der maximale Öffnungswinkel des Servos  
-Hierüber wird der maximale Hub des Servos begrenzt, um den Servo an die Mechanik anzupassen.
-Einstellung: Im Handbetrieb den Servo langsam auf die gewünschte maximale Öffnung fahren. Den Wert
-unter "W=" dann hier einstellen.
+6. Servowinkel
+Definition der minimalen und maximalen Öffnungswinkel des Servos sowie des Winkels für die Feindosierung.
+Der minimale Öffnungswinkel sollte den Quetschhahn mit minimalem Spiel schliessen.
+Der maximale Öffnungswinkel begrenzt den Hub des Servos, um den Servo an die Mechanik anzupassen.
+Der Servo bleibt bis zum Erreichen des Zielgewichts (Füllmenge + Korrektur) mindestens bis zum Winkel Feindosierung
+geöffnet und schliesst danach vollständig. Sollte je nach Konsistenz angepasst werden. Ein größerer Wert hier 
+führt zu einer schnelleren Füllung, ein kleinerer Wert zu genaueren Mengen.
 
-7. Servo Fein  
-Der minimale Öffnungswinkel bei der Abfüllung  
-Der Servo bleibt bis zum Erreichen des Zielgewichts (Füllmenge + Korrektur) mindestens so weit geöffnet
-und schliesst danach vollständig. Sollte je nach Konsistenz angepasst werden.
-Ein größerer Wert hier führt zu einer schnelleren Füllung, ein kleinerer Wert zu genaueren Mengen.
+Einstellung: Im Handbetrieb den Servo langsam auf die gewünschte Öffnung fahren. Den Wert unter "W=" dann hier
+einstellen.
+Über den Punkt "Livesetup" können die Winkel auch direkt aus dem Setup angefahren werden. Vorsicht bei Verwendung
+mit einem Poti, oder bei gefülltem Abfüllbehälter!
 
-8. Clear Pref's  
+7. Clear Pref's  
 Setzt alle Voreinstellungen (nach Bestätigung) zurück.
 Danach muss die Kalibrierung der Waage wiederholt und alle Werte neu gesetzt werden!
 
@@ -108,7 +111,7 @@ Handbetrieb:
 Im Handbetrieb wird der Öffnungswinkel des Servo direkt über den Drehregler bestimmt. Der absolute und
 relative Servo-Winkel werden in der oberen Zeile angezeigt.
 
-Der Servo wird über die grüne Taste aktiviert und über rote Taste deaktivert. Der aktuell Zustand wird
+Der Servo wird über die grüne Taste aktiviert und über rote Taste deaktivert. Der aktuelle Zustand wird
 über das Play/Pause Symbol links angezeigt.
 
 Das Gewicht wird permanent angezeigt. Über den Auswahl-Taster kann das aktuelle Gewicht als Tara eingestellt
@@ -124,7 +127,8 @@ Der Automatik-Modus hat zwei Betriebsarten, die über das Setup "Autostart" gew�
 Autostart wird in der obersten Zeile mit "AS" angezeigt. Ausserdem sind dort der absolute und relative
 Öffnungswinkel zu finden.
 
-Die untere Zeile zeigt die Werte für die Korrektur und die Füllmenge.
+Die untere Zeile zeigt die Werte für die Korrektur und die Füllmenge. Eine aktive Autokorrektur ist dort
+erkennbar, weil der Korrekturwert dort statt "k=" mit "ak=" angegeben wird.
 
 Der Automatik-Modus muss über die grüne Taste aktiviert werden. Rot stoppt die Automatik und schliesst
 den Servo.
@@ -152,7 +156,7 @@ weitere Bestätigung (Vollautomatik).
 Das Gewicht das Glases wird als Tara für diesen Füllvorgang genutzt, um Schwankungen der leeren Gläser
 auszugleichen.
 
-Ein teilgefülltes Glas wird nicht befüllt!
+Ein teilgefülltes Glas wird nicht befüllt! Durch erneutes Drücken der Start-Taste wird die Befüllung erzwungen.
 
 Wenn kein Füllvorgang aktiv ist (der Hahn also geschlossen ist), kann in beiden Modi über den Auswahl-Taster
 direkt der Korrekturwert und die Füllmenge zur Verstellung angewählt werden. Der jeweils zu verstellende
