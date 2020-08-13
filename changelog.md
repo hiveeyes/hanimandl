@@ -1,5 +1,5 @@
 # Change Log
-## 2020-06-15, (v0.2.4 bis) v0.2.6 
+## 2020-08-13, (v0.2.4 bis) v0.2.6 
 
 Display:
 - Logo und Umlaute implementiert
