@@ -1,7 +1,7 @@
 /*
-  Abfuellwaage Version 0.2.3
+  Abfuellwaage Version 0.2.6
   --------------------------
-  Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer 
+  Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer
             
   2018-05 Marc Vasterling    | initial version, 
                                published in the Facebook group "Imkerei und Technik. Eigenbau",
@@ -34,33 +34,46 @@
                                - Nicht kalibrierte Waage anzeigen, fehlende Waage anzeigen
                                - Tara wird nur bei >20g gesetzt, verhindert den Autostart bei leerer Waage
                                - Tarieren der Waage bei jedem Start bis +-20g. Sonst Warnung
+  2020-07 Andreas Holzhammer | Version 0.2.4
+                               - SCALE_READS auf 2 setzen? ca. 100ms schneller als 3, schwankt aber um +-1g
+                               - Reihenfolge der Boot-Meldungen optimiert, damit nur relevante Warnungen ausgegeben werden
+                               - Autokorrektur implementiert
+                               - LOGO! und Umlaute (Anregung von Johannes Kuder)
+                               - Stop-Taste verlässt Setup-Untermenüs (Anregung von Johannes Kuder)
+                               - Preferences nur bei Änderung speichern
+  2020-07 Andreas Holzhammer | Version 0.2.5
+                               - Anzeige der vorherigen Werte im Setup
+                               - Kulanzwert für Autokorrektur einstellbar
+                               - Setup aufgeräumt, minimaler Servowinkel einstellbar
+  2020-07 Andreas Holzhammer | Version 0.2.6
+                               - Kalibrierung der Waage verbessert; Messewerte runden; Waage "aufheizen" vor Bootscreen
  
   This code is in the public domain.
    
   Hinweise zur Hardware
   ---------------------
-  - bei allen digitalen Eingängen sind interne pull downs aktiviert, keine externen-Widerständen nötig! 
+  - bei allen digitalen Eingängen sind interne pull downs aktiviert, keine externen-Widerstände nötig! 
 */
 
 #include <Arduino.h>
 #include <Wire.h>
 #include <U8g2lib.h>      /* aus dem Bibliotheksverwalter */
 #include <HX711.h>        /* aus dem Bibliotheksverwalter */
-#include <ESP32_Servo.h>   /* https://github.com/jkb-git/ESP32Servo */
+#include <ESP32_Servo.h>  /* https://github.com/jkb-git/ESP32Servo */
 #include <Preferences.h>  /* aus dem BSP von expressif, wird verfügbar wenn das richtige Board ausgewählt ist */
 
 //
 // Hier den Code auf die verwendete Hardware einstellen
 //
-#define HARDWARE_LEVEL 2 // 1 = originales Layout mit Schalter auf Pin 19/22/21
-                         // 2 = Layout für V2 mit Schalter auf Pin 23/19/22
+#define HARDWARE_LEVEL 2        // 1 = originales Layout mit Schalter auf Pin 19/22/21
+                                // 2 = Layout für V2 mit Schalter auf Pin 23/19/22
 //#define USE_ORIGINAL_SERVO_VARS // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde
                                   // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
-#define ROTARY_SCALE 2   // in welchen Schritten springt unser Rotary Encoder. 
-                         // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
-#define USE_ROTARY       // Rotary benutzen
-#define USE_ROTARY_SW    // Taster des Rotary benutzen
-//#define USE_POTI         // Poti benutzen -> ACHTUNG, im Normalfall auch USE_ROTARY_SW deaktivieren!
+#define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder. 
+                                // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
+#define USE_ROTARY              // Rotary benutzen
+#define USE_ROTARY_SW           // Taster des Rotary benutzen
+//#define USE_POTI              // Poti benutzen -> ACHTUNG, im Normalfall auch USE_ROTARY_SW deaktivieren!
 //
 // Ende Benutzereinstellungen!
 // 
@@ -68,8 +81,13 @@
 //
 // Ab hier nur verstellen wenn Du genau weisst, was Du tust!
 //
-#define isDebug 4        // serielle debug-Ausgabe aktivieren. Mit >3 wird jeder Messdurchlauf ausgegeben
+//#define isDebug 3          // serielle debug-Ausgabe aktivieren. Mit >3 wird jeder Messdurchlauf ausgegeben
+                           // ACHTUNG: zu viel Serieller Output kann einen ISR-Watchdog Reset auslösen!
 //#define POTISCALE        // Poti simuliert eine Wägezelle, nur für Testbetrieb!
+
+// Ansteuerung der Waage
+#define SCALE_READS 2      // Parameter für hx711 Library. Messwert wird aus der Anzahl gemittelt
+#define SCALE_GETUNITS(n)  (waage_vorhanden ? round(scale.get_units(n)) : simulate_scale(n) )
 
 // Rotary Encoder Taster zieht Pegel auf Low, Start/Stop auf High!
 #ifdef USE_ROTARY_SW
@@ -85,9 +103,6 @@
 #define MODE_AUTOMATIK   1
 #define MODE_HANDBETRIEB 2
 
-// Ansteuerung der Waage
-#define SCALE_READS 3      // Parameter für hx711 Library. Messwert wird aus der Anzahl gemittelt
-#define SCALE_GETUNITS(n)  (waage_vorhanden ? scale.get_units(n) : simulate_scale(n) )
 
 // ** Definition der pins 
 // ----------------------
@@ -171,10 +186,12 @@ int fmenge;                     // ausgewählte Füllmenge
 int fmenge_index;               // Index in gläser[]
 int korrektur;                  // Korrekturwert für Abfüllmenge
 int autostart;                  // Vollautomatik ein/aus
+int autokorrektur;              // Autokorrektur ein/aus
+int kulanz_gr;                  // gewollte Überfüllung im Autokorrekturmodus in Gramm
 int winkel;                     // aktueller Servo-Winkel
 int winkel_hard_min = 0;        // Hard-Limit für Servo
-int winkel_hard_max = 155;      // Hard-Limit für Servo
-int winkel_min = 0;             // nicht einstellbar, wird per Hardware angepasst!
+int winkel_hard_max = 180;      // Hard-Limit für Servo
+int winkel_min = 0;             // konfigurierbar im Setup
 int winkel_max = 85;            // konfigurierbar im Setup
 int winkel_fein = 35;           // konfigurierbar im Setup
 float fein_dosier_gewicht = 60; // float wegen Berechnung des Schliesswinkels
@@ -183,6 +200,7 @@ char ausgabe[30];               // Fontsize 12 = 13 Zeichen maximal in einer Zei
 int modus = -1;                 // Bei Modus-Wechsel den Servo auf Minimum fahren
 int auto_aktiv = 0;             // Für Automatikmodus - System ein/aus?
 int waage_vorhanden = 0;        // HX711 nicht ansprechen, wenn keine Waage angeschlossen ist, sonst Crash
+long preferences_chksum;        // Checksumme, damit wir nicht sinnlos Prefs schreiben
 
 // Simuliert die Dauer des Wägeprozess, wenn keine Waage angeschlossen ist. Wirkt sich auf die Blinkfrequenz im Automatikmodus aus.
 long simulate_scale(int n) {
@@ -235,13 +253,15 @@ void IRAM_ATTR isr2() {
       } else {    // counter-clockwise
          rotaries[rotary_select].Value += rotaries[rotary_select].Step;
       }
-      if ( rotaries[rotary_select].Value < rotaries[rotary_select].Minimum ) { rotaries[rotary_select].Value = rotaries[rotary_select].Minimum; }
-      if ( rotaries[rotary_select].Value > rotaries[rotary_select].Maximum ) { rotaries[rotary_select].Value = rotaries[rotary_select].Maximum; }
-
+//      if ( rotaries[rotary_select].Value < rotaries[rotary_select].Minimum ) { rotaries[rotary_select].Value = rotaries[rotary_select].Minimum; }
+//      if ( rotaries[rotary_select].Value > rotaries[rotary_select].Maximum ) { rotaries[rotary_select].Value = rotaries[rotary_select].Maximum; }
+      rotaries[rotary_select].Value = constrain( rotaries[rotary_select].Value, rotaries[rotary_select].Minimum, rotaries[rotary_select].Maximum );
       rotating = false;
 #ifdef isDebug
+#if isDebug >= 5
       Serial.print(" Rotary Value changed to ");
       Serial.println(getRotariesValue(rotary_select));
+#endif 
 #endif 
     }
     aLastState = aState; // Updates the previous state of the outputA with the current state
@@ -296,14 +316,20 @@ void getPreferences(void) {
     gewicht_leer = preferences.getUInt("gewicht_leer", 0); 
     korrektur    = preferences.getUInt("korrektur", 0);
     autostart    = preferences.getUInt("autostart", 0);
+    autokorrektur = preferences.getUInt("autokorrektur", 0);
+    kulanz_gr    = preferences.getUInt("kulanz_gr", 5);
     fmenge_index = preferences.getUInt("fmenge_index", 3);
+    winkel_min   = preferences.getUInt("winkel_min", winkel_min);
     winkel_max   = preferences.getUInt("winkel_max", winkel_max);
     winkel_fein  = preferences.getUInt("winkel_fein", winkel_fein);
+
+    preferences_chksum = faktor + pos + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_min + winkel_max + winkel_fein + kulanz_gr;
 
     i = 0;
     while( i < 5 ) {
       sprintf(ausgabe, "tara%d", i);
       glaeser[i].Tara= preferences.getInt(ausgabe, -9999);
+      preferences_chksum += glaeser[i].Tara;
       i++;
     }
 
@@ -316,7 +342,10 @@ void getPreferences(void) {
     Serial.print("gewicht_leer = "); Serial.println(gewicht_leer);
     Serial.print("korrektur = ");    Serial.println(korrektur);
     Serial.print("autostart = ");    Serial.println(autostart);
+    Serial.print("autokorrektur = ");Serial.println(autokorrektur);
+    Serial.print("kulanz_gr = ");    Serial.println(kulanz_gr);
     Serial.print("fmenge_index = "); Serial.println(fmenge_index);
+    Serial.print("winkel_min = ");   Serial.println(winkel_min);
     Serial.print("winkel_max = ");   Serial.println(winkel_max);
     Serial.print("winkel_fein = ");  Serial.println(winkel_fein);
 
@@ -330,7 +359,23 @@ void getPreferences(void) {
 }
 
 void setPreferences(void) {
+    long preferences_newchksum;
     int winkel = getRotariesValue(SW_WINKEL);
+
+    preferences_newchksum = faktor + winkel + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_min + winkel_max + winkel_fein + kulanz_gr;
+    i = 0;
+    while( i < 5 ) {
+      preferences_newchksum += glaeser[i].Tara;
+      i++;
+    }
+
+    if( preferences_newchksum == preferences_chksum ) {
+#ifdef isDebug
+       Serial.println("Preferences unverändert");
+#endif
+       return;
+    }
+    preferences_chksum = preferences_newchksum;
     
     preferences.begin("EEPROM", false);
     preferences.putFloat("faktor", faktor);
@@ -338,6 +383,9 @@ void setPreferences(void) {
     preferences.putUInt("pos", winkel);
     preferences.putUInt("korrektur", korrektur);
     preferences.putUInt("autostart", autostart);
+    preferences.putUInt("autokorrektur", autokorrektur);
+    preferences.putUInt("kulanz_gr", kulanz_gr);
+    preferences.putUInt("winkel_min", winkel_min);
     preferences.putUInt("winkel_max", winkel_max);
     preferences.putUInt("winkel_fein", winkel_fein);
     preferences.putUInt("fmenge_index", fmenge_index);
@@ -357,7 +405,10 @@ void setPreferences(void) {
     Serial.print("gewicht_leer = "); Serial.println(gewicht_leer);
     Serial.print("korrektur = ");    Serial.println(korrektur);
     Serial.print("autostart = ");    Serial.println(autostart);
+    Serial.print("autokorrektur = ");Serial.println(autokorrektur);
+    Serial.print("kulanz_gr = ");    Serial.println(kulanz_gr);
     Serial.print("fmenge_index = "); Serial.println(fmenge_index);
+    Serial.print("winkel_min = ");   Serial.println(winkel_min);
     Serial.print("winkel_max = ");   Serial.println(winkel_max);
     Serial.print("winkel_fein = ");  Serial.println(winkel_fein);
 
@@ -374,10 +425,13 @@ void setupTara(void) {
     int j;
     tara = 0;
 
-    initRotaries( SW_MENU, 0, 0, 4, -1 );   // Set Encoder to Menu Mode, four Selections, inverted count
+    initRotaries( SW_MENU, fmenge_index, 0, 4, -1 );   // Set Encoder to Menu Mode, four Selections, inverted count
       
     i = 0;
     while ( i == 0 ) {
+      if ((digitalRead(button_stop_pin)) == HIGH)
+         return;
+      
       if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) {
         tara = (int(SCALE_GETUNITS(10)));
         if ( tara > 20 ) {                  // Gläser müssen mindestens 20g haben
@@ -411,20 +465,23 @@ void setupTara(void) {
 }
 
 void setupCalibration(void) {
-    long gewicht_raw;
+    float gewicht_raw;
     
     u8g2.clearBuffer();
     u8g2.setCursor(0, 12);    u8g2.print("Bitte Waage");
     u8g2.setCursor(0, 28);    u8g2.print("leeren");
     u8g2.setCursor(0, 44);    u8g2.print("und mit OK");
-    u8g2.setCursor(0, 60);    u8g2.print("bestaetigen");
+    u8g2.setCursor(0, 60);    u8g2.print("bestätigen");
     u8g2.sendBuffer();
     
     i = 1;
     while (i > 0) {
+      if ((digitalRead(button_stop_pin)) == HIGH)
+         return;
+         
       if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
          scale.set_scale();
-         scale.tare();
+         scale.tare(10);
          i = 0;
       }
     }
@@ -434,13 +491,13 @@ void setupCalibration(void) {
     u8g2.setCursor(0, 12);    u8g2.print("Bitte 500g");
     u8g2.setCursor(0, 28);    u8g2.print("aufstellen");
     u8g2.setCursor(0, 44);    u8g2.print("und mit OK");
-    u8g2.setCursor(0, 60);    u8g2.print("bestaetigen");
+    u8g2.setCursor(0, 60);    u8g2.print("bestätigen");
     u8g2.sendBuffer();
     
     i = 1;
     while (i > 0) {
       if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
-        gewicht_raw  = (int(SCALE_GETUNITS(10)));
+        gewicht_raw  = scale.get_units(10);
         faktor       = gewicht_raw / 500.0;
         scale.set_scale(faktor);
         gewicht_leer = scale.get_offset();    // leergewicht der Waage speichern
@@ -456,20 +513,33 @@ void setupCalibration(void) {
     }
 }
 
-
-
 void setupKorrektur(void) {
+    int korrektur_alt = getRotariesValue(SW_KORREKTUR);
+
     rotary_select = SW_KORREKTUR;
 
     i = 1;
     while (i > 0) {
+      if ((digitalRead(button_stop_pin)) == HIGH) {
+         setRotariesValue(SW_KORREKTUR, korrektur_alt);
+         korrektur = korrektur_alt;
+         rotary_select = SW_MENU;
+         return;
+      }
+      
       korrektur = getRotariesValue(SW_KORREKTUR);
-      u8g2.setFont(u8g2_font_courB14_tf);
+      u8g2.setFont(u8g2_font_courB12_tf);
       u8g2.clearBuffer();
       u8g2.setCursor(10, 12);
       u8g2.print("Korrektur");
       u8g2.setCursor(40, 28);
       u8g2.print(korrektur);
+
+      u8g2.setCursor(10, 48);     // A.P.
+      u8g2.print("alter Wert");   // A.P.
+      u8g2.setCursor(40, 64);     // A.P.
+      u8g2.print(korrektur_alt);  // A.P.
+      
       u8g2.sendBuffer();
       
       if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
@@ -483,6 +553,217 @@ void setupKorrektur(void) {
     rotary_select = SW_MENU;
 }
 
+void setupServoWinkel(void) {
+  int menuitem;
+  int lastmin  = winkel_min;
+  int lastfein = winkel_fein;
+  int lastmax  = winkel_max;
+  int wert_alt;
+  bool wert_aendern = false;
+  bool servo_live = false;
+  
+  initRotaries(SW_MENU, 0, 0, 4, -1);
+
+  u8g2.setFont(u8g2_font_courB10_tf);
+  i = 1;
+  while (i > 0) {
+    if ((digitalRead(button_stop_pin)) == HIGH) {
+       winkel_min  = lastmin;
+       winkel_fein = lastfein;
+       winkel_max  = lastmax;
+       if ( servo_live == true ) servo.write(winkel_min);
+       return;
+    }
+
+    if ( wert_aendern == false ) {
+      menuitem = getRotariesValue(SW_MENU);
+    } else {
+      switch (menuitem) {
+        case 0: servo_live  = getRotariesValue(SW_MENU);
+                break;
+        case 1: winkel_min  = getRotariesValue(SW_MENU);
+                if ( servo_live == true ) servo.write(winkel_min);
+                break;
+        case 2: winkel_fein = getRotariesValue(SW_MENU);
+                if ( servo_live == true ) servo.write(winkel_fein);
+                break;
+        case 3: winkel_max  = getRotariesValue(SW_MENU);
+                if ( servo_live == true ) servo.write(winkel_max);
+                break;
+      }
+    }
+
+    u8g2.clearBuffer();
+    u8g2.setCursor(10, 23); sprintf(ausgabe,"Minimum   %3d", winkel_min);  u8g2.print(ausgabe);
+    u8g2.setCursor(10, 36); sprintf(ausgabe,"Feindos.  %3d", winkel_fein); u8g2.print(ausgabe);
+    u8g2.setCursor(10, 49); sprintf(ausgabe,"Maximum   %3d", winkel_max);  u8g2.print(ausgabe);
+    u8g2.setCursor(10, 62); u8g2.print(     "Speichern");
+
+    if ( wert_aendern == false ) {
+       u8g2.setCursor(10, 10); sprintf(ausgabe,"Livesetup %3s", (servo_live==false?"aus":"ein")); u8g2.print(ausgabe);
+       u8g2.setCursor( 0, 10+(menuitem*13)); u8g2.print("*");
+    } else {
+       if ( menuitem != 0 ) { 
+          u8g2.setCursor(10, 10); sprintf(ausgabe,"  vorher: %3d", wert_alt); u8g2.print(ausgabe);
+       } else {
+          u8g2.setCursor(10, 10); sprintf(ausgabe,"Livesetup %3s", (servo_live==false?"aus":"ein")); u8g2.print(ausgabe);
+       }   
+       u8g2.setFont(u8g2_font_open_iconic_arrow_1x_t);
+       u8g2.drawGlyph(0, 10+(menuitem*13), 0x42);
+       u8g2.setFont(u8g2_font_courB10_tf);     
+    }
+    u8g2.sendBuffer();
+
+    if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) 
+         && (menuitem < 4 )
+         && (wert_aendern == false) ) {
+
+         // debounce
+         delay(10);  
+         while( digitalRead(SELECT_SW) == SELECT_PEGEL )
+            ;
+         delay(10);
+           
+         switch (menuitem) { 
+           case 0: initRotaries(SW_MENU, servo_live, 0, 1, 1);
+                   break;
+           case 1: initRotaries(SW_MENU, winkel_min,  winkel_hard_min, winkel_fein,     1);
+                   wert_alt = lastmin;
+                   break;
+           case 2: initRotaries(SW_MENU, winkel_fein, winkel_min,      winkel_max,      1);
+                   wert_alt = lastfein;
+                   break;
+           case 3: initRotaries(SW_MENU, winkel_max,  winkel_fein,     winkel_hard_max, 1);
+                   wert_alt = lastmax;
+                   break;
+         }
+         wert_aendern = true;
+      }
+
+      if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) 
+           && (menuitem < 4 )
+           && (wert_aendern == true) ) {
+
+         // debounce
+         delay(10);
+         while( digitalRead(SELECT_SW) == SELECT_PEGEL )
+            ;
+         delay(10);
+
+         if ( servo_live == true ) servo.write(winkel_min);
+         initRotaries(SW_MENU, menuitem, 0, 4, -1);
+         wert_aendern = false;
+      }
+
+      if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) && (menuitem == 4) ) {
+        u8g2.setCursor(108, 10+(menuitem*13));
+        u8g2.print("OK");
+        u8g2.sendBuffer();
+        delay(1000);
+        i = 0;
+      }
+    }
+}
+
+void setupAutomatik(void) {
+  int menuitem;
+  int lastautostart     = autostart;
+  int lastautokorrektur = autokorrektur;
+  int lastkulanz        = kulanz_gr;
+  bool wert_aendern = false;
+
+  initRotaries(SW_MENU, 0, 0, 3, -1);
+
+  u8g2.setFont(u8g2_font_courB10_tf);
+  i = 1;
+  while (i > 0) {
+    if ((digitalRead(button_stop_pin)) == HIGH) {
+       autostart     = lastautostart;
+       autokorrektur = lastautokorrektur;
+       kulanz_gr     = lastkulanz;
+       return;
+    }
+
+    if ( wert_aendern == false ) {
+      menuitem = getRotariesValue(SW_MENU);
+      if ( menuitem == 3 )
+         menuitem = 4;  // Eine Zeile Abstand zu "Speichern"
+    } else {
+      switch (menuitem) {
+        case 0: autostart     = getRotariesValue(SW_MENU);
+                break;
+        case 1: autokorrektur = getRotariesValue(SW_MENU);
+                break;
+        case 2: kulanz_gr     = getRotariesValue(SW_MENU);
+                break;
+      }
+    }
+
+    // Menu
+    u8g2.clearBuffer();
+    u8g2.setCursor(10, 10); sprintf(ausgabe,"Autostart %3s", (autostart==0?"aus":"ein"));     u8g2.print(ausgabe);
+    u8g2.setCursor(10, 23); sprintf(ausgabe,"Autokorr. %3s", (autokorrektur==0?"aus":"ein")); u8g2.print(ausgabe);
+    u8g2.setCursor(10, 36); sprintf(ausgabe,"-> Kulanz %2dg", kulanz_gr);                     u8g2.print(ausgabe);
+    u8g2.setCursor(10, 62); u8g2.print(     "Speichern");
+
+    // Positionsanzeige im Menu. "*" wenn nicht ausgewählt, Pfeil wenn ausgewählt
+    if ( wert_aendern == false ) {
+       u8g2.setCursor(0, 10+(menuitem*13)); u8g2.print("*");
+    } else {
+       u8g2.setFont(u8g2_font_open_iconic_arrow_1x_t);
+       u8g2.drawGlyph(0, 10+(menuitem*13), 0x42);
+       u8g2.setFont(u8g2_font_courB10_tf);     
+    }
+    u8g2.sendBuffer();
+
+    // Menupunkt zum Ändern ausgewählt
+    if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) 
+         && (menuitem < 3 )
+         && (wert_aendern == false) ) {
+
+         // debounce
+         delay(10);  
+         while( digitalRead(SELECT_SW) == SELECT_PEGEL )
+            ;
+         delay(10);
+           
+         switch (menuitem) { 
+           case 0: initRotaries(SW_MENU, autostart, 0, 1, 1);
+                   break;
+           case 1: initRotaries(SW_MENU, autokorrektur, 0, 1, 1);
+                   break;
+           case 2: initRotaries(SW_MENU, kulanz_gr, 0, 99, 1);
+                   break;
+         }
+         wert_aendern = true;
+      }
+
+      // Änderung im Menupunkt übernehmen
+      if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) 
+           && (menuitem < 3 )
+           && (wert_aendern == true) ) {
+
+         // debounce
+         delay(10);
+         while( digitalRead(SELECT_SW) == SELECT_PEGEL )
+            ;
+         delay(10);
+
+         initRotaries(SW_MENU, menuitem, 0, 3, -1);
+         wert_aendern = false;
+      }
+
+      // Menu verlassen 
+      if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) && (menuitem == 4) ) {
+        u8g2.setCursor(108, 10+(menuitem*13));
+        u8g2.print("OK");
+        u8g2.sendBuffer();
+        delay(1000);
+        i = 0;
+      }
+    }
+}
+
 void setupFuellmenge(void) {
     int j;
     initRotaries(SW_MENU, fmenge_index, 0, 4, -1);
@@ -490,6 +771,9 @@ void setupFuellmenge(void) {
     u8g2.setFont(u8g2_font_courB10_tf);
     i = 1;
     while (i > 0) {
+      if ((digitalRead(button_stop_pin)) == HIGH)
+         return;
+      
       pos = getRotariesValue(SW_MENU);
 
       u8g2.clearBuffer();
@@ -518,71 +802,19 @@ void setupFuellmenge(void) {
     }
 }
 
-void setupAutostart(void) {
-  initRotaries(SW_MENU, 1, 1, 2, -1);
-  
-  i = 1;
-  while (i > 0) {
-    pos = getRotariesValue(SW_MENU);
-    u8g2.setFont(u8g2_font_courB14_tf);
-    u8g2.clearBuffer();
-    u8g2.setCursor(10, 12);    u8g2.print("Auto EIN");
-    u8g2.setCursor(10, 28);    u8g2.print("Auto AUS");
-    
-    u8g2.setCursor(0, 12+((pos-1)*16));
-    u8g2.print("*");
-    u8g2.sendBuffer();
- 
-    if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
-      if (pos == 1) { autostart = 1; }
-      if (pos == 2) { autostart = 2; }
-
-      u8g2.setCursor(105, 12+((pos-1)*16));
-      u8g2.print("OK");
-      u8g2.sendBuffer();
-      delay(1000);
-      i = 0;
-    }
-  }
-}
-
-// Funktion zum anpassen eines beliebigen Zahlwerts (Öffnungswinkel Maximum und Feindosierung) 
-// Könnte auch für Korrektur genutzt werden, der Wert hat aber seine eigene Datenstruktur
-void setupZahlwert(int *param, int min, int max, char *name) {
-    initRotaries(SW_MENU, *param, min, max, 1);
-          
-    i = 1;
-    while (i > 0) {
-      pos = getRotariesValue(SW_MENU);
-      u8g2.setFont(u8g2_font_courB12_tf);
-      u8g2.clearBuffer();
-      u8g2.setCursor(10, 12);
-      u8g2.print(name);
-      u8g2.setCursor(40, 28);
-      u8g2.print(pos);
-      u8g2.sendBuffer();
-      
-      if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
-        *param = pos;
-        u8g2.setCursor(100, 28);
-        u8g2.print("OK");
-        u8g2.sendBuffer();
-        delay(1000);
-        i = 0;
-      }
-    }
-}
-
 void setupClearPrefs(void) {
   initRotaries(SW_MENU, 1, 0, 1, -1);
   
   i = 1;
   while (i > 0) {
+    if ((digitalRead(button_stop_pin)) == HIGH)
+       return;
+    
     pos = getRotariesValue(SW_MENU);
     u8g2.setFont(u8g2_font_courB10_tf);
     u8g2.clearBuffer();
-    u8g2.setCursor(10, 12);    u8g2.print("Loeschen");
-    u8g2.setCursor(10, 28);    u8g2.print("Zurueck!");
+    u8g2.setCursor(10, 12);    u8g2.print("Löschen");
+    u8g2.setCursor(10, 28);    u8g2.print("Zurück!");
     
     u8g2.setCursor(0, 12+((pos)*16));
     u8g2.print("*");
@@ -612,29 +844,29 @@ void processSetup(void) {
      servo_aktiv = 0;              // Servo-Betrieb aus
      servo.write(winkel);
      rotary_select = SW_MENU;
-     initRotaries(SW_MENU, 0, 0, 7, -1);
+     initRotaries(SW_MENU, 0, 0, 6, -1);
   }
-  pos = getRotariesValue(SW_MENU);
+
+  int menuitem = getRotariesValue(SW_MENU);
 
   u8g2.setFont(u8g2_font_courB10_tf);
   u8g2.clearBuffer();
-  if( pos < 5 ) {
+  if( menuitem < 5 ) {
      u8g2.setCursor(10, 10);   u8g2.print("Tara");
      u8g2.setCursor(10, 23);   u8g2.print("Kalibrieren");
      u8g2.setCursor(10, 36);   u8g2.print("Korrektur");
-     u8g2.setCursor(10, 49);   u8g2.print("Fuellmenge");
-     u8g2.setCursor(10, 62);   u8g2.print("Autostart");
+     u8g2.setCursor(10, 49);   u8g2.print("Füllmenge");
+     u8g2.setCursor(10, 62);   u8g2.print("Automatik");
      u8g2.setFont(u8g2_font_open_iconic_arrow_2x_t);
      u8g2.drawGlyph(112, 64, 0x40);  
   } else {
-     u8g2.setCursor(10, 10);   u8g2.print("Servo Max");
-     u8g2.setCursor(10, 23);   u8g2.print("Servo Fein");
-     u8g2.setCursor(10, 36);   u8g2.print("Clear Pref's");
+     u8g2.setCursor(10, 10);   u8g2.print("Servowinkel");
+     u8g2.setCursor(10, 23);   u8g2.print("Clear Pref's");
      u8g2.setFont(u8g2_font_open_iconic_arrow_2x_t);
      u8g2.drawGlyph(112, 16, 0x43);  
   }
   u8g2.setFont(u8g2_font_courB10_tf);
-  u8g2.setCursor(0, 10 + (((pos)%5) * 13));
+  u8g2.setCursor(0, 10 + (((menuitem)%5) * 13));
   u8g2.print("*");
   u8g2.sendBuffer();
 
@@ -645,58 +877,80 @@ void processSetup(void) {
     }
 #ifdef isDebug 
     Serial.print("Setup Position: ");
-    Serial.println(pos);
+    Serial.println(menuitem);
 #endif
 
-    int lastpos = pos;
-    if (pos == 0)   setupTara();              // Tara 
-    if (pos == 1)   setupCalibration();       // Kalibrieren 
-    if (pos == 2)   setupKorrektur();         // Korrektur 
-    if (pos == 3)   setupFuellmenge();        // Füllmenge 
-    if (pos == 4)   setupAutostart();         // Autostart 
-    if (pos == 5)   setupZahlwert(&winkel_max, winkel_fein, winkel_hard_max, "Servo Max" );  // Maximaler Öffnungswinkel
-    if (pos == 6)   setupZahlwert(&winkel_fein, winkel_hard_min, winkel_max, "Servo Fein" ); // Minimaler Abfüllwinkel
+    int lastpos = menuitem;
+    if (menuitem == 0)   setupTara();              // Tara 
+    if (menuitem == 1)   setupCalibration();       // Kalibrieren 
+    if (menuitem == 2)   setupKorrektur();         // Korrektur 
+    if (menuitem == 3)   setupFuellmenge();        // Füllmenge 
+    if (menuitem == 4)   setupAutomatik();         // Autostart/Autokorrektur konfigurieren 
+    if (menuitem == 5)   setupServoWinkel();       // Servostellungen Minimum, Maximum und Feindosierung
     setPreferences();
 
-    if (pos == 7)   setupClearPrefs();        // EEPROM löschen
-    initRotaries(SW_MENU, lastpos, 0, 7, -1); // Menu-Parameter könnten verstellt worden sein
+    if (menuitem == 6)   setupClearPrefs();        // EEPROM löschen
+    initRotaries(SW_MENU, lastpos, 0, 6, -1);      // Menu-Parameter könnten verstellt worden sein
   }
 }
 
 void processAutomatik(void)
 {
   int zielgewicht;           // Glas + Korrektur
-  int time;
+  long blinktime;
+  static int autokorrektur_gr; 
+  int erzwinge_servo_aktiv = 0;
+
+  static int gewicht_vorher;    // Gewicht des vorher gefüllten Glases
+  static long time_vorher;      // Messung der Durchlaufzeit
+  static int sammler_num = 5;   // Anzahl identischer Messungen für Nachtropfen
 
   if ( modus != MODE_AUTOMATIK ) {
      modus = MODE_AUTOMATIK;
      winkel = winkel_min;          // Hahn schliessen
      servo_aktiv = 0;              // Servo-Betrieb aus
      servo.write(winkel);
-     auto_aktiv = 0;                 // automatische Füllung starten
+     auto_aktiv = 0;               // automatische Füllung starten
      tara_glas = 0;
      rotary_select = SW_WINKEL;    // Einstellung für Winkel über Rotary
      initRotaries(SW_MENU, fmenge_index, 0, 4, 1);
+     gewicht_vorher = glaeser[fmenge_index].Gewicht + korrektur;
+     autokorrektur_gr = 0;
   }
 
-  pos          = getRotariesValue(SW_WINKEL);
+  pos = getRotariesValue(SW_WINKEL);
   // nur bis winkel_fein regeln, oder über initRotaries lösen?
   if ( pos < ((winkel_fein*100)/winkel_max) ) {                      
     pos = ((winkel_fein*100)/winkel_max);
     setRotariesValue(SW_WINKEL, pos);
   }
 
-#ifdef USE_ROTARY
+#ifdef USE_ROTARY                                                    // TODO: kann das Poti hier überhaupt etwas ändern?
   korrektur    = getRotariesValue(SW_KORREKTUR);
   fmenge_index = getRotariesValue(SW_MENU);
 #endif
-  tara         = glaeser[fmenge_index].Tara;
   fmenge       = glaeser[fmenge_index].Gewicht;
+  tara         = glaeser[fmenge_index].Tara;
+  if ( tara <= 0 ) 
+     auto_aktiv = 0;
 
   // wir starten nur, wenn das Tara für die Füllmenge gesetzt ist!
+  // Ein erneuter Druck auf Start erzwingt die Aktivierung des Servo
   if (((digitalRead(button_start_pin)) == HIGH) && (tara > 0)) {
+    // debounce
+    delay(10);  
+    while( digitalRead(button_start_pin) == HIGH )
+       ;
+    delay(10);
+
+    if ( auto_aktiv == 1 ) {
+      erzwinge_servo_aktiv = 1;
+#ifdef isDebug
+      Serial.println("erzwinge Servo aktiv");      
+#endif
+    }
     auto_aktiv    = 1;             // automatisches Füllen aktivieren
-    rotary_select = SW_WINKEL;     // falls während der Parameter-Änderung auf Start gedrückt wird    
+    rotary_select = SW_WINKEL;     // falls während der Parameter-Änderung auf Start gedrückt wurde    
     setPreferences();              // falls Parameter über den Rotary verändert wurden
   }
   
@@ -705,8 +959,10 @@ void processAutomatik(void)
     servo_aktiv = 0;
     auto_aktiv  = 0;
     tara_glas   = 0;
+    autokorrektur_gr = 0;  
   }
 
+  // 
   gewicht = (int(SCALE_GETUNITS(SCALE_READS))) - tara;
   
   // Glas entfernt -> Servo schliessen
@@ -719,7 +975,7 @@ void processAutomatik(void)
     }
   }
 
-  // Vollautomatik ein, leeres Glas aufgesetzt, Servo aus -> Glas füllen
+  // Automatik ein, leeres Glas aufgesetzt, Servo aus -> Glas füllen
   if ((auto_aktiv == 1) && (gewicht <= 5) && (gewicht >= -5) && (servo_aktiv == 0)) {
     rotary_select = SW_WINKEL;     // falls während der Parameter-Änderung ein Glas aufgesetzt wird    
     u8g2.clearBuffer();
@@ -733,15 +989,59 @@ void processAutomatik(void)
 
     if ((gewicht <= 5) && (gewicht >= -5)) {
       tara_glas   = gewicht;
+#ifdef isDebug 
+      Serial.print("gewicht: ");            Serial.print(gewicht);
+      Serial.print(" gewicht_vorher: ");    Serial.print(gewicht_vorher);
+      Serial.print(" zielgewicht: ");       Serial.print(fmenge + korrektur + tara_glas + autokorrektur_gr);
+      Serial.print(" kulanz: ");            Serial.print(kulanz_gr);
+      Serial.print(" Autokorrektur: ");     Serial.println(autokorrektur_gr);
+#endif      
       servo_aktiv = 1;
+      sammler_num = 0;
+    }
+  }
+  zielgewicht = fmenge + korrektur + tara_glas + autokorrektur_gr;
+
+  // Anpassung des Autokorrektur-Werts
+  if ( autokorrektur == 1 )
+  {                                                       
+    if ( (auto_aktiv == 1)                                // Automatik ist aktiviert
+       && (servo_aktiv == 0 ) && (winkel == winkel_min)   // Hahn ist geschlossen
+       && (gewicht >= zielgewicht )                       // Glas ist voll
+       && (sammler_num <= 5)                              // tropfmenge noch nicht erfasst
+       ) {                           
+    if ( (gewicht == gewicht_vorher) && (sammler_num < 5) ) {   // wir wollen 5x das identische Gewicht sehen  
+      sammler_num++;
+    } else if ( gewicht != gewicht_vorher ) {             // sonst gewichtsänderung nachführen
+      gewicht_vorher = gewicht;
+      sammler_num = 0;
+    } else if ( sammler_num == 5 ) {                      // gewicht ist 5x identisch, autokorrektur bestimmen
+      autokorrektur_gr = (fmenge + kulanz_gr + tara_glas) - (gewicht - autokorrektur_gr);
+      if ( korrektur + autokorrektur_gr > kulanz_gr ) {   // Autokorrektur darf nicht überkorrigieren, max Füllmenge plus Kulanz
+        autokorrektur_gr = kulanz_gr - korrektur;
+#ifdef isDebug
+        Serial.print("Autokorrektur begrenzt auf ");
+        Serial.println(autokorrektur_gr);
+#endif
+      }
+      sammler_num++;                                      // Korrekturwert für diesen Durchlauf erreicht
+    }
+#ifdef isDebug
+      Serial.print("Nachtropfen:");
+      Serial.print(" gewicht: ");        Serial.print(gewicht);
+      Serial.print(" gewicht_vorher: "); Serial.print(gewicht_vorher);
+      Serial.print(" sammler_num: ");    Serial.print(sammler_num);
+      Serial.print(" Korrektur: ");      Serial.println(autokorrektur_gr);
+#endif
     }
   }
 
-  zielgewicht = fmenge + korrektur + tara_glas;
+// Füll-Automatik ohne Autostart ist aktiviert, Glas ist teilweise gefüllt
+// Füllvorgang fortsetzen
+//  if ((auto_aktiv == 1) && (gewicht >= 0) && (autostart != 1)) {
 
-  // Füll-Automatik ohne Autostart ist aktiviert, Glas ist teilweise gefüllt
-  // Füllvorgang fortsetzen
-  if ((auto_aktiv == 1) && (gewicht >= 0) && (autostart != 1)) {
+  // Glas ist teilweise gefüllt. Start wird über Start-Taster erzwungen
+  if ((auto_aktiv == 1) && (gewicht > 5) && (erzwinge_servo_aktiv == 1) ) {
     servo_aktiv = 1;
   }
   
@@ -749,9 +1049,9 @@ void processAutomatik(void)
     winkel = ((winkel_max * pos) / 100);
   }
   
-  if ((servo_aktiv == 1) && (fmenge - (gewicht - korrektur - tara_glas) <= fein_dosier_gewicht)) {
+  if ((servo_aktiv == 1) && (( zielgewicht - gewicht ) <= fein_dosier_gewicht)) {
     winkel = ( ((winkel_max * pos) / 100)
-        * ( (fmenge - (gewicht - korrektur - tara_glas)) / fein_dosier_gewicht) );
+        * ( (zielgewicht - gewicht ) / fein_dosier_gewicht) );
   }
   
   if ((servo_aktiv == 1) && (winkel <= winkel_fein)) {
@@ -759,35 +1059,48 @@ void processAutomatik(void)
   }
   
   // Glas ist voll
-  if ((servo_aktiv == 1) && ((gewicht - korrektur - tara_glas) >= fmenge)) {
+//  if ((servo_aktiv == 1) && ((gewicht - korrektur - tara_glas) >= fmenge)) {
+  if ((servo_aktiv == 1) && (gewicht >= zielgewicht)) {
     winkel      = winkel_min;
     servo_aktiv = 0;
-    if ( autostart != 1 ) {
+    if ( autostart != 1 )       // autostart ist nicht aktiv, kein weiterer Start
       auto_aktiv = 0;
-    }
+    if ( autokorrektur == 1 )   // autokorrektur, gewicht merken
+      gewicht_vorher = gewicht;
   }
   
   servo.write(winkel);
   
 #ifdef isDebug
 #if isDebug >= 4
-    Serial.print(" Tara_glas:");   Serial.print(tara_glas);
-    Serial.print(" Faktor ");      Serial.print(faktor);
-    Serial.print(" Gewicht ");     Serial.print(gewicht);
-    Serial.print(" Zielgewicht "); Serial.print(zielgewicht);
-    Serial.print(" Winkel ");      Serial.println(winkel);
+    Serial.print("Automatik:");  
+    Serial.print(" Gewicht: ");        Serial.print(gewicht);
+    Serial.print(" Winkel: ");         Serial.print(winkel);
+//    Serial.print(" Dauer ");           Serial.print(millis() - scaletime);
+//    Serial.print(" Füllmenge: ");      Serial.print(fmenge);
+//    Serial.print(" Korrektur: ");      Serial.print(korrektur);
+//    Serial.print(" Tara_glas:");       Serial.print(tara_glas);
+    Serial.print(" Autokorrektur: ");  Serial.print(autokorrektur_gr);
+    Serial.print(" Zielgewicht ");     Serial.print(zielgewicht);
+//    Serial.print(" Erzwinge Servo: "); Serial.print(erzwinge_servo_aktiv);
+//    Serial.print(" servo_aktiv ");     Serial.print(servo_aktiv);
+    Serial.print(" auto_aktiv ");      Serial.println(auto_aktiv);
 #endif 
 #endif
+  time_vorher = millis();
 
   u8g2.clearBuffer();
-  
+
+  // Gewicht blinkt, falls unter der definierten Füllmenge
+  // Korrekturfaktor und Füllmenge blinken, wenn sie über den Rotary verstellt werden
+  blinktime = (millis()/10) % 5;
+
   // wenn kein Tara für unser Glas definiert ist, wird kein Gewicht sondern eine Warnung ausgegeben
   if ( tara > 0 ) {
      u8g2.setCursor(10, 42);
      u8g2.setFont(u8g2_font_courB24_tf);
    
-     time = millis() % 9;
-     if( (autostart == 1) && (auto_aktiv == 1 ) && (servo_aktiv == 0) && (gewicht >= -5) && (gewicht - tara_glas < fmenge) && (time < 3) ) {
+     if( (autostart == 1) && (auto_aktiv == 1 ) && (servo_aktiv == 0) && (gewicht >= -5) && (gewicht - tara_glas < fmenge) && (blinktime < 2) ) {
        sprintf(ausgabe,"%5s", "     ");
      } else {
        sprintf(ausgabe,"%5dg", gewicht - tara_glas);
@@ -809,15 +1122,26 @@ void processAutomatik(void)
   sprintf(ausgabe,"W=%-3d %2s %3d%%", winkel, (autostart==1)?"AS":"  ", pos);
   u8g2.print(ausgabe);
 
-  // Zeile unten, aktuell zu verstellende Werte blinken. Nur wenn Automatik inaktiv, gesteuert über Interrupt-Routing 
-  time = millis() % 9;
-  u8g2.setCursor(0, 64);   // blinken des ausgewählten Parameters 
-  if( rotary_select == SW_KORREKTUR && time < 3 ) {
-    sprintf(ausgabe,"k=     f=%4d", glaeser[fmenge_index].Gewicht );
-  } else if ( rotary_select == SW_MENU && time < 3 ) {
-    sprintf(ausgabe,"k=%-3d  f=" , korrektur);
+//  u8g2.setFont(u8g2_font_courR10_tf);
+//  u8g2.setCursor(0,20); 
+//  u8g2.print("Autost./-korr.");
+  
+  u8g2.setFont(u8g2_font_courB12_tf);
+  // Zeile unten, aktuell zu verstellende Werte blinken. 
+  // Verstellung nur wenn Automatik inaktiv, gesteuert über Interrupt-Funktion 
+  if( autokorrektur == 1 ){
+    u8g2.setCursor( 0, 64);
+    u8g2.print("a");
+    u8g2.setCursor(10, 64);
   } else {
-    sprintf(ausgabe,"k=%-3d  f=%4d", korrektur, glaeser[fmenge_index].Gewicht );
+    u8g2.setCursor( 0, 64);    
+  }
+  if( rotary_select == SW_KORREKTUR && blinktime < 2 ) {
+    sprintf(ausgabe,"k=   %s f=%4d", (autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht );
+  } else if ( rotary_select == SW_MENU && blinktime < 2 ) {
+    sprintf(ausgabe,"k=%-3d%s f=" , korrektur + autokorrektur_gr, (autokorrektur==1)?"":" " );
+  } else {
+    sprintf(ausgabe,"k=%-3d%s f=%4d", korrektur + autokorrektur_gr, (autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht );
   }
   u8g2.print(ausgabe);
 
@@ -826,6 +1150,9 @@ void processAutomatik(void)
 
 void processHandbetrieb(void)
 {
+  static unsigned long scaletime;
+  static unsigned long dauer;
+  
   if ( modus != MODE_HANDBETRIEB ) {
      modus = MODE_HANDBETRIEB;
      winkel = winkel_min;          // Hahn schliessen
@@ -858,18 +1185,19 @@ void processHandbetrieb(void)
     winkel = winkel_min;
   }
   servo.write(winkel);
-  
+
 #ifdef isDebug
 #if isDebug >= 4
-//    Serial.print(SCALE_READAVERAGE(SCALE_READS));     // erneutes Lesen der Waage verfälscht die Debug-Ausgabe!
-    Serial.print(" Tara:");        Serial.print(tara);
-    Serial.print(" Faktor ");      Serial.print(faktor);
+    Serial.print("Handbetrieb:");  
     Serial.print(" Gewicht ");     Serial.print(gewicht);
     Serial.print(" Winkel ");      Serial.print(winkel);
+    Serial.print(" Dauer ");       Serial.print(millis() - scaletime);
     Serial.print(" servo_aktiv "); Serial.println(servo_aktiv);
 #endif
 #endif
-  
+  scaletime = millis();
+
+  // Ausgabe OLED. Dauert ca. 170ms
   u8g2.clearBuffer();
 
   u8g2.setFont(u8g2_font_courB24_tf);
@@ -935,6 +1263,9 @@ void setup()
   // short delay to let chip power up
   delay (100); 
 
+// Preferences aus dem EEPROM lesen
+  getPreferences();
+
 #ifdef USE_ORIGINAL_SERVO_VARS
   servo.attach(servo_pin, 750, 2500);  // originale Initialisierung, steuert nicht jeden Servo an
 #else
@@ -942,20 +1273,45 @@ void setup()
 #endif
   servo.write(winkel_min);
 
-// Boot Screen
-  u8g2.begin();
-  u8g2.clearBuffer();
-  u8g2.setFont(u8g2_font_courB24_tf);
-  u8g2.setCursor(20, 43);    u8g2.print("BOOT");
-  u8g2.sendBuffer();
-
-// Waage erkennen
+// Waage erkennen - machen wir vor dem Boot-Screen, dann hat sie 3 Sekunden Zeit zum aufwärmen
   scale.begin(hx711_dt_pin, hx711_sck_pin);
-  if (scale.wait_ready_timeout(1000)) {
+  if (scale.wait_ready_timeout(1000)) {               // Waage angeschlossen?
     scale.power_up();
     waage_vorhanden = 1;
-  } else {
+#ifdef isDebug
+      Serial.println("Waage erkannt");
+#endif
+  }
+
+// Boot Screen
+  u8g2.begin();
+  u8g2.enableUTF8Print();
+  u8g2.clearBuffer();
+  print_logo();
+  delay(3000);
+
+// Setup der Waage, Skalierungsfaktor setzen
+  if (waage_vorhanden ==1 ) {                         // Waage angeschlossen?
+    if ( faktor == 0 ) {                              // Vorhanden aber nicht kalibriert
+      u8g2.clearBuffer();
+      u8g2.setFont(u8g2_font_courB18_tf);
+      u8g2.setCursor( 24, 24); u8g2.print("Nicht");
+      u8g2.setCursor( 10, 56); u8g2.print("kalibr.");
+      u8g2.sendBuffer();
+#ifdef isDebug
+      Serial.println("Waage nicht kalibriert!");
+#endif
+      delay(2000);
+    } else {                                          // Tara und Skalierung setzen
+      scale.set_scale(faktor);
+      scale.set_offset(long(gewicht_leer));
+#ifdef isDebug
+      Serial.println("Waage initialisiert");
+#endif
+    }
+  } else {                                            // Keine Waage angeschlossen
     u8g2.clearBuffer();
+    u8g2.setFont(u8g2_font_courB24_tf);
     u8g2.setCursor( 14, 24); u8g2.print("Keine");
     u8g2.setCursor( 6, 56);  u8g2.print("Waage!");
     u8g2.sendBuffer();
@@ -964,47 +1320,38 @@ void setup()
 #endif
     delay(2000);
   }
-
-// Preferences aus dem EEPROM lesen
-  getPreferences();
-
-// Wurde die Waage bereits kalibriert?  
-  if ( faktor == 0 ) {
-    u8g2.clearBuffer();
-    u8g2.setFont(u8g2_font_courB18_tf);
-    u8g2.setCursor( 24, 24); u8g2.print("Nicht");
-    u8g2.setCursor( 10, 56); u8g2.print("kalibr.");
-    u8g2.sendBuffer();
-#ifdef isDebug
-    Serial.println("Waage nicht kalibriert!");
-#endif
-    delay(2000);
-  } else {
-    if (waage_vorhanden == 1) {   // kalibriert und Waage angeschlossen
-      scale.set_scale(faktor);
-      scale.set_offset(long(gewicht_leer));
-#ifdef isDebug
-      Serial.println("Waage initialisiert");
-#endif
-    }
-  }
   
 // initiale Kalibrierung des Leergewichts wegen Temperaturschwankungen
+// Falls mehr als 20g Abweichung steht vermutlich etwas auf der Waage.
   if (waage_vorhanden == 1) {
     gewicht = SCALE_GETUNITS(SCALE_READS);
     if ( (gewicht > -20) && (gewicht < 20) ) {
-      scale.tare(SCALE_READS);
+      scale.tare(10);
 #ifdef isDebug
       Serial.print("Tara angepasst um: ");
       Serial.println(gewicht);
 #endif
-    } else {
+    } else if (faktor != 0) {
       u8g2.clearBuffer();
       u8g2.setFont(u8g2_font_courB18_tf);
       u8g2.setCursor( 24, 24); u8g2.print("Waage");
       u8g2.setCursor( 10, 56); u8g2.print("leeren!");
       u8g2.sendBuffer();
+#ifdef isDebug
+        Serial.print("Gewicht auf der Waage: ");
+        Serial.println(gewicht);
+#endif
       delay(5000);
+
+      // Neuer Versuch, falls Gewicht entfernt wurde
+      gewicht = SCALE_GETUNITS(SCALE_READS);
+      if ( (gewicht > -20) && (gewicht < 20) ) {
+        scale.tare(10);
+#ifdef isDebug
+        Serial.print("Tara angepasst um: ");
+        Serial.println(gewicht);
+#endif
+      }
     }
   }
   
@@ -1035,4 +1382,45 @@ void loop()
   if ((digitalRead(switch_betrieb_pin) == LOW)
       && (digitalRead(switch_setup_pin) == LOW))
     processHandbetrieb();
+}
+
+void print_logo() {
+  const unsigned char logo_biene1[] = {
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x70, 0x00, 0xC0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 
+  0x00, 0xC0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xE0, 0x01, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0, 0x01, 0x60, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x01, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0xC1, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0xF8, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFC, 0x1F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFE, 0x3F, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1F, 0x7C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x70, 0x00, 0xF0, 0xFF, 0x01, 
+  0x00, 0x00, 0x00, 0x00, 0x03, 0xE0, 0x80, 0xFF, 0xFF, 0x0F, 0x00, 0xFF, 0xFF, 0x80, 0xF1, 0x47, 0xF0, 0x07, 0x00, 0x3E, 0xE0, 0xFF, 0xFF, 0x07, 
+  0xF9, 0x07, 0x7E, 0x00, 0x00, 0x78, 0xF0, 0x03, 0xE0, 0x1F, 0xF8, 0x07, 0x1F, 0x00, 0x00, 0x70, 0x3C, 0x00, 0x00, 0xFE, 0x38, 0xC0, 0x03, 0x00, 
+  0x00, 0xF0, 0x0E, 0x00, 0x00, 0xF8, 0x03, 0xF8, 0x00, 0x00, 0x00, 0xE0, 0x06, 0x00, 0x00, 0xC0, 0x0F, 0x7C, 0x00, 0x00, 0x00, 0xE0, 0x06, 0x00, 
+  0x00, 0x00, 0x1F, 0x1F, 0x00, 0x00, 0x00, 0x70, 0x03, 0x00, 0x00, 0x00, 0xFC, 0x07, 0x00, 0x00, 0x00, 0x70, 0x03, 0x00, 0x00, 0x00, 0xF0, 0x03, 
+  0x00, 0x00, 0x00, 0x38, 0x03, 0x00, 0x00, 0x00, 0xE0, 0x01, 0x00, 0x00, 0x00, 0x1C, 0x07, 0x00, 0x00, 0x00, 0xF0, 0xF0, 0x07, 0x00, 0x00, 0x0F, 
+  0x0F, 0x00, 0x00, 0x78, 0x78, 0xE0, 0x3F, 0x00, 0xC0, 0x07, 0x3E, 0x00, 0x80, 0xFF, 0x3C, 0xC0, 0x7F, 0x00, 0xF0, 0x01, 0xFC, 0x00, 0xE0, 0xFF, 
+  0x1C, 0x80, 0xFF, 0x01, 0x7E, 0x00, 0xF0, 0xFF, 0xFF, 0x3F, 0x0E, 0x00, 0xFE, 0xFF, 0x0F, 0x00, 0xC0, 0xFF, 0xFF, 0x07, 0x0F, 0x00, 0xC0, 0x1F, 
+  0x00, 0x00, 0x00, 0xFC, 0x3F, 0x00, 0x07, 0x00, 0x00, 0x3C, 0x00, 0x00, 0x00, 0x80, 0x03, 0x80, 0x03, 0xE0, 0x00, 0x70, 0x00, 0x00, 0x00, 0xC0, 
+  0x01, 0xC0, 0x03, 0xC0, 0x01, 0xE0, 0x00, 0x00, 0x00, 0xE0, 0x00, 0xE0, 0x81, 0xC3, 0x01, 0xC0, 0x01, 0x00, 0x00, 0x70, 0x00, 0xE0, 0xF1, 0x8F, 
+  0x03, 0x80, 0x03, 0x00, 0x00, 0x38, 0x00, 0xF0, 0xFC, 0x9F, 0x07, 0x00, 0x07, 0x00, 0x00, 0x1C, 0x00, 0xF8, 0x1C, 0x1C, 0x0F, 0x00, 0x06, 0x00, 
+  0x00, 0x1C, 0x00, 0xFE, 0x00, 0x00, 0x1F, 0x00, 0x0C, 0x00, 0x00, 0x0E, 0x00, 0xF7, 0x00, 0x00, 0x7F, 0x00, 0x0C, 0x00, 0x00, 0x06, 0x80, 0x73, 
+  0x00, 0x00, 0xE6, 0x00, 0x0C, 0x00, 0x00, 0x07, 0xE0, 0x71, 0x00, 0x00, 0xC6, 0x03, 0x0C, 0x00, 0x00, 0x07, 0x70, 0x70, 0xF0, 0x0F, 0x86, 0x07, 
+  0x0C, 0x00, 0x00, 0x03, 0x3C, 0x70, 0xFC, 0x3F, 0x06, 0x1F, 0x0E, 0x00, 0x00, 0x03, 0x1E, 0x70, 0xFE, 0x3F, 0x06, 0xFC, 0x07, 0x00, 0x00, 0x87, 
+  0x0F, 0x70, 0x1E, 0x38, 0x06, 0xF0, 0x03, 0x00, 0x00, 0xFE, 0x03, 0xF0, 0x00, 0x00, 0x06, 0xC0, 0x00, 0x00, 0x00, 0xFC, 0x00, 0xF0, 0x00, 0x00, 
+  0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xE0, 0x80, 0x03, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xE0, 0xE0, 0x0F, 0x07, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0xE0, 0xF1, 0x9F, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0, 0x3B, 0x9C, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0, 
+  0x07, 0xC0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x07, 0xE0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xE0, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1F, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3E, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x7C, 0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF8, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x0D, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xE0, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x07, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+  };
+
+  u8g2.clearBuffer();
+  u8g2.drawXBM(0,0,80,64,logo_biene1);
+  u8g2.setFont(u8g2_font_courB14_tf);
+  u8g2.setCursor(85, 27);    u8g2.print("HANI");
+  u8g2.setCursor(75, 43);    u8g2.print("MANDL");
+  u8g2.setFont(u8g2_font_courB08_tf);
+  u8g2.setCursor(85, 64);    u8g2.print("v.0.2.6");
+  u8g2.sendBuffer();
 }
