@@ -20,7 +20,8 @@ Das Verhalten des Codes wird über mehrere defines gesteuert:
   2 für neues Layout für "New Heltec Wifi Kit 32" (V2) mit Schalter auf Pin 23/19/22
 
 #define USE_ORIGINAL_SERVO_VARS
-  aktivieren, falls ein Automat mit Software 0.1.4 aktualisiert wird und der Servo nicht ganz schliesst.
+  aktivieren, falls ein Automat mit Software 0.1.4 aktualisiert wird und der Servo nicht ganz schliesst
+  oder der Servo generell nicht weit genug bewegt wird.
   Der neue Code verwendet default-Werte für die Ansteuerung des Servos, um mehr Servos anzusprechen. Der
   0.1.4 Code hatte spezielle Werte, bei denen die 0-Stellung niedriger war.
   Über dieses Define können die Werte des 0.1.4 Codes aktiviert werden. Alternative: Hardware anpassen
@@ -47,9 +48,8 @@ Die weiteren defines und Variablen müssen bei einer Standard-Schaltung nicht an
 ## Hardware-Aufbau
 
 Es wird empfohlen, den Servo erst nach dem ersten Einschalten der Elektronik mit dem Quetschhahn zu verbinden!
-Der Servo fährt automatisch in die Nullstellung. Im manuellen Modus kann dann der minimale und maximale 
-Öffnungswinkel (W=...) ermittelt werden und diese im Setup eingetragen werden.
-
+Der Servo fährt automatisch in die Nullstellung. Danach kann das Gestänge verbunden werden und über das Servo-Setup
+können die Servo-Positionen fein eingestellt werden.
 
 ## Betrieb
 
@@ -161,6 +161,11 @@ Ein teilgefülltes Glas wird nicht befüllt! Durch erneutes Drücken der Start-T
 Wenn kein Füllvorgang aktiv ist (der Hahn also geschlossen ist), kann in beiden Modi über den Auswahl-Taster
 direkt der Korrekturwert und die Füllmenge zur Verstellung angewählt werden. Der jeweils zu verstellende
 Wert blinkt.
+
+Autokorrektur:
+--------------
+Die aktive Autokorrektur (Anzeige "ak=" unten links) führt die Füllmenge automatisch mit dem sinkenden Druck 
+im Abfüllbehälter nach. Das Zielgewicht wird im Automatik-Setup über die Kulanz eingestellt (Füllmenge + Kulanz).
 
 
 ## Verwendung mit PlatformIO
