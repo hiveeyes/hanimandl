@@ -19,7 +19,7 @@ Das Verhalten des Codes wird über mehrere defines gesteuert:
   1 für originales pinout Layout mit Schalter auf Pin 19/22/21
   2 für neues Layout für "New Heltec Wifi Kit 32" (V2) mit Schalter auf Pin 23/19/22
 
-#define USE_ORIGINAL_SERVO_VARS
+#define SERVO_ERWEITERT
   aktivieren, falls ein Automat mit Software 0.1.4 aktualisiert wird und der Servo nicht ganz schliesst
   oder der Servo generell nicht weit genug bewegt wird.
   Der neue Code verwendet default-Werte für die Ansteuerung des Servos, um mehr Servos anzusprechen. Der
@@ -40,7 +40,14 @@ Das Verhalten des Codes wird über mehrere defines gesteuert:
            Ausnahme: es wird ein dritter Taster eingebaut. Nicht unterstützt!
 
 #define USE_POTI         // Poti benutzen -> ACHTUNG, im Normalfall auch USE_ROTARY_SW deaktivieren!
-  aktivieren, wenn ein Poti statt eines Rotary für die Steuerung des Interface genutzt wird.
+  aktivieren, wenn ein Poti statt eines Rotary für die Steuerung des Interface genutzt wird
+  Es wird dringend empfohlen, einen Rotary Encoder zu benutzen!
+
+#define FEHLERKORREKTUR_WAAGE   // falls Gewichtssprünge auftreten, können diese hier abgefangen werden
+  Achtung, kann den Wägeprozess verlangsamen. Vorher Wägezellen/HX711 prüfen!
+
+#define QUETSCHHAHN_LINKS       
+  Servo invertieren, falls der Quetschhahn von links geöffnet wird. Mindestens ein Exemplar eines solchen Eimers ist bekannt
 ```
 Die weiteren defines und Variablen müssen bei einer Standard-Schaltung nicht angepasst werden.
 
