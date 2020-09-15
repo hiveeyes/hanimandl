@@ -57,7 +57,8 @@
                                - Stabilisierung des Waagenwerts nach Wunsch (define FEHLERKORREKTUR_WAAGE)
                                - das Kalibriergewicht kann beim Kalibrierungsvorgang vom User verändert 
                                  werden (nicht jeder hat 500g als Eichgewicht) und wird nichtflüchtig gespeichert
-                               - rotierendes Hauptmenü 
+                               - rotierendes Hauptmenü
+                               - Umkehrbarer Servo für linksseitige Quetschhähne :-)
   This code is in the public domain.
    
   Hinweise zur Hardware
@@ -84,8 +85,9 @@
 #define USE_ROTARY              // Rotary benutzen
 #define USE_ROTARY_SW           // Taster des Rotary benutzen
 //#define USE_POTI              // Poti benutzen -> ACHTUNG, im Normalfall auch USE_ROTARY_SW deaktivieren!
-#define FEHLERKORREKTUR_WAAGE   // falls Gewichtssprünge auftreten, können diese hier abgefangen werden
+//#define FEHLERKORREKTUR_WAAGE   // falls Gewichtssprünge auftreten, können diese hier abgefangen werden
                                 // Achtung, kann den Wägeprozess verlangsamen. Vorher Hardware prüfen.
+//#define QUETSCHHAHN_LINKS       // Servo invertieren, falls der Quetschhahn von links geöffnet wird. Mindestens ein Exemplar bekannt
 //
 // Ende Benutzereinstellungen!
 // 
@@ -100,6 +102,13 @@
 // Ansteuerung der Waage
 #define SCALE_READS 2      // Parameter für hx711 Library. Messwert wird aus der Anzahl gemittelt
 #define SCALE_GETUNITS(n)  (waage_vorhanden ? round(scale.get_units(n)) : simulate_scale(n) )
+
+// Ansteuerung Servo
+#ifdef QUETSCHHAHN_LINKS
+#define SERVO_WRITE(n)     servo.write(180-n)
+#else
+#define SERVO_WRITE(n)     servo.write(n)
+#endif
 
 // Rotary Encoder Taster zieht Pegel auf Low, Start/Stop auf High!
 #ifdef USE_ROTARY_SW
@@ -191,7 +200,7 @@ struct glas {
   int TripCount;  //Kud
   int Count;      //Kud
 };
-char* GlasTypArray[3]={ "DIB", "TOF", "DEE"};//DIB = DeutscherImkerBund-Glas DEE= DeepTwist-Glas TOF= TwistOff-Glas //JB
+char *GlasTypArray[3] = { "DIB", "TOF", "DEE"};//DIB = DeutscherImkerBund-Glas DEE= DeepTwist-Glas TOF= TwistOff-Glas //JB
 struct glas glaeser[5] =            { 
                                          {  125, 0, -9999, 0, 0 },
                                          {  250, 1, -9999, 0, 0 },
@@ -228,7 +237,7 @@ int modus = -1;                 // Bei Modus-Wechsel den Servo auf Minimum fahre
 int auto_aktiv = 0;             // Für Automatikmodus - System ein/aus?
 int waage_vorhanden = 0;        // HX711 nicht ansprechen, wenn keine Waage angeschlossen ist, sonst Crash
 long preferences_chksum;        // Checksumme, damit wir nicht sinnlos Prefs schreiben
-int buzzermode = 0;             // 0 = aus, 1 = ein. TODO: Tastentöne als buzzermode 2?  
+int buzzermode = 0;             // 0 = aus, 1 = ein. TODO: Tastentöne als buzzermode 2?
 bool gezaehlt = false;          // Kud Zähl-Flag
 bool setup_modern = 1;          // Setup als rotierendes Menu   
 
@@ -354,6 +363,7 @@ void getPreferences(void) {
     buzzermode    = preferences.getUInt("buzzermode", buzzermode);
     kali_gewicht  = preferences.getUInt("kali_gewicht", kali_gewicht); //JB 
     setup_modern  = preferences.getUInt("setup_modern", setup_modern);
+
     preferences_chksum = faktor + pos + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_min + winkel_max + winkel_fein + kulanz_gr + buzzermode + kali_gewicht + setup_modern;
 
     i = 0;
@@ -464,7 +474,6 @@ void setPreferences(void) {
 
     i = 0;
     while( i < 5 ) {
-
       sprintf(ausgabe, "Gewicht%d", i);
       preferences.putInt(ausgabe, glaeser[i].Gewicht);
       sprintf(ausgabe, "GlasTyp%d", i);
@@ -880,7 +889,7 @@ void setupCalibration(void) {
       gewicht_raw  = scale.get_units(10);
       faktor       = gewicht_raw / kali_gewicht;
       scale.set_scale(faktor);
-      gewicht_leer = scale.get_offset();    // leergewicht der Waage speichern
+      gewicht_leer = scale.get_offset();    // Leergewicht der Waage speichern
 #ifdef isDebug
       Serial.print("kalibrier_gewicht = ");
       Serial.println(kali_gewicht);
@@ -898,7 +907,7 @@ void setupCalibration(void) {
 }
 
 void setupKorrektur(void) {
-    int korrektur_alt = getRotariesValue(SW_KORREKTUR);
+    int korrektur_alt = korrektur;
 
     rotary_select = SW_KORREKTUR;
 
@@ -952,11 +961,11 @@ void setupServoWinkel(void) {
   i = 1;
   while (i > 0) {
     if ((digitalRead(button_stop_pin)) == HIGH) {
-       winkel_min  = lastmin;
-       winkel_fein = lastfein;
-       winkel_max  = lastmax;
-       if ( servo_live == true ) servo.write(winkel_min);
-       return;
+      winkel_min  = lastmin;
+      winkel_fein = lastfein;
+      winkel_max  = lastmax;
+      if ( servo_live == true ) SERVO_WRITE(winkel_min);
+      return;
     }
 
     if ( wert_aendern == false ) {
@@ -966,13 +975,13 @@ void setupServoWinkel(void) {
         case 0: servo_live  = getRotariesValue(SW_MENU);
                 break;
         case 1: winkel_min  = getRotariesValue(SW_MENU);
-                if ( servo_live == true ) servo.write(winkel_min);
+                if ( servo_live == true ) SERVO_WRITE(winkel_min);
                 break;
         case 2: winkel_fein = getRotariesValue(SW_MENU);
-                if ( servo_live == true ) servo.write(winkel_fein);
+                if ( servo_live == true ) SERVO_WRITE(winkel_fein);
                 break;
         case 3: winkel_max  = getRotariesValue(SW_MENU);
-                if ( servo_live == true ) servo.write(winkel_max);
+                if ( servo_live == true ) SERVO_WRITE(winkel_max);
                 break;
       }
     }
@@ -1034,7 +1043,8 @@ void setupServoWinkel(void) {
             ;
          delay(10);
 
-         if ( servo_live == true ) servo.write(winkel_min);
+         if ( servo_live == true )
+           SERVO_WRITE(winkel_min);
          initRotaries(SW_MENU, menuitem, 0, 4, -1);
          wert_aendern = false;
       }
@@ -1150,7 +1160,7 @@ void setupAutomatik(void) {
 
 void setupFuellmenge(void) {
     int j,k;
-    long blinktime;
+    int blinktime;
     initRotaries(SW_MENU, fmenge_index, 0, 4, -1);
       
     u8g2.setFont(u8g2_font_courB10_tf);
@@ -1171,7 +1181,6 @@ void setupFuellmenge(void) {
       u8g2.setCursor(0, 10+(getRotariesValue(SW_MENU)*13));    
       u8g2.print("*");
       u8g2.sendBuffer();
-
 
       if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) { // Füllmenge gewählt
          delay(500);
@@ -1255,7 +1264,6 @@ void setupFuellmenge(void) {
 
 void setupParameter(void) {
   int menuitem;
-  int clearprefs    = 0;
   int lastbuzzer    = buzzermode;
   int lastsetup     = setup_modern;
   bool wert_aendern = false;
@@ -1272,6 +1280,8 @@ void setupParameter(void) {
 
     if ( wert_aendern == false ) {
       menuitem = getRotariesValue(SW_MENU);
+      if ( menuitem == 2 )
+        menuitem = 4;  // Eine Zeile Abstand zu "Speichern"
     } else {
       switch (menuitem) {
         case 0: buzzermode    = getRotariesValue(SW_MENU);
@@ -1285,17 +1295,16 @@ void setupParameter(void) {
     u8g2.setFont(u8g2_font_courB10_tf);
     u8g2.clearBuffer();
     sprintf(ausgabe,"Buzzer    %3s", (buzzermode==0?"aus":"ein"));     
-    u8g2.setCursor(10, 12);    u8g2.print(ausgabe);
+    u8g2.setCursor(10, 10);    u8g2.print(ausgabe);
     sprintf(ausgabe,"Menu   %6s", (setup_modern==0?" Liste":"Scroll"));     
-    u8g2.setCursor(10, 28);    u8g2.print(ausgabe);
-    
-    u8g2.setCursor(10, 44);    u8g2.print("Speichern");
+    u8g2.setCursor(10, 23);    u8g2.print(ausgabe);
+    u8g2.setCursor(10, 62);    u8g2.print("Speichern");
 
     // Positionsanzeige im Menu. "*" wenn nicht ausgewählt, Pfeil wenn ausgewählt
     if ( wert_aendern == false ) {
-       u8g2.setCursor(0, 12+((menuitem)*16)); u8g2.print("*");
+       u8g2.setCursor(0, 10+((menuitem)*13)); u8g2.print("*");
     } else {
-       u8g2.setCursor(0, 12+((menuitem)*16)); u8g2.print("-");
+       u8g2.setCursor(0, 10+((menuitem)*13)); u8g2.print("-");
     }
     u8g2.sendBuffer();
     
@@ -1335,8 +1344,8 @@ void setupParameter(void) {
       }
 
       // Menu verlassen 
-      if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) && (menuitem == 2) ) {
-        u8g2.setCursor(108, 12+(menuitem*16));
+      if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) && (menuitem == 4) ) {
+        u8g2.setCursor(108, 10+(menuitem*13));
         u8g2.print("OK");
         u8g2.sendBuffer();
                 
@@ -1388,12 +1397,74 @@ void processSetup(void) {
      processSetupScroll();
 }
 
+void processSetupList(void) {
+  if ( modus != MODE_SETUP ) {
+     modus = MODE_SETUP;
+     winkel = winkel_min;          // Hahn schliessen
+     servo_aktiv = 0;              // Servo-Betrieb aus
+     SERVO_WRITE(winkel);
+     rotary_select = SW_MENU;
+     initRotaries(SW_MENU, 0, 0, 9, -1);
+  }
+
+  int menuitem = getRotariesValue(SW_MENU);
+
+  u8g2.setFont(u8g2_font_courB10_tf);
+  u8g2.clearBuffer();
+  if( menuitem < 5 ) {
+     u8g2.setCursor(10, 10);   u8g2.print("Tara");
+     u8g2.setCursor(10, 23);   u8g2.print("Kalibrieren");
+     u8g2.setCursor(10, 36);   u8g2.print("Korrektur");
+     u8g2.setCursor(10, 49);   u8g2.print("Füllmenge");
+     u8g2.setCursor(10, 62);   u8g2.print("Automatik");
+     u8g2.setFont(u8g2_font_open_iconic_arrow_2x_t);
+     u8g2.drawGlyph(112, 64, 0x40);  
+  } else {
+     u8g2.setCursor(10, 10);   u8g2.print("Servowinkel");
+     u8g2.setCursor(10, 23);   u8g2.print("Parameter");
+     u8g2.setCursor(10, 36);   u8g2.print("Zähler");//Kud
+     u8g2.setCursor(10, 49);   u8g2.print("Zähler Trip");//Kud     
+     u8g2.setCursor(10, 62);   u8g2.print("Clear Prefs");
+     u8g2.setFont(u8g2_font_open_iconic_arrow_2x_t);
+     u8g2.drawGlyph(112, 16, 0x43);  
+  }
+  u8g2.setFont(u8g2_font_courB10_tf);
+  u8g2.setCursor(0, 10 + (((menuitem)%5) * 13));
+  u8g2.print("*");
+  u8g2.sendBuffer();
+
+  if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) {
+    // sollte verhindern, dass ein Tastendruck gleich einen Unterpunkt wählt
+    delay(250);
+    while( digitalRead(SELECT_SW) == SELECT_PEGEL ) {
+    }
+#ifdef isDebug 
+    Serial.print("Setup Position: ");
+    Serial.println(menuitem);
+#endif
+
+    int lastpos = menuitem;
+    if (menuitem == 0)   setupTara();              // Tara 
+    if (menuitem == 1)   setupCalibration();       // Kalibrieren 
+    if (menuitem == 2)   setupKorrektur();         // Korrektur 
+    if (menuitem == 3)   setupFuellmenge();        // Füllmenge 
+    if (menuitem == 4)   setupAutomatik();         // Autostart/Autokorrektur konfigurieren 
+    if (menuitem == 5)   setupServoWinkel();       // Servostellungen Minimum, Maximum und Feindosierung
+    if (menuitem == 6)   setupParameter();         // Sonstige Einstellungen
+    if (menuitem == 7)   setupCounter();           // Kud Zählwerk Trip
+    if (menuitem == 8)   setupTripCounter();       // Kud Zählwerk
+    setPreferences();
+
+    if (menuitem == 9)   setupClearPrefs();        // EEPROM löschen
+    initRotaries(SW_MENU, lastpos, 0, 9, -1);      // Menu-Parameter könnten verstellt worden sein
+  }
+}
 void processSetupScroll(void) {
   if ( modus != MODE_SETUP ) {
      modus = MODE_SETUP;
      winkel = winkel_min;          // Hahn schliessen
      servo_aktiv = 0;              // Servo-Betrieb aus
-     servo.write(winkel);
+     SERVO_WRITE(winkel);
      rotary_select = SW_MENU;
      initRotaries(SW_MENU, 124, 0,255, -1);
   }
@@ -1457,69 +1528,6 @@ void processSetupScroll(void) {
   }
 }
 
-void processSetupList(void) {
-  if ( modus != MODE_SETUP ) {
-     modus = MODE_SETUP;
-     winkel = winkel_min;          // Hahn schliessen
-     servo_aktiv = 0;              // Servo-Betrieb aus
-     servo.write(winkel);
-     rotary_select = SW_MENU;
-     initRotaries(SW_MENU, 0, 0, 9, -1);
-  }
-
-  int menuitem = getRotariesValue(SW_MENU);
-
-  u8g2.setFont(u8g2_font_courB10_tf);
-  u8g2.clearBuffer();
-  if( menuitem < 5 ) {
-     u8g2.setCursor(10, 10);   u8g2.print("Tara");
-     u8g2.setCursor(10, 23);   u8g2.print("Kalibrieren");
-     u8g2.setCursor(10, 36);   u8g2.print("Korrektur");
-     u8g2.setCursor(10, 49);   u8g2.print("Füllmenge");
-     u8g2.setCursor(10, 62);   u8g2.print("Automatik");
-     u8g2.setFont(u8g2_font_open_iconic_arrow_2x_t);
-     u8g2.drawGlyph(112, 64, 0x40);  
-  } else {
-     u8g2.setCursor(10, 10);   u8g2.print("Servowinkel");
-     u8g2.setCursor(10, 23);   u8g2.print("Parameter");
-     u8g2.setCursor(10, 36);   u8g2.print("Zähler");//Kud
-     u8g2.setCursor(10, 49);   u8g2.print("Zähler Trip");//Kud     
-     u8g2.setCursor(10, 62);   u8g2.print("Clear Prefs");
-     u8g2.setFont(u8g2_font_open_iconic_arrow_2x_t);
-     u8g2.drawGlyph(112, 16, 0x43);  
-  }
-  u8g2.setFont(u8g2_font_courB10_tf);
-  u8g2.setCursor(0, 10 + (((menuitem)%5) * 13));
-  u8g2.print("*");
-  u8g2.sendBuffer();
-
-  if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) {
-    // sollte verhindern, dass ein Tastendruck gleich einen Unterpunkt wählt
-    delay(250);
-    while( digitalRead(SELECT_SW) == SELECT_PEGEL ) {
-    }
-#ifdef isDebug 
-    Serial.print("Setup Position: ");
-    Serial.println(menuitem);
-#endif
-
-    int lastpos = menuitem;
-    if (menuitem == 0)   setupTara();              // Tara 
-    if (menuitem == 1)   setupCalibration();       // Kalibrieren 
-    if (menuitem == 2)   setupKorrektur();         // Korrektur 
-    if (menuitem == 3)   setupFuellmenge();        // Füllmenge 
-    if (menuitem == 4)   setupAutomatik();         // Autostart/Autokorrektur konfigurieren 
-    if (menuitem == 5)   setupServoWinkel();       // Servostellungen Minimum, Maximum und Feindosierung
-    if (menuitem == 6)   setupParameter();         // Sonstige Einstellungen
-    if (menuitem == 7)   setupCounter();           // Kud Zählwerk Trip
-    if (menuitem == 8)   setupTripCounter();       // Kud Zählwerk
-    setPreferences();
-
-    if (menuitem == 9)   setupClearPrefs();        // EEPROM löschen
-    initRotaries(SW_MENU, lastpos, 0, 9, -1);      // Menu-Parameter könnten verstellt worden sein
-  }
-}
-
 void processAutomatik(void)
 {
   int zielgewicht;           // Glas + Korrektur
@@ -1536,7 +1544,7 @@ void processAutomatik(void)
      modus = MODE_AUTOMATIK;
      winkel = winkel_min;          // Hahn schliessen
      servo_aktiv = 0;              // Servo-Betrieb aus
-     servo.write(winkel);
+     SERVO_WRITE(winkel);
      auto_aktiv = 0;               // automatische Füllung starten
      tara_glas = 0;
      rotary_select = SW_WINKEL;    // Einstellung für Winkel über Rotary
@@ -1725,7 +1733,7 @@ void processAutomatik(void)
     buzzer(BUZZER_SHORT);
   }
   
-  servo.write(winkel);
+  SERVO_WRITE(winkel);
   
 #ifdef isDebug
 #if isDebug >= 4
@@ -1835,7 +1843,7 @@ void processHandbetrieb(void)
      modus = MODE_HANDBETRIEB;
      winkel = winkel_min;          // Hahn schliessen
      servo_aktiv = 0;              // Servo-Betrieb aus
-     servo.write(winkel);
+     SERVO_WRITE(winkel);
      rotary_select = SW_WINKEL;
      tara = 0;
   }
@@ -1862,7 +1870,7 @@ void processHandbetrieb(void)
   } else { 
     winkel = winkel_min;
   }
-  servo.write(winkel);
+  SERVO_WRITE(winkel);
 
 #ifdef isDebug
 #if isDebug >= 4
@@ -1950,7 +1958,7 @@ void setup()
 #else
   servo.attach(servo_pin);             // default Werte. Achtung, steuert den Nullpunkt weniger weit aus!  
 #endif
-  servo.write(winkel_min);
+  SERVO_WRITE(winkel_min);
 
 // Waage erkennen - machen wir vor dem Boot-Screen, dann hat sie 3 Sekunden Zeit zum aufwärmen
   scale.begin(hx711_dt_pin, hx711_sck_pin);
