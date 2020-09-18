@@ -78,7 +78,7 @@
 //
 #define HARDWARE_LEVEL 2        // 1 = originales Layout mit Schalter auf Pin 19/22/21
                                 // 2 = Layout für V2 mit Schalter auf Pin 23/19/22
-#define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
+//#define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
                                 // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
 #define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder. 
                                 // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
@@ -809,12 +809,16 @@ void setupTara(void) {
 
       j = 0;
       while( j < 5  ) {
-        u8g2.setCursor(3, 10+(j*13));   
-        sprintf(ausgabe, "%4dg%3s", glaeser[j].Gewicht, GlasTypArray[glaeser[j].GlasTyp]); 
+        u8g2.setCursor(3, 10+(j*13));
+        if ( glaeser[j].Gewicht < 1000 ) {
+          sprintf(ausgabe, " %3d-%3s", glaeser[j].Gewicht, GlasTypArray[glaeser[j].GlasTyp]); 
+        } else {
+          sprintf(ausgabe, " %3s-%3s", "1kg", GlasTypArray[glaeser[j].GlasTyp]); 
+        }
         u8g2.print(ausgabe);
         u8g2.setCursor(75, 10+(j*13));
         if ( glaeser[j].Tara > 0 ) { 
-          sprintf(ausgabe, "%4dg", glaeser[j].Tara); 
+          sprintf(ausgabe, " %4dg", glaeser[j].Tara); 
           u8g2.print(ausgabe);
         } else {
           u8g2.print(" fehlt");
@@ -1793,10 +1797,6 @@ void processAutomatik(void)
   u8g2.setCursor(0, 11);
   sprintf(ausgabe,"W=%-3d %2s %3d%%", winkel, (autostart==1)?"AS":"  ", pos);
   u8g2.print(ausgabe);
-
-//  u8g2.setFont(u8g2_font_courR10_tf);
-//  u8g2.setCursor(0,20); 
-//  u8g2.print("Autost./-korr.");
   
   u8g2.setFont(u8g2_font_courB10_tf);
   // Zeile unten, aktuell zu verstellende Werte blinken. 
@@ -1808,29 +1808,23 @@ void processAutomatik(void)
   } else {
     u8g2.setCursor( 0, 64);    
   }
-  if( rotary_select == SW_KORREKTUR && blinktime < 2 ) {
-    
-    if (glaeser[fmenge_index].Gewicht > 999){
-      sprintf(ausgabe,"k=  %s f=%4d%3s",(autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht, GlasTypArray[glaeser[fmenge_index].GlasTyp]  );
-    } else {
-      sprintf(ausgabe,"k=  %s f=%3d%3s",(autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht, GlasTypArray[glaeser[fmenge_index].GlasTyp] ); 
-    }
-    
-   // sprintf(ausgabe,"k=   %s f=%4d", (autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht );
-  } else if ( rotary_select == SW_MENU && blinktime < 2 ) {
-    sprintf(ausgabe,"k=%-3d%sf=" , korrektur + autokorrektur_gr, (autokorrektur==1)?"":" " );
-  } else {
 
+  if( rotary_select == SW_KORREKTUR && blinktime < 2 ) {
+    if (glaeser[fmenge_index].Gewicht > 999){
+      sprintf(ausgabe,"k=   %s %3s-%3s",(autokorrektur==1)?"":" ", "1kg", GlasTypArray[glaeser[fmenge_index].GlasTyp]  );
+    } else {
+      sprintf(ausgabe,"k=   %s %3d-%3s",(autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht, GlasTypArray[glaeser[fmenge_index].GlasTyp] ); 
+    }
+  } else if ( rotary_select == SW_MENU && blinktime < 2 ) {
+    sprintf(ausgabe,"k=%-3d" , korrektur + autokorrektur_gr, (autokorrektur==1)?"":" " );
+  } else {
       if (glaeser[fmenge_index].Gewicht > 999){
-    sprintf(ausgabe,"k=%-3d%sf=%4d%3s", korrektur + autokorrektur_gr, (autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht,GlasTypArray[glaeser[fmenge_index].GlasTyp] );
-        }else {
-         sprintf(ausgabe,"k=%-3d%sf=%3d%3s", korrektur + autokorrektur_gr, (autokorrektur==1)?"":" ",glaeser[fmenge_index].Gewicht,GlasTypArray[glaeser[fmenge_index].GlasTyp] ); 
-        }
-    
-   // sprintf(ausgabe,"k=%-3d%s f=%4d", korrektur + autokorrektur_gr, (autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht );
+        sprintf(ausgabe,"k=%-3d%s %3s-%3s", korrektur + autokorrektur_gr, (autokorrektur==1)?"":" ", "1kg", GlasTypArray[glaeser[fmenge_index].GlasTyp] );
+      } else {
+        sprintf(ausgabe,"k=%-3d%s %3d-%3s", korrektur + autokorrektur_gr, (autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht, GlasTypArray[glaeser[fmenge_index].GlasTyp] ); 
+      }
   }
   u8g2.print(ausgabe);
-
   u8g2.sendBuffer();
 }
 
