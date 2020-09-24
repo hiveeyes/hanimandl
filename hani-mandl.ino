@@ -68,7 +68,7 @@
 #define HARDWARE_LEVEL 2        // 1 = originales Layout mit Schalter auf Pin 19/22/21
                                 // 2 = Layout für V2 mit Schalter auf Pin 23/19/22
 //#define USE_ORIGINAL_SERVO_VARS // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde
-                                  // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
+                                // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
 #define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder. 
                                 // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
 #define USE_ROTARY              // Rotary benutzen
@@ -1184,6 +1184,7 @@ void processHandbetrieb(void)
   } else { 
     winkel = winkel_min;
   }
+  winkel = constrain(winkel, winkel_min, winkel_max);
   servo.write(winkel);
 
 #ifdef isDebug
