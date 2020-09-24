@@ -59,6 +59,8 @@
                                  werden (nicht jeder hat 500g als Eichgewicht) und wird nichtflüchtig gespeichert
                                - rotierendes Hauptmenü
                                - Umkehrbarer Servo für linksseitige Quetschhähne :-)
+                               - Bugfix: Servo konnte im Manuellen Modus unter Minimum bewegt werden
+                               
   This code is in the public domain.
    
   Hinweise zur Hardware
@@ -1864,6 +1866,7 @@ void processHandbetrieb(void)
   } else { 
     winkel = winkel_min;
   }
+  winkel = constrain(winkel, winkel_min, winkel_max);
   SERVO_WRITE(winkel);
 
 #ifdef isDebug
