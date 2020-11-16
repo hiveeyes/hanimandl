@@ -59,8 +59,11 @@
                                  werden (nicht jeder hat 500g als Eichgewicht) und wird nichtflüchtig gespeichert
                                - rotierendes Hauptmenü
                                - Umkehrbarer Servo für linksseitige Quetschhähne :-)
+  2020-10 Andreas Holzhammer
                                - Bugfix: Servo konnte im Manuellen Modus unter Minimum bewegt werden
-                               
+                               - Display umgestellt auf Hardware-I2C für schnellere Updates
+                               - Glastoleranz auf +-20g angepasst 
+                                  
   This code is in the public domain.
    
   Hinweise zur Hardware
@@ -80,7 +83,7 @@
 //
 #define HARDWARE_LEVEL 2        // 1 = originales Layout mit Schalter auf Pin 19/22/21
                                 // 2 = Layout für V2 mit Schalter auf Pin 23/19/22
-//#define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
+#define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
                                 // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
 #define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder. 
                                 // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
@@ -137,6 +140,7 @@
 
 // OLED fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
 U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
+//U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ 16, /* clock=*/ 15, /* data=*/ 4);   // HW I2C crashed den Code
 
 // Rotary Encoder
 const int outputA  = 33;
@@ -242,12 +246,13 @@ long preferences_chksum;        // Checksumme, damit wir nicht sinnlos Prefs sch
 int buzzermode = 0;             // 0 = aus, 1 = ein. TODO: Tastentöne als buzzermode 2?
 bool gezaehlt = false;          // Kud Zähl-Flag
 bool setup_modern = 1;          // Setup als rotierendes Menu   
+int glastoleranz = 20;          // Gewicht für autostart darf um +-20g schwanken, insgesamt also 40g!
 
 // Simuliert die Dauer des Wägeprozess, wenn keine Waage angeschlossen ist. Wirkt sich auf die Blinkfrequenz im Automatikmodus aus.
 long simulate_scale(int n) {
     long sim_gewicht = 9500;
     while (n-- >= 1) { 
-      delay(40);    // empirisch ermittelt. n=2: 10, n=3: 40, n=4: 50
+      delay(10);    // empirisch ermittelt. n=2: 10, n=3: 40, n=4: 50
     }
 #ifdef POTISCALE
     sim_gewicht = (map(analogRead(poti_pin), 0, 4095, 0, 700));
@@ -1627,7 +1632,7 @@ void processAutomatik(void)
   }
 
   // Automatik ein, leeres Glas aufgesetzt, Servo aus -> Glas füllen
-  if ((auto_aktiv == 1) && (gewicht <= 5) && (gewicht >= -5) && (servo_aktiv == 0)) {
+  if ((auto_aktiv == 1) && (abs(gewicht) <= glastoleranz) && (servo_aktiv == 0)) {
     rotary_select = SW_WINKEL;     // falls während der Parameter-Änderung ein Glas aufgesetzt wird    
     u8g2.clearBuffer();
     u8g2.setFont(u8g2_font_courB24_tf);
@@ -1640,7 +1645,7 @@ void processAutomatik(void)
     voll = false; //Kud
     gezaehlt = false; //Kud
 
-    if ((gewicht <= 5) && (gewicht >= -5)) {
+    if ( abs(gewicht) <= glastoleranz ) {
       tara_glas   = gewicht;
 #ifdef isDebug 
       Serial.print("gewicht: ");            Serial.print(gewicht);
@@ -1879,13 +1884,13 @@ void processHandbetrieb(void)
 #endif
 #endif
   scaletime = millis();
-
   // Ausgabe OLED. Dauert ca. 170ms
   u8g2.clearBuffer();
 
   u8g2.setFont(u8g2_font_courB24_tf);
   u8g2.setCursor(10, 42);
   sprintf(ausgabe,"%5dg", gewicht);
+//  sprintf(ausgabe,"%5dg", dauer);
   u8g2.print(ausgabe);
 
   u8g2.setFont(u8g2_font_open_iconic_play_2x_t);
@@ -1900,6 +1905,8 @@ void processHandbetrieb(void)
   u8g2.print(ausgabe);
 
   u8g2.sendBuffer();
+//  u8g2.updateDisplayArea(4,2,12,6);  // schneller aber ungenaue Displayausgabe.
+  dauer = millis() - scaletime;
 }
 
 void setup()
@@ -1968,6 +1975,7 @@ void setup()
   }
 
 // Boot Screen
+  u8g2.setBusClock(800000);   // experimental
   u8g2.begin();
   u8g2.enableUTF8Print();
   u8g2.clearBuffer();
