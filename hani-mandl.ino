@@ -1,7 +1,7 @@
 /*
   Abfuellwaage Version 0.2.8
   --------------------------
-  Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker
+  Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker, Andreas Motl 
             
   2018-05 Marc Vasterling    | initial version, 
                                published in the Facebook group "Imkerei und Technik. Eigenbau",
@@ -63,6 +63,8 @@
                                - Bugfix: Servo konnte im Manuellen Modus unter Minimum bewegt werden
                                - Display umgestellt auf Hardware-I2C für schnellere Updates
                                - Glastoleranz auf +-20g angepasst 
+  2020-11 Andreas Motl
+                               - PlatformIO-Support eingerichtet 
                                   
   This code is in the public domain.
    
