@@ -12,7 +12,7 @@ Websites:
 
 ## Einstellungen im Arduino-Code
 
-Das Verhalten des Codes wird über mehrere defines gesteuert:
+Das Verhalten des Codes wird über mehrere `#define`-Variablen gesteuert.
 
 ```
 #define HARDWARE_LEVEL 2
@@ -67,8 +67,8 @@ genutzt. Die Funktion "Tara" im Handbetrieb und die direkte Verstellung des Korr
 der Füllmenge im Automatikmodus stehen nur bei einem Rotary Encoder mit integriertem Taster zur Verfügung!
 
 
-Setup:
-------
+Setup
+-----
 In Schalterstellung II (oder I je nachdem wie der 3-fach-Schalter verbaut wurde) könnne verschiedene
 Grundeinstellungen vorgenommen werden:
 
@@ -113,8 +113,8 @@ mit einem Poti, oder bei gefülltem Abfüllbehälter!
 Setzt alle Voreinstellungen (nach Bestätigung) zurück.
 Danach muss die Kalibrierung der Waage wiederholt und alle Werte neu gesetzt werden!
 
-Handbetrieb:
-------------
+Handbetrieb
+-----------
 Im Handbetrieb wird der Öffnungswinkel des Servo direkt über den Drehregler bestimmt. Der absolute und
 relative Servo-Winkel werden in der oberen Zeile angezeigt.
 
@@ -128,8 +128,8 @@ Tastendruck bei leerer Waage.
 Der Modus dient zum manuellen Füllen und zum ermitteln der Werte für den maximalen und minimalen Winkel
 des Servos für das Setup.
 
-Automatik:
-----------
+Automatik
+---------
 Der Automatik-Modus hat zwei Betriebsarten, die über das Setup "Autostart" gewählt werden. Der aktive
 Autostart wird in der obersten Zeile mit "AS" angezeigt. Ausserdem sind dort der absolute und relative
 Öffnungswinkel zu finden.
@@ -141,8 +141,8 @@ Der Automatik-Modus muss über die grüne Taste aktiviert werden. Rot stoppt die
 den Servo.
 Über den Drehregler kann der Öffnungswinkel des Servos begrenzt werden.
 
-Autostart nicht aktiv:
-----------------------
+Autostart nicht aktiv
+---------------------
 Wenn der Autostart nicht aktiv ist, dann startet der Servo nur, wenn ein leeres oder teilweise gefülltes
 Glas auf der Waage steht. Dieses Glas wird bis zur eingestellten Füllmenge befüllt, dann stoppt das
 Programm.
@@ -152,8 +152,8 @@ Eine erneute Befüllung muss wieder mit der grünen Taste aktiviert werden (Halb
 **Achtung:** Da auch teilgefüllte Gläser befüllt werden, kann ein abweichendes Gewicht des leeren Glases nicht
 berücksichtigt werden! Ein halb volles 125g Glas kann die Befüllung mit 500g auslösen...
 
-Autostart aktiv:
-----------------
+Autostart aktiv
+---------------
 Der Autostart-Modus wird ebenfalls über die grüne Taste aktiviert (Play/Pause Symbol).  
 
 Danach startet der Füll-Vorgang automatisch, sobald ein passendes, leeres Glas aufgesetzt wird. Wenn das
@@ -169,13 +169,18 @@ Wenn kein Füllvorgang aktiv ist (der Hahn also geschlossen ist), kann in beiden
 direkt der Korrekturwert und die Füllmenge zur Verstellung angewählt werden. Der jeweils zu verstellende
 Wert blinkt.
 
-Autokorrektur:
---------------
+Autokorrektur
+-------------
 Die aktive Autokorrektur (Anzeige "ak=" unten links) führt die Füllmenge automatisch mit dem sinkenden Druck 
 im Abfüllbehälter nach. Das Zielgewicht wird im Automatik-Setup über die Kulanz eingestellt (Füllmenge + Kulanz).
 
 
-## Verwendung mit PlatformIO
+## Notizen
+- Das Projekt wurde auf dem [Heltec WiFi Kit 32](https://community.hiveeyes.org/t/heltec-wifi-kit-32-esp32-mit-kleinem-oled/1498), einem ESP32 mit OLED-Display entwickelt, sollte jedoch auch auf anderen ESP32 Geräten lauffähig sein.
+- Bitte nutzt die neueste Version der HX711 Bibliothek von https://github.com/bogde/HX711, die ältere war nicht ohne weiteres auf einem ESP32 lauffähig.
+
+
+## Firmware bauen
 
 Just type:
 ```
