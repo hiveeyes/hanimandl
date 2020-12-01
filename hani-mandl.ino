@@ -89,6 +89,7 @@
                                 // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
 #define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder. 
                                 // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
+#define LORAHELTEC
 #define USE_ROTARY              // Rotary benutzen
 #define USE_ROTARY_SW           // Taster des Rotary benutzen
 //#define USE_POTI              // Poti benutzen -> ACHTUNG, im Normalfall auch USE_ROTARY_SW deaktivieren!
@@ -146,12 +147,19 @@ U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, 
 
 // Rotary Encoder
 const int outputA  = 33;
+#ifdef LORAHELTEC
+const int outputB  = 39;
+#else
 const int outputB  = 26;
+#endif
 const int outputSW = 32;
 
 // Servo
+#ifdef LORAHELTEC
+const int servo_pin = 36;
+#else
 const int servo_pin = 2;
-
+#endif
 // 3x Schalter Ein 1 - Aus - Ein 2
 #if HARDWARE_LEVEL == 1
 const int switch_betrieb_pin = 19;
@@ -167,11 +175,19 @@ const int vext_ctrl_pin      = 21;     // Vext control pin
 #endif
 
 // Taster 
+
+
+#ifdef LORAHELTEC
+const int button_start_vcc_pin = 22;  // <- Vcc 
+const int button_start_pin     = 23;
+const int button_stop_vcc_pin  = 38;  // <- Vcc 
+const int button_stop_pin      = 37;
+#else
 const int button_start_vcc_pin = 13;  // <- Vcc 
 const int button_start_pin     = 12;
 const int button_stop_vcc_pin  = 14;  // <- Vcc 
 const int button_stop_pin      = 27;
-
+#endif
 // Poti
 const int poti_pin = 39;
 
@@ -2068,7 +2084,7 @@ void setup()
 
 void loop()
 {
-  rotating = true;     // debounce Management
+  //rotating = true;     // debounce Management
   
   // Setup Menu 
   if ((digitalRead(switch_setup_pin)) == HIGH)
