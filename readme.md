@@ -58,6 +58,36 @@ Es wird empfohlen, den Servo erst nach dem ersten Einschalten der Elektronik mit
 Der Servo fährt automatisch in die Nullstellung. Danach kann das Gestänge verbunden werden und über das Servo-Setup
 können die Servo-Positionen fein eingestellt werden.
 
+
+
+### HELTEC LORA Wiring
+Dies gilt für anwender mit Heltec Lora varianten. 
+Die Pinbelegung sieht wie folgt aus
+
+|GPIO|Gerät|Geräte Pin|
+|-|-|-|
+|33|Rotary Encoder|DT|
+|39|Rotary Encoder|CLK|
+|32|Rotary Encoder|SQ|
+|39|Analog Poti|Poti|
+|18|Servo|Data (White)|
+|23|Wege Schalter|Betrieb mode|
+|19|Wege Schalter|VCC|
+|22|Wege Schalter|Setup Mode|
+|13|Button Start|VCC|
+|12|Button Start|OUTPUT|
+|14|Button Stop|VCC|
+|28|Button Stop|OUTPUT|
+|17|HX711|SCK|
+|2|HX711|DT|
+|25|Buzzer|Pin|
+
+Damit die HELTEC Lora Belegung verwendet werden soll muss das `LORAHELTEC` definde eingebunden werden mit:
+
+```c++
+#define LORAHELTEC 
+```
+
 ## Betrieb
 
 Grundsätzlich: Als Drehregler wird entweder ein Poti oder ein Rotary Encoder eingesetzt.
@@ -191,3 +221,5 @@ After successfully building it, you will find firmware images at
 
 - .pio/build/heltec/firmware.bin
 - .pio/build/heltec/firmware.elf
+
+
