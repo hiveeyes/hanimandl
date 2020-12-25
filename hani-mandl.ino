@@ -61,8 +61,9 @@
                                - Umkehrbarer Servo für linksseitige Quetschhähne :-)
   2020-10 Andreas Holzhammer
                                - Bugfix: Servo konnte im Manuellen Modus unter Minimum bewegt werden
-                               - Display umgestellt auf Hardware-I2C für schnellere Updates
-                               - Glastoleranz auf +-20g angepasst 
+                               - Glastoleranz über Variable steuerbar auf +-20g angepasst 
+  2020-12 Andreas Holzhammer | 0.2.9
+                               - Fortschrittsanzeige eingebaut
                                   
   This code is in the public domain.
    
@@ -1816,22 +1817,34 @@ void processAutomatik(void)
     u8g2.setCursor( 0, 64);    
   }
 
-  if( rotary_select == SW_KORREKTUR && blinktime < 2 ) {
-    if (glaeser[fmenge_index].Gewicht > 999){
-      sprintf(ausgabe,"k=   %s %3s-%3s",(autokorrektur==1)?"":" ", "1kg", GlasTypArray[glaeser[fmenge_index].GlasTyp]  );
+  if(servo_aktiv == 1) {
+    int progressbar = 128.0*((float)gewicht/(float)zielgewicht);
+    progressbar = constrain(progressbar,0,128);
+  
+    u8g2.drawFrame(0, 50, 128, 14 );
+    u8g2.drawBox  (0, 50, progressbar, 14 );
+  } 
+  else
+  {
+    if( rotary_select == SW_KORREKTUR && blinktime < 2 ) {
+      if (glaeser[fmenge_index].Gewicht > 999){
+        sprintf(ausgabe,"k=   %s %3s-%3s",(autokorrektur==1)?"":" ", "1kg", GlasTypArray[glaeser[fmenge_index].GlasTyp]  );
+      } else {
+        sprintf(ausgabe,"k=   %s %3d-%3s",(autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht, GlasTypArray[glaeser[fmenge_index].GlasTyp] ); 
+      }
+    } else if ( rotary_select == SW_MENU && blinktime < 2 ) {
+        sprintf(ausgabe,"k=%-3d" , korrektur + autokorrektur_gr, (autokorrektur==1)?"":" " );
     } else {
-      sprintf(ausgabe,"k=   %s %3d-%3s",(autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht, GlasTypArray[glaeser[fmenge_index].GlasTyp] ); 
-    }
-  } else if ( rotary_select == SW_MENU && blinktime < 2 ) {
-    sprintf(ausgabe,"k=%-3d" , korrektur + autokorrektur_gr, (autokorrektur==1)?"":" " );
-  } else {
       if (glaeser[fmenge_index].Gewicht > 999){
         sprintf(ausgabe,"k=%-3d%s %3s-%3s", korrektur + autokorrektur_gr, (autokorrektur==1)?"":" ", "1kg", GlasTypArray[glaeser[fmenge_index].GlasTyp] );
       } else {
         sprintf(ausgabe,"k=%-3d%s %3d-%3s", korrektur + autokorrektur_gr, (autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht, GlasTypArray[glaeser[fmenge_index].GlasTyp] ); 
       }
+    }
+    u8g2.print(ausgabe);
   }
-  u8g2.print(ausgabe);
+
+  
   u8g2.sendBuffer();
 }
 
@@ -1919,7 +1932,6 @@ void setup()
 #if HARDWARE_LEVEL == 2
   pinMode(vext_ctrl_pin, INPUT_PULLDOWN);
 #endif
-  pinMode(LED_BUILTIN, OUTPUT);
 
   Serial.begin(115200);
   while (!Serial) {
@@ -1928,7 +1940,7 @@ void setup()
     Serial.println("Hanimandl Start");
 #endif
   
-  // Rotary
+// Rotary
 #ifdef USE_ROTARY_SW
   pinMode(outputSW, INPUT_PULLUP);
   attachInterrupt(outputSW, isr1, FALLING);
@@ -1950,7 +1962,11 @@ void setup()
   pinMode (switch_vcc_pin, OUTPUT);
   pinMode (button_start_vcc_pin, OUTPUT);
   pinMode (button_stop_vcc_pin, OUTPUT);
-  // short delay to let chip power up
+
+// Buzzer
+  pinMode(buzzer_pin, OUTPUT);
+  
+// short delay to let chip power up
   delay (100); 
 
 // Preferences aus dem EEPROM lesen
@@ -2119,15 +2135,12 @@ void print_logo() {
   u8g2.setCursor(85, 27);    u8g2.print("HANI");
   u8g2.setCursor(75, 43);    u8g2.print("MANDL");
   u8g2.setFont(u8g2_font_courB08_tf);
-  u8g2.setCursor(85, 64);    u8g2.print("v.0.2.8");
+  u8g2.setCursor(85, 64);    u8g2.print("v.0.2.9");
   u8g2.sendBuffer();
 }
 
 // Wir nutzen einen aktiven Summer, damit entfällt die tone Library, die sich sowieso mit dem Servo beisst.
 void buzzer(byte type) {
-  pinMode(buzzer_pin, OUTPUT);
-  delay(100);
-
   if (buzzermode == 1) {
     switch (type) {
       case BUZZER_SHORT: //short
