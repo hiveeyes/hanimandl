@@ -64,6 +64,7 @@
                                - Glastoleranz über Variable steuerbar auf +-20g angepasst 
   2020-12 Andreas Holzhammer | 0.2.9
                                - Fortschrittsanzeige eingebaut
+                               - angepasst an ESP32Servo aus dem Bibliotheksverwalter
                                   
   This code is in the public domain.
    
