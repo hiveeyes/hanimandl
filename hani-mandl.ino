@@ -76,7 +76,7 @@
 #include <Wire.h>
 #include <U8g2lib.h>      /* aus dem Bibliotheksverwalter */
 #include <HX711.h>        /* aus dem Bibliotheksverwalter */
-#include <ESP32_Servo.h>  /* https://github.com/jkb-git/ESP32Servo */
+#include <ESP32Servo.h>   /* aus dem Bibliotheksverwalter */
 #include <Preferences.h>  /* aus dem BSP von expressif, wird verfügbar wenn das richtige Board ausgewählt ist */
 
 //
@@ -1974,9 +1974,9 @@ void setup()
 
 // Servo initialisieren und schliessen
 #ifdef SERVO_ERWEITERT
-  servo.attach(servo_pin, 750, 2500);  // erweiterte Initialisierung, steuert nicht jeden Servo an
+  servo.attach(servo_pin,  750, 2500); // erweiterte Initialisierung, steuert nicht jeden Servo an
 #else
-  servo.attach(servo_pin);             // default Werte. Achtung, steuert den Nullpunkt weniger weit aus!  
+  servo.attach(servo_pin, 1000, 2000); // default Werte. Achtung, steuert den Nullpunkt weniger weit aus!  
 #endif
   SERVO_WRITE(winkel_min);
 
