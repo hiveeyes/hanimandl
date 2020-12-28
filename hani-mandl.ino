@@ -63,8 +63,8 @@
                                - Bugfix: Servo konnte im Manuellen Modus unter Minimum bewegt werden
                                - Display umgestellt auf Hardware-I2C für schnellere Updates
                                - Glastoleranz auf +-20g angepasst 
-  2020-11 Andreas Motl
-                               - PlatformIO-Support eingerichtet 
+  2020-11 Andreas Motl         - PlatformIO-Support eingerichtet 
+  2020-10 Andreas Holzhammer   - Drehrichtung im Scroll-Menu umgestellt
                                   
   This code is in the public domain.
    
@@ -235,7 +235,7 @@ int winkel;                     // aktueller Servo-Winkel
 int winkel_hard_min = 0;        // Hard-Limit für Servo
 int winkel_hard_max = 180;      // Hard-Limit für Servo
 int winkel_min = 0;             // konfigurierbar im Setup
-int winkel_max = 85;            // konfigurierbar im Setup
+int winkel_max = 85;           // konfigurierbar im Setup
 int winkel_fein = 35;           // konfigurierbar im Setup
 float fein_dosier_gewicht = 60; // float wegen Berechnung des Schliesswinkels
 int servo_aktiv = 0;            // Servo aktivieren ja/nein
@@ -247,7 +247,7 @@ int waage_vorhanden = 0;        // HX711 nicht ansprechen, wenn keine Waage ange
 long preferences_chksum;        // Checksumme, damit wir nicht sinnlos Prefs schreiben
 int buzzermode = 0;             // 0 = aus, 1 = ein. TODO: Tastentöne als buzzermode 2?
 bool gezaehlt = false;          // Kud Zähl-Flag
-bool setup_modern = 1;          // Setup als rotierendes Menu   
+bool setup_modern = 0;          // Setup als rotierendes Menu   
 int glastoleranz = 20;          // Gewicht für autostart darf um +-20g schwanken, insgesamt also 40g!
 
 // Simuliert die Dauer des Wägeprozess, wenn keine Waage angeschlossen ist. Wirkt sich auf die Blinkfrequenz im Automatikmodus aus.
@@ -1479,7 +1479,7 @@ void processSetupScroll(void) {
      servo_aktiv = 0;              // Servo-Betrieb aus
      SERVO_WRITE(winkel);
      rotary_select = SW_MENU;
-     initRotaries(SW_MENU, 124, 0,255, -1);
+     initRotaries(SW_MENU, 124, 0,255, 1);
   }
   int MenuepunkteAnzahl = 10;
   char *menuepunkte[] = {
