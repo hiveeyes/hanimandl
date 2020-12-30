@@ -48,26 +48,28 @@
   2020-07 Andreas Holzhammer | Version 0.2.6
                                - Kalibrierung der Waage verbessert; Messewerte runden; Waage "aufheizen" vor Bootscreen
                                - Aktiver Piezo-Buzzer (Idee von Johannes Kuder)
-  2020-07 Johannes Kuder     | 0.2.7
+  2020-07 Johannes Kuder     | Version 0.2.7
                                - Zählwerk für abgefüllte Gläser und Gewicht (nur im Automatikbetrieb)
-  2020-07 Jeremias Bruker    | 0.2.8
+  2020-07 Jeremias Bruker    | Version 0.2.8
                                - "GlasTyp" in allen Menüs und Automatikmodus integriert
                                - 5 Gläser können vom User im Menüpunkt "Fuellmenge" in Gewicht und GlasTyp konfiguriert werden 
                                  und werden nichtflüchtig gespeichert. So kann sich jeder User seine eigenen üblichen 5 Gläser anlegen
                                - Stabilisierung des Waagenwerts nach Wunsch (define FEHLERKORREKTUR_WAAGE)
                                - das Kalibriergewicht kann beim Kalibrierungsvorgang vom User verändert 
                                  werden (nicht jeder hat 500g als Eichgewicht) und wird nichtflüchtig gespeichert
-                               - rotierendes Hauptmenü
+                               - rotierendes Hauptmenü (optinal)
                                - Umkehrbarer Servo für linksseitige Quetschhähne :-)
-  2020-10 Andreas Holzhammer
+  2020-10 Andreas Holzhammer | Version 0.2.8.1
                                - Bugfix: Servo konnte im Manuellen Modus unter Minimum bewegt werden
                                - Display umgestellt auf Hardware-I2C für schnellere Updates
-                               - Glastoleranz auf +-20g angepasst 
-  2020-11 Andreas Motl         
+                               - Glastoleranz auf +/-20g angepasst 
+  2020-11 Andreas Motl       | Version 0.2.8.2
                                - PlatformIO-Support eingerichtet 
-  2020-12 Andreas Holzhammer   
+  2020-12 Andreas Holzhammer | Version 0.2.8.3
                                - Drehrichtung im Scroll-Menu umgestellt
-
+  2020-12 Clemens Gruber     | Version 0.2.8.4
+                               - Binär-Datei hinzugefügt 
+                               
                                   
   This code is in the public domain.
    
