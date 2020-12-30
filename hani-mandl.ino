@@ -63,8 +63,11 @@
                                - Bugfix: Servo konnte im Manuellen Modus unter Minimum bewegt werden
                                - Display umgestellt auf Hardware-I2C für schnellere Updates
                                - Glastoleranz auf +-20g angepasst 
-  2020-11 Andreas Motl         - PlatformIO-Support eingerichtet 
-  2020-10 Andreas Holzhammer   - Drehrichtung im Scroll-Menu umgestellt
+  2020-11 Andreas Motl         
+                               - PlatformIO-Support eingerichtet 
+  2020-12 Andreas Holzhammer   
+                               - Drehrichtung im Scroll-Menu umgestellt
+
                                   
   This code is in the public domain.
    
