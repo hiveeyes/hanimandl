@@ -13,7 +13,7 @@ Johannes Kuder von heilbronner-gartenhonig.de hat schicke Teile konstruiert, die
 Michael Kurzweil / @MKO1640 hat eine Servo- und Elektronikhalterung direkt am Hahn entworfen. 
 
 
-## Variante 3 / Wörtz
+## Variante 3 / Wörth
 
 HaniMandl wie eine "klassische" Waage von JoSef. 
 
