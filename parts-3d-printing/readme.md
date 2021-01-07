@@ -13,7 +13,12 @@ Johannes Kuder von heilbronner-gartenhonig.de hat schicke Teile konstruiert, die
 Michael Kurzweil / @MKO1640 hat eine Servo- und Elektronikhalterung direkt am Hahn entworfen. 
 
 
-## Variante 3 / flat style 
+## Variante 3 / Wörtz
+
+HaniMandl wie eine "klassische" Waage von JoSef. 
+
+
+## Variante 4 / flat style 
 
 Von Markus Straub / merlin2539 gibt es bei thingiverse eine einfache Halterung, die ähnlich wie die zugeschnittene Platte von Sebastian (siehe https://community.hiveeyes.org/t/side-project-hanimandl-halbautomatischer-honig-abfullbehalter/768/65) mit den Schrauben des Quetschhahns befestigt wird:
 
