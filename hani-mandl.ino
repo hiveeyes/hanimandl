@@ -1810,13 +1810,6 @@ void processAutomatik(void)
   u8g2.setFont(u8g2_font_courB10_tf);
   // Zeile unten, aktuell zu verstellende Werte blinken. 
   // Verstellung nur wenn Automatik inaktiv, gesteuert über Interrupt-Funktion 
-  if( autokorrektur == 1 ){
-    u8g2.setCursor( 0, 64);
-    u8g2.print("a");
-    u8g2.setCursor(10, 64);
-  } else {
-    u8g2.setCursor( 0, 64);    
-  }
 
   if(servo_aktiv == 1) {
     int progressbar = 128.0*((float)gewicht/(float)zielgewicht);
@@ -1827,6 +1820,14 @@ void processAutomatik(void)
   } 
   else
   {
+    if( autokorrektur == 1 ){
+      u8g2.setCursor( 0, 64);
+      u8g2.print("a");
+      u8g2.setCursor(10, 64);
+    } else {
+      u8g2.setCursor( 0, 64);    
+    }
+    
     if( rotary_select == SW_KORREKTUR && blinktime < 2 ) {
       if (glaeser[fmenge_index].Gewicht > 999){
         sprintf(ausgabe,"k=   %s %3s-%3s",(autokorrektur==1)?"":" ", "1kg", GlasTypArray[glaeser[fmenge_index].GlasTyp]  );
