@@ -1,4 +1,7 @@
-# HaniMandl 
+![image](https://github.com/ClemensGruber/hani-mandl/workflows/PlatformIO%20CI/badge.svg)
+![image](https://img.shields.io/github/v/tag/ClemensGruber/hani-mandl.svg)
+
+# HaniMandl
 
 Ein halbautomatischer Honig-Abfüll-Roboter.
 

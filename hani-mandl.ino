@@ -1,7 +1,7 @@
 /*
-  Abfuellwaage Version 0.2.8
+  Abfuellwaage Version 0.2.9
   --------------------------
-  Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker, Andreas Motl 
+  Copyright (C) 2018-2021 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker, Andreas Motl 
             
   2018-05 Marc Vasterling    | initial version, 
                                published in the Facebook group "Imkerei und Technik. Eigenbau",
@@ -48,26 +48,37 @@
   2020-07 Andreas Holzhammer | Version 0.2.6
                                - Kalibrierung der Waage verbessert; Messewerte runden; Waage "aufheizen" vor Bootscreen
                                - Aktiver Piezo-Buzzer (Idee von Johannes Kuder)
-  2020-07 Johannes Kuder     | 0.2.7
+  2020-07 Johannes Kuder     | Version 0.2.7
                                - Zählwerk für abgefüllte Gläser und Gewicht (nur im Automatikbetrieb)
-  2020-07 Jeremias Bruker    | 0.2.8
+  2020-07 Jeremias Bruker    | Version 0.2.8
                                - "GlasTyp" in allen Menüs und Automatikmodus integriert
                                - 5 Gläser können vom User im Menüpunkt "Fuellmenge" in Gewicht und GlasTyp konfiguriert werden 
                                  und werden nichtflüchtig gespeichert. So kann sich jeder User seine eigenen üblichen 5 Gläser anlegen
                                - Stabilisierung des Waagenwerts nach Wunsch (define FEHLERKORREKTUR_WAAGE)
                                - das Kalibriergewicht kann beim Kalibrierungsvorgang vom User verändert 
                                  werden (nicht jeder hat 500g als Eichgewicht) und wird nichtflüchtig gespeichert
-                               - rotierendes Hauptmenü
+                               - rotierendes Hauptmenü (optinal)
                                - Umkehrbarer Servo für linksseitige Quetschhähne :-)
-  2020-10 Andreas Holzhammer
+  2020-10 Andreas Holzhammer | Version 0.2.8.1
                                - Bugfix: Servo konnte im Manuellen Modus unter Minimum bewegt werden
                                - Display umgestellt auf Hardware-I2C für schnellere Updates
-                               - Glastoleranz auf +-20g angepasst 
-  2020-11 Andreas Motl
+                               - Glastoleranz auf +/-20g angepasst 
+  2020-11 Andreas Motl       | Version 0.2.8.2
                                - PlatformIO-Support eingerichtet 
-                                  
+  2020-12 Andreas Holzhammer | Version 0.2.8.3
+                               - Drehrichtung im Scroll-Menu umgestellt
+  2020-12 Clemens Gruber     | Version 0.2.8.4
+                               - Binär-Datei hinzugefügt 
+  2020-12 Andreas Holzhammer | Version 0.2.9.0
+                               - Fortschrittsanzeige eingebaut
+                               - Servo-Bibliothek geändert, jetzt ESP32Servo aus dem Bibliotheksverwalter und 
+                                 Servo-defaults für die neue Bibliothek angepasst 
+  2021-01 Andreas Motl       | Version 0.2.9.1
+                               - PlatformIO-Support an neue Servo-Bibliothek angepasst
+
+
   This code is in the public domain.
-   
+
   Hinweise zur Hardware
   ---------------------
   - bei allen digitalen Eingängen sind interne pull downs aktiviert, keine externen-Widerstände nötig! 
@@ -75,10 +86,10 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-#include <U8g2lib.h>      /* aus dem Bibliotheksverwalter */
-#include <HX711.h>        /* aus dem Bibliotheksverwalter */
-#include <ESP32_Servo.h>  /* https://github.com/jkb-git/ESP32Servo */
-#include <Preferences.h>  /* aus dem BSP von expressif, wird verfügbar wenn das richtige Board ausgewählt ist */
+#include <U8g2lib.h>      // aus dem Arduino-Bibliotheksverwalter 
+#include <HX711.h>        // aus dem Arduino-Bibliotheksverwalter 
+#include <ESP32Servo.h>   // aus dem Arduino-Bibliotheksverwalter 
+#include <Preferences.h>  // aus dem Board Support Package (BSP) von espressif, wird verfügbar, wenn ein ESP32-board ausgewählt ist
 
 //
 // Hier den Code auf die verwendete Hardware einstellen
@@ -243,7 +254,7 @@ int winkel;                     // aktueller Servo-Winkel
 int winkel_hard_min = 0;        // Hard-Limit für Servo
 int winkel_hard_max = 180;      // Hard-Limit für Servo
 int winkel_min = 0;             // konfigurierbar im Setup
-int winkel_max = 85;            // konfigurierbar im Setup
+int winkel_max = 85;           // konfigurierbar im Setup
 int winkel_fein = 35;           // konfigurierbar im Setup
 float fein_dosier_gewicht = 60; // float wegen Berechnung des Schliesswinkels
 int servo_aktiv = 0;            // Servo aktivieren ja/nein
@@ -255,7 +266,7 @@ int waage_vorhanden = 0;        // HX711 nicht ansprechen, wenn keine Waage ange
 long preferences_chksum;        // Checksumme, damit wir nicht sinnlos Prefs schreiben
 int buzzermode = 0;             // 0 = aus, 1 = ein. TODO: Tastentöne als buzzermode 2?
 bool gezaehlt = false;          // Kud Zähl-Flag
-bool setup_modern = 1;          // Setup als rotierendes Menu   
+bool setup_modern = 0;          // Setup als rotierendes Menu
 int glastoleranz = 20;          // Gewicht für autostart darf um +-20g schwanken, insgesamt also 40g!
 
 // Simuliert die Dauer des Wägeprozess, wenn keine Waage angeschlossen ist. Wirkt sich auf die Blinkfrequenz im Automatikmodus aus.
@@ -1826,22 +1837,34 @@ void processAutomatik(void)
     u8g2.setCursor( 0, 64);    
   }
 
-  if( rotary_select == SW_KORREKTUR && blinktime < 2 ) {
-    if (glaeser[fmenge_index].Gewicht > 999){
-      sprintf(ausgabe,"k=   %s %3s-%3s",(autokorrektur==1)?"":" ", "1kg", GlasTypArray[glaeser[fmenge_index].GlasTyp]  );
+  if(servo_aktiv == 1) {
+    int progressbar = 128.0*((float)gewicht/(float)zielgewicht);
+    progressbar = constrain(progressbar,0,128);
+  
+    u8g2.drawFrame(0, 50, 128, 14 );
+    u8g2.drawBox  (0, 50, progressbar, 14 );
+  } 
+  else
+  {
+    if( rotary_select == SW_KORREKTUR && blinktime < 2 ) {
+      if (glaeser[fmenge_index].Gewicht > 999){
+        sprintf(ausgabe,"k=   %s %3s-%3s",(autokorrektur==1)?"":" ", "1kg", GlasTypArray[glaeser[fmenge_index].GlasTyp]  );
+      } else {
+        sprintf(ausgabe,"k=   %s %3d-%3s",(autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht, GlasTypArray[glaeser[fmenge_index].GlasTyp] ); 
+      }
+    } else if ( rotary_select == SW_MENU && blinktime < 2 ) {
+        sprintf(ausgabe,"k=%-3d" , korrektur + autokorrektur_gr, (autokorrektur==1)?"":" " );
     } else {
-      sprintf(ausgabe,"k=   %s %3d-%3s",(autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht, GlasTypArray[glaeser[fmenge_index].GlasTyp] ); 
-    }
-  } else if ( rotary_select == SW_MENU && blinktime < 2 ) {
-    sprintf(ausgabe,"k=%-3d" , korrektur + autokorrektur_gr, (autokorrektur==1)?"":" " );
-  } else {
       if (glaeser[fmenge_index].Gewicht > 999){
         sprintf(ausgabe,"k=%-3d%s %3s-%3s", korrektur + autokorrektur_gr, (autokorrektur==1)?"":" ", "1kg", GlasTypArray[glaeser[fmenge_index].GlasTyp] );
       } else {
         sprintf(ausgabe,"k=%-3d%s %3d-%3s", korrektur + autokorrektur_gr, (autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht, GlasTypArray[glaeser[fmenge_index].GlasTyp] ); 
       }
+    }
+    u8g2.print(ausgabe);
   }
-  u8g2.print(ausgabe);
+
+  
   u8g2.sendBuffer();
 }
 
@@ -1929,7 +1952,6 @@ void setup()
 #if HARDWARE_LEVEL == 2
   pinMode(vext_ctrl_pin, INPUT_PULLDOWN);
 #endif
-  pinMode(LED_BUILTIN, OUTPUT);
 
   Serial.begin(115200);
   while (!Serial) {
@@ -1938,7 +1960,7 @@ void setup()
     Serial.println("Hanimandl Start");
 #endif
   
-  // Rotary
+// Rotary
 #ifdef USE_ROTARY_SW
   pinMode(outputSW, INPUT_PULLUP);
   attachInterrupt(outputSW, isr1, FALLING);
@@ -1960,7 +1982,11 @@ void setup()
   pinMode (switch_vcc_pin, OUTPUT);
   pinMode (button_start_vcc_pin, OUTPUT);
   pinMode (button_stop_vcc_pin, OUTPUT);
-  // short delay to let chip power up
+
+// Buzzer
+  pinMode(buzzer_pin, OUTPUT);
+  
+// short delay to let chip power up
   delay (100); 
 
 // Preferences aus dem EEPROM lesen
@@ -1968,9 +1994,9 @@ void setup()
 
 // Servo initialisieren und schliessen
 #ifdef SERVO_ERWEITERT
-  servo.attach(servo_pin, 750, 2500);  // erweiterte Initialisierung, steuert nicht jeden Servo an
+  servo.attach(servo_pin,  750, 2500); // erweiterte Initialisierung, steuert nicht jeden Servo an
 #else
-  servo.attach(servo_pin);             // default Werte. Achtung, steuert den Nullpunkt weniger weit aus!  
+  servo.attach(servo_pin, 1000, 2000); // default Werte. Achtung, steuert den Nullpunkt weniger weit aus!  
 #endif
   SERVO_WRITE(winkel_min);
 
@@ -2129,15 +2155,12 @@ void print_logo() {
   u8g2.setCursor(85, 27);    u8g2.print("HANI");
   u8g2.setCursor(75, 43);    u8g2.print("MANDL");
   u8g2.setFont(u8g2_font_courB08_tf);
-  u8g2.setCursor(85, 64);    u8g2.print("v.0.2.8");
+  u8g2.setCursor(85, 64);    u8g2.print("v.0.2.9");
   u8g2.sendBuffer();
 }
 
 // Wir nutzen einen aktiven Summer, damit entfällt die tone Library, die sich sowieso mit dem Servo beisst.
 void buzzer(byte type) {
-  pinMode(buzzer_pin, OUTPUT);
-  delay(100);
-
   if (buzzermode == 1) {
     switch (type) {
       case BUZZER_SHORT: //short
