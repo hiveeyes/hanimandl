@@ -1,10 +1,12 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
 {
     "configurations": [
         {
-            "name": "!!! WARNING !!! AUTO-GENERATED FILE, PLEASE DO NOT MODIFY IT AND USE https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags"
-        },
-        {
-            "name": "Win32",
+            "name": "PlatformIO",
             "includePath": [
                 "e:/sourcen/hani-mandl/include",
                 "e:/sourcen/hani-mandl",
@@ -229,7 +231,7 @@
                 ]
             },
             "defines": [
-                "PLATFORMIO=50003",
+                "PLATFORMIO=50004",
                 "ARDUINO_HELTEC_WIFI_KIT_32",
                 "ESP32",
                 "ESP_PLATFORM",
@@ -242,7 +244,6 @@
                 "ARDUINO_BOARD=\"Heltec WiFi Kit 32\"",
                 ""
             ],
-            "intelliSenseMode": "gcc-x64",
             "cStandard": "c99",
             "cppStandard": "c++11",
             "compilerPath": "C:/Users/BajonczakSascha/.platformio/packages/toolchain-xtensa32/bin/xtensa-esp32-elf-gcc.exe",
