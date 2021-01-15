@@ -61,6 +61,36 @@ Es wird empfohlen, den Servo erst nach dem ersten Einschalten der Elektronik mit
 Der Servo fährt automatisch in die Nullstellung. Danach kann das Gestänge verbunden werden und über das Servo-Setup
 können die Servo-Positionen fein eingestellt werden.
 
+
+
+### HELTEC LORA Wiring
+Dies gilt für anwender mit Heltec Lora varianten. 
+Die Pinbelegung sieht wie folgt aus
+
+|GPIO|Gerät|Geräte Pin|
+|-|-|-|
+|33|Rotary Encoder|DT|
+|39|Rotary Encoder|CLK|
+|32|Rotary Encoder|SQ|
+|39|Analog Poti|Poti|
+|18|Servo|Data (White)|
+|23|Wege Schalter|Betrieb mode|
+|19|Wege Schalter|VCC|
+|22|Wege Schalter|Setup Mode|
+|13|Button Start|VCC|
+|12|Button Start|OUTPUT|
+|14|Button Stop|VCC|
+|28|Button Stop|OUTPUT|
+|17|HX711|SCK|
+|2|HX711|DT|
+|25|Buzzer|Pin|
+
+Damit die HELTEC Lora Belegung verwendet werden soll muss das `LORAHELTEC` definde eingebunden werden mit:
+
+```c++
+#define LORAHELTEC 
+```
+
 ## Betrieb
 
 Grundsätzlich: Als Drehregler wird entweder ein Poti oder ein Rotary Encoder eingesetzt.
@@ -196,20 +226,3 @@ After successfully building it, you will find firmware images at
 - .pio/build/heltec/firmware.elf
 
 
-## Binär-Datei `hani-mandl.bin`
-
-Die Datei `hani-mandl.bin` wurde mit folgenden Parametern für das Board Heltec ESP32 Arduino > Wifi Kit 32 compiliert: 
-
-```
-#define HARDWARE_LEVEL 2        // 1 = originales Layout mit Schalter auf Pin 19/22/21
-                                // 2 = Layout für V2 mit Schalter auf Pin 23/19/22
-#define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
-                                // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
-#define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder. 
-                                // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
-#define USE_ROTARY              // Rotary benutzen
-#define USE_ROTARY_SW           // Taster des Rotary benutzen
-```
-
-Eine Anleitung zum Flashen der Binär-Datei gibt es unter
-http://hanimandl.de/2020/12/23/firmware-binary-flashen/
