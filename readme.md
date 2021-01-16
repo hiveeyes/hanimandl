@@ -29,7 +29,7 @@ Das Verhalten des Codes wird über mehrere `#define`-Variablen gesteuert.
   0.1.4 Code hatte spezielle Werte, bei denen die 0-Stellung niedriger war.
   Über dieses Define können die Werte des 0.1.4 Codes aktiviert werden. Alternative: Hardware anpassen
 
-#define ROTARY_SCALE 2   
+#define ROTARY_SCALE 2
   Verschiedene Rotary Encoder liefern unterschiedliche Increments pro Stufe. Das kann hier angepasst werden.
   Beispiele: KY-040 = 2, HW-040 = 1
   Falls kein Rotary Encoder genutzt wird, sollte das define auf 1 gesetzt werden
@@ -49,7 +49,7 @@ Das Verhalten des Codes wird über mehrere `#define`-Variablen gesteuert.
 #define FEHLERKORREKTUR_WAAGE   // falls Gewichtssprünge auftreten, können diese hier abgefangen werden
   Achtung, kann den Wägeprozess verlangsamen. Vorher Wägezellen/HX711 prüfen!
 
-#define QUETSCHHAHN_LINKS       
+#define QUETSCHHAHN_LINKS
   Servo invertieren, falls der Quetschhahn von links geöffnet wird. Mindestens ein Exemplar eines solchen Eimers ist bekannt
 ```
 Die weiteren defines und Variablen müssen bei einer Standard-Schaltung nicht angepasst werden.
@@ -75,28 +75,28 @@ Setup
 In Schalterstellung II (oder I je nachdem wie der 3-fach-Schalter verbaut wurde) könnne verschiedene
 Grundeinstellungen vorgenommen werden:
 
-1. Tara  
+1. Tara
 Für jede Füllmenge bzw. das entsprechende Glas kann ein Leergewicht ("Tara") definiert werden.
 Die hinterlegten Tara-Werte werden im Menu angezeigt.
 Einstellung: Füllmenge wählen, leeres Glas aufstellen und über die Auswahl-Taste speichern
 
-2. Kalibieren  
+2. Kalibieren
 Menügeführte Kalibrierung der Wägezelle
 
-3. Korrektur  
+3. Korrektur
 Einstellen des Korrekturwerts. Je nach Temperatur und Konsistenz des Honigs bzw. Füllmenge im
 Abfüllbehälter wird durch die Trägheit des Systems der eingestellte Wert überschritten.
 Der Korrekturwert dient dazu, das anzupassen bzw. ein paar Gramm mehr einzufüllen, um die Richtlinien
-zu erfüllen.  
+zu erfüllen.
 Wert über Drehregler einstellen und mit Auswahl bestätigen
 
-4. Füllmenge  
+4. Füllmenge
 Auswahl der Abfüllmenge
 
 5. Automatik
 Einstellen der beiden Automatiken "Autostart" und "Autokorrektur" sowie des Kulanzwerts für die Autokorrektur.
 - Autostart beginnt den Füllvorgang, wenn ein passendes, leeres Glas aufgesetzt wird
-- Autokorrektur ermittelt einen automatischen Korrekturwert, um die Gläser bei sinkendem Druck im Behälter 
+- Autokorrektur ermittelt einen automatischen Korrekturwert, um die Gläser bei sinkendem Druck im Behälter
   bis zur Füllmenge + Kulanz zu befüllen
 
 6. Servowinkel
@@ -104,7 +104,7 @@ Definition der minimalen und maximalen Öffnungswinkel des Servos sowie des Wink
 Der minimale Öffnungswinkel sollte den Quetschhahn mit minimalem Spiel schliessen.
 Der maximale Öffnungswinkel begrenzt den Hub des Servos, um den Servo an die Mechanik anzupassen.
 Der Servo bleibt bis zum Erreichen des Zielgewichts (Füllmenge + Korrektur) mindestens bis zum Winkel Feindosierung
-geöffnet und schliesst danach vollständig. Sollte je nach Konsistenz angepasst werden. Ein größerer Wert hier 
+geöffnet und schliesst danach vollständig. Sollte je nach Konsistenz angepasst werden. Ein größerer Wert hier
 führt zu einer schnelleren Füllung, ein kleinerer Wert zu genaueren Mengen.
 
 Einstellung: Im Handbetrieb den Servo langsam auf die gewünschte Öffnung fahren. Den Wert unter "W=" dann hier
@@ -112,7 +112,7 @@ einstellen.
 Über den Punkt "Livesetup" können die Winkel auch direkt aus dem Setup angefahren werden. Vorsicht bei Verwendung
 mit einem Poti, oder bei gefülltem Abfüllbehälter!
 
-7. Clear Pref's  
+7. Clear Pref's
 Setzt alle Voreinstellungen (nach Bestätigung) zurück.
 Danach muss die Kalibrierung der Waage wiederholt und alle Werte neu gesetzt werden!
 
@@ -157,7 +157,7 @@ berücksichtigt werden! Ein halb volles 125g Glas kann die Befüllung mit 500g a
 
 Autostart aktiv
 ---------------
-Der Autostart-Modus wird ebenfalls über die grüne Taste aktiviert (Play/Pause Symbol).  
+Der Autostart-Modus wird ebenfalls über die grüne Taste aktiviert (Play/Pause Symbol).
 
 Danach startet der Füll-Vorgang automatisch, sobald ein passendes, leeres Glas aufgesetzt wird. Wenn das
 gefüllte Glas entnommen wird und ein weiteres Glas aufgesetzt wird, startet der nächste Füll-Vorgang ohne
@@ -174,7 +174,7 @@ Wert blinkt.
 
 Autokorrektur
 -------------
-Die aktive Autokorrektur (Anzeige "ak=" unten links) führt die Füllmenge automatisch mit dem sinkenden Druck 
+Die aktive Autokorrektur (Anzeige "ak=" unten links) führt die Füllmenge automatisch mit dem sinkenden Druck
 im Abfüllbehälter nach. Das Zielgewicht wird im Automatik-Setup über die Kulanz eingestellt (Füllmenge + Kulanz).
 
 
@@ -198,14 +198,14 @@ After successfully building it, you will find firmware images at
 
 ## Binär-Datei `hani-mandl.bin`
 
-Die Datei `hani-mandl.bin` wurde mit folgenden Parametern für das Board Heltec ESP32 Arduino > Wifi Kit 32 compiliert: 
+Die Datei `hani-mandl.bin` wurde mit folgenden Parametern für das Board Heltec ESP32 Arduino > Wifi Kit 32 compiliert:
 
 ```
 #define HARDWARE_LEVEL 2        // 1 = originales Layout mit Schalter auf Pin 19/22/21
                                 // 2 = Layout für V2 mit Schalter auf Pin 23/19/22
 #define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
                                 // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
-#define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder. 
+#define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder.
                                 // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
 #define USE_ROTARY              // Rotary benutzen
 #define USE_ROTARY_SW           // Taster des Rotary benutzen
