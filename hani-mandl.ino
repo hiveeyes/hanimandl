@@ -176,14 +176,24 @@ U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, 
 //U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ 16, /* clock=*/ 15, /* data=*/ 4);   // HW I2C crashed den Code
 
 // Rotary Encoder
+#if defined(ARDUINO_HELTEC_WIFI_KIT_32)
 const int outputA  = 33;
 const int outputB  = 26;
 const int outputSW = 32;
+
+#elif defined(ARDUINO_HELTEC_WIFI_LORA_32) || defined(ARDUINO_HELTEC_WIFI_LORA_32_V2)
+const int outputA  = 33;
+const int outputB  = 39;
+const int outputSW = 32;
+#endif
+
 
 // Servo
 const int servo_pin = 2;
 
 // 3x Schalter Ein 1 - Aus - Ein 2
+#if defined(ARDUINO_HELTEC_WIFI_KIT_32)
+
 #ifdef HARDWARE_LAYOUT_LEGACY
 const int switch_betrieb_pin = 19;
 const int switch_vcc_pin     = 22;     // <- Vcc
@@ -195,6 +205,14 @@ const int switch_setup_pin   = 22;
 const int vext_ctrl_pin      = 21;     // Vext control pin
 #endif
 
+#elif defined(ARDUINO_HELTEC_WIFI_LORA_32) || defined(ARDUINO_HELTEC_WIFI_LORA_32_V2)
+const int switch_betrieb_pin = 23;
+const int switch_vcc_pin     = 16;     // <- Vcc
+const int switch_setup_pin   = 22;
+const int vext_ctrl_pin      = 21;     // Vext control pin
+#endif
+
+
 // Taster
 const int button_start_vcc_pin = 13;  // <- Vcc
 const int button_start_pin     = 12;
@@ -205,8 +223,14 @@ const int button_stop_pin      = 27;
 const int poti_pin = 39;
 
 // Wägezelle-IC
+#if defined(ARDUINO_HELTEC_WIFI_KIT_32)
 const int hx711_sck_pin = 17;
 const int hx711_dt_pin  = 5;
+
+#elif defined(ARDUINO_HELTEC_WIFI_LORA_32) || defined(ARDUINO_HELTEC_WIFI_LORA_32_V2)
+const int hx711_sck_pin = 17;
+const int hx711_dt_pin  = 2;
+#endif
 
 // Buzzer - aktiver Piezo
 static int buzzer_pin = 25;
