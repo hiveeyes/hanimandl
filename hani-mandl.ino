@@ -1,5 +1,5 @@
 /*
-  Abfuellwaage Version 0.2.8
+  Abfuellwaage Version 0.2.9
   --------------------------
   Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker
             
@@ -65,6 +65,7 @@
   2020-12 Andreas Holzhammer | 0.2.9
                                - Fortschrittsanzeige eingebaut
                                - angepasst an ESP32Servo aus dem Bibliotheksverwalter
+  2021-02 Andreas Holzhammer   - Korrektur zwischen -90 und +20 anpassbar
                                   
   This code is in the public domain.
    
@@ -76,7 +77,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <U8g2lib.h>      /* aus dem Bibliotheksverwalter */
-#include <HX711.h>        /* aus dem Bibliotheksverwalter */
+#include <HX711.h>        /* aus dem Bibliotheksverwalter: "HX711 Arduino Library" by Bogdan Necula, Andreas Motl */
 #include <ESP32Servo.h>   /* aus dem Bibliotheksverwalter */
 #include <Preferences.h>  /* aus dem BSP von expressif, wird verfügbar wenn das richtige Board ausgewählt ist */
 
@@ -2073,7 +2074,7 @@ void setup()
   
 // die drei Datenstrukturen des Rotaries initialisieren
   initRotaries(SW_WINKEL,    0,   0, 100, 5 );     // Winkel
-  initRotaries(SW_KORREKTUR, 0, -20,  20, 1 );     // Korrektur
+  initRotaries(SW_KORREKTUR, 0, -90,  20, 1 );     // Korrektur
   initRotaries(SW_MENU,      0,   0,   7, 1 );     // Menuauswahlen
 
 // Parameter aus den Preferences für den Rotary Encoder setzen
