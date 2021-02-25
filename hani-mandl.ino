@@ -1,6 +1,6 @@
 /*
-  Abfuellwaage Version 0.2.9
-  --------------------------
+  Abfuellwaage Version 0.2.10
+  ---------------------------
   Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker
             
   2018-05 Marc Vasterling    | initial version, 
@@ -65,7 +65,10 @@
   2020-12 Andreas Holzhammer | 0.2.9
                                - Fortschrittsanzeige eingebaut
                                - angepasst an ESP32Servo aus dem Bibliotheksverwalter
-  2021-02 Andreas Holzhammer   - Korrektur zwischen -90 und +20 anpassbar
+  2021-02 Andreas Holzhammer | 0.2.10
+                               - Korrektur zwischen -90 und +20 anpassbar
+                               - Autokorrektur auch ohne Autostart 
+                               - Preferences Flash-schonender implementiert
                                   
   This code is in the public domain.
    
@@ -209,7 +212,7 @@ struct glas {
   int TripCount;  //Kud
   int Count;      //Kud
 };
-char *GlasTypArray[3] = { "DIB", "TOF", "DEE"};//DIB = DeutscherImkerBund-Glas DEE= DeepTwist-Glas TOF= TwistOff-Glas //JB
+const char *GlasTypArray[3] = { "DIB", "TOF", "DEE"};//DIB = DeutscherImkerBund-Glas DEE= DeepTwist-Glas TOF= TwistOff-Glas //JB
 struct glas glaeser[5] =            { 
                                          {  125, 0, -9999, 0, 0 },
                                          {  250, 1, -9999, 0, 0 },
@@ -443,33 +446,62 @@ void getPreferences(void) {
 }
 
 void setPreferences(void) {
-    long preferences_newchksum;
-    int winkel = getRotariesValue(SW_WINKEL);
-
-    preferences_newchksum = faktor + winkel + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_min + winkel_max + winkel_fein + kulanz_gr + buzzermode + kali_gewicht + setup_modern;
-    i = 0;
-    while( i < 5 ) {
-      preferences_newchksum += glaeser[i].Gewicht;//JB
-      preferences_newchksum += glaeser[i].GlasTyp;//JB
-      preferences_newchksum += glaeser[i].Tara;
-      preferences_newchksum += glaeser[i].TripCount;//Kud
-      preferences_newchksum += glaeser[i].Count;//Kud
-      i++;
-    }
-
-    if( preferences_newchksum == preferences_chksum ) {
-#ifdef isDebug
-       Serial.println("Preferences unverändert");
-#endif
-  getPreferences();
-       return;
-    }
-    preferences_chksum = preferences_newchksum;
+  long preferences_newchksum;
+  int winkel = getRotariesValue(SW_WINKEL);
     
-    preferences.begin("EEPROM", false);
+  preferences.begin("EEPROM", false);
+
+  // Winkel-Einstellung separat behandeln, ändert sich häufig
+  if ( winkel != preferences.getUInt("pos", 0) ) {
+    preferences.putUInt("pos", winkel);
+#ifdef isDebug
+    Serial.print("winkel gespeichert: ");
+    Serial.println(winkel);
+#endif
+  }
+
+  // Counter separat behandeln, ändert sich häufig
+  sprintf(ausgabe, "TripCount%d", fmenge_index);
+  if ( glaeser[fmenge_index].Count != preferences.getUInt(ausgabe, 0) ) {
+    preferences.putUInt(ausgabe, glaeser[fmenge_index].TripCount);
+    sprintf(ausgabe, "Count%d", fmenge_index);
+    preferences.putUInt(ausgabe, glaeser[fmenge_index].Count);
+#ifdef isDebug
+    Serial.print("Counter gespeichert: Index ");
+    Serial.print(fmenge_index);
+    Serial.print(" Trip ");
+    Serial.print(glaeser[fmenge_index].TripCount);
+    Serial.print(" Gesamt ");
+    Serial.println(glaeser[fmenge_index].Count);      
+#endif
+  }
+    
+  // Den Rest machen wir gesammelt, das ist eher statisch
+  preferences_newchksum = faktor + gewicht_leer + korrektur + autostart + autokorrektur +
+                          fmenge_index + winkel_min + winkel_max + winkel_fein + kulanz_gr +
+                          buzzermode + kali_gewicht + setup_modern;
+  i = 0;
+  while( i < 5 ) {
+    preferences_newchksum += glaeser[i].Gewicht;//JB
+    preferences_newchksum += glaeser[i].GlasTyp;//JB
+    preferences_newchksum += glaeser[i].Tara;
+//    preferences_newchksum += glaeser[i].TripCount;//Kud
+//    preferences_newchksum += glaeser[i].Count;//Kud
+    i++;
+  }
+
+  if( preferences_newchksum == preferences_chksum ) {
+#ifdef isDebug
+//    Serial.println("Preferences unverändert");
+#endif
+    return;
+  }
+  preferences_chksum = preferences_newchksum;
+    
+//    preferences.begin("EEPROM", false);
     preferences.putFloat("faktor", faktor);
     preferences.putUInt("gewicht_leer", gewicht_leer);
-    preferences.putUInt("pos", winkel);
+//    preferences.putUInt("pos", winkel);
     preferences.putUInt("korrektur", korrektur);
     preferences.putUInt("autostart", autostart);
     preferences.putUInt("autokorrektur", autokorrektur);
@@ -490,10 +522,10 @@ void setPreferences(void) {
       preferences.putInt(ausgabe, glaeser[i].GlasTyp);  
       sprintf(ausgabe, "Tara%d", i);
       preferences.putInt(ausgabe, glaeser[i].Tara);
-      sprintf(ausgabe, "TripCount%d", i);
-      preferences.putInt(ausgabe, glaeser[i].TripCount);//Kud
-      sprintf(ausgabe, "Count%d", i);
-      preferences.putInt(ausgabe, glaeser[i].Count);//Kud
+//      sprintf(ausgabe, "TripCount%d", i);
+//      preferences.putInt(ausgabe, glaeser[i].TripCount);//Kud
+//      sprintf(ausgabe, "Count%d", i);
+//      preferences.putInt(ausgabe, glaeser[i].Count);//Kud
       i++;
     }
     preferences.end();
@@ -1483,7 +1515,7 @@ void processSetupScroll(void) {
      initRotaries(SW_MENU, 124, 0,255, -1);
   }
   int MenuepunkteAnzahl = 10;
-  char *menuepunkte[] = {
+  const char *menuepunkte[] = {
     " Tarawerte","Kalibrieren"," Korrektur"," Füllmenge"," Automatik"," Servoeinst."," Parameter","  Zählwerk","ZählwerkTrip","Clear Prefs"
   };
   int menuitem = getRotariesValue(SW_MENU);
@@ -1551,7 +1583,6 @@ void processAutomatik(void)
   boolean voll = false; //Kud
 
   static int gewicht_vorher;    // Gewicht des vorher gefüllten Glases
-  static long time_vorher;      // Messung der Durchlaufzeit
   static int sammler_num = 5;   // Anzahl identischer Messungen für Nachtropfen
 
   if ( modus != MODE_AUTOMATIK ) {
@@ -1694,7 +1725,7 @@ void processAutomatik(void)
     if ((voll == true) && (gezaehlt == false)) { //Kud
       glaeser[fmenge_index].TripCount++;
       glaeser[fmenge_index].Count++;
-      setPreferences();
+//      setPreferences(); // machen wir am Ende
       gezaehlt = true;
     }
 #ifdef isDebug
@@ -1737,7 +1768,7 @@ void processAutomatik(void)
     if (gezaehlt == false) { //Kud
       glaeser[fmenge_index].TripCount++;
       glaeser[fmenge_index].Count++;
-      setPreferences();
+//      setPreferences();  machen wir am Ende
       gezaehlt = true;
     }
     if ( autostart != 1 )       // autostart ist nicht aktiv, kein weiterer Start
@@ -1765,8 +1796,6 @@ void processAutomatik(void)
     Serial.print(" auto_aktiv ");      Serial.println(auto_aktiv);
 #endif 
 #endif
-  time_vorher = millis();
-
   u8g2.clearBuffer();
 
   // Gewicht blinkt, falls unter der definierten Füllmenge
@@ -1847,8 +1876,9 @@ void processAutomatik(void)
     u8g2.print(ausgabe);
   }
 
-  
   u8g2.sendBuffer();
+
+  setPreferences();
 }
 
 void processHandbetrieb(void)
@@ -1921,6 +1951,8 @@ void processHandbetrieb(void)
   u8g2.print(ausgabe);
 
   u8g2.sendBuffer();
+
+  setPreferences();
 //  u8g2.updateDisplayArea(4,2,12,6);  // schneller aber ungenaue Displayausgabe.
   dauer = millis() - scaletime;
 }
@@ -2138,7 +2170,7 @@ void print_logo() {
   u8g2.setCursor(85, 27);    u8g2.print("HANI");
   u8g2.setCursor(75, 43);    u8g2.print("MANDL");
   u8g2.setFont(u8g2_font_courB08_tf);
-  u8g2.setCursor(85, 64);    u8g2.print("v.0.2.9");
+  u8g2.setCursor(77, 64);    u8g2.print("v.0.2.10");
   u8g2.sendBuffer();
 }
 
