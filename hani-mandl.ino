@@ -250,7 +250,7 @@ int auto_aktiv = 0;             // Für Automatikmodus - System ein/aus?
 int waage_vorhanden = 0;        // HX711 nicht ansprechen, wenn keine Waage angeschlossen ist, sonst Crash
 long preferences_chksum;        // Checksumme, damit wir nicht sinnlos Prefs schreiben
 int buzzermode = 0;             // 0 = aus, 1 = ein. TODO: Tastentöne als buzzermode 2?
-bool gezaehlt = false;          // Kud Zähl-Flag
+bool gezaehlt = true;           // Kud Zähl-Flag
 bool setup_modern = 1;          // Setup als rotierendes Menu   
 int glastoleranz = 20;          // Gewicht für autostart darf um +-20g schwanken, insgesamt also 40g!
 
@@ -462,10 +462,10 @@ void setPreferences(void) {
 
   // Counter separat behandeln, ändert sich häufig
   sprintf(ausgabe, "TripCount%d", fmenge_index);
-  if ( glaeser[fmenge_index].Count != preferences.getUInt(ausgabe, 0) ) {
-    preferences.putUInt(ausgabe, glaeser[fmenge_index].TripCount);
+  if ( glaeser[fmenge_index].Count != preferences.getInt(ausgabe, 0) ) {
+    preferences.putInt(ausgabe, glaeser[fmenge_index].TripCount);
     sprintf(ausgabe, "Count%d", fmenge_index);
-    preferences.putUInt(ausgabe, glaeser[fmenge_index].Count);
+    preferences.putInt(ausgabe, glaeser[fmenge_index].Count);
 #ifdef isDebug
     Serial.print("Counter gespeichert: Index ");
     Serial.print(fmenge_index);
@@ -1676,8 +1676,6 @@ void processAutomatik(void)
     // kurz warten und prüfen ob das Gewicht nicht nur eine zufällige Schwankung war 
     delay(1500);  
     gewicht = (int(SCALE_GETUNITS(SCALE_READS))) - tara;
-    voll = false; //Kud
-    gezaehlt = false; //Kud
 
     if ( abs(gewicht) <= glastoleranz ) {
       tara_glas   = gewicht;
@@ -1690,6 +1688,8 @@ void processAutomatik(void)
 #endif      
       servo_aktiv = 1;
       sammler_num = 0;
+      voll = false; //Kud
+      gezaehlt = false; //Kud
       buzzer(BUZZER_SHORT);
     }
   }
