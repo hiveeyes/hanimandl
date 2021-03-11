@@ -448,7 +448,8 @@ void getPreferences(void) {
 void setPreferences(void) {
   long preferences_newchksum;
   int winkel = getRotariesValue(SW_WINKEL);
-    
+  int i;
+
   preferences.begin("EEPROM", false);
 
   // Winkel-Einstellung separat behandeln, ändert sich häufig
@@ -461,19 +462,21 @@ void setPreferences(void) {
   }
 
   // Counter separat behandeln, ändert sich häufig
-  sprintf(ausgabe, "TripCount%d", fmenge_index);
-  if ( glaeser[fmenge_index].Count != preferences.getInt(ausgabe, 0) ) {
-    preferences.putInt(ausgabe, glaeser[fmenge_index].TripCount);
-    sprintf(ausgabe, "Count%d", fmenge_index);
-    preferences.putInt(ausgabe, glaeser[fmenge_index].Count);
+  for ( i=0 ; i < 5; i++ ) {
+    sprintf(ausgabe, "TripCount%d", i);
+    if ( glaeser[i].Count != preferences.getUInt(ausgabe, 0) ) {
+      preferences.putInt(ausgabe, glaeser[i].TripCount);
+      sprintf(ausgabe, "Count%d", i);
+      preferences.putInt(ausgabe, glaeser[i].Count);
 #ifdef isDebug
-    Serial.print("Counter gespeichert: Index ");
-    Serial.print(fmenge_index);
-    Serial.print(" Trip ");
-    Serial.print(glaeser[fmenge_index].TripCount);
-    Serial.print(" Gesamt ");
-    Serial.println(glaeser[fmenge_index].Count);      
-#endif
+      Serial.print("Counter gespeichert: Index ");
+      Serial.print(fmenge_index);
+      Serial.print(" Trip ");
+      Serial.print(glaeser[fmenge_index].TripCount);
+      Serial.print(" Gesamt ");
+      Serial.println(glaeser[fmenge_index].Count);      
+  #endif
+    }
   }
     
   // Den Rest machen wir gesammelt, das ist eher statisch
