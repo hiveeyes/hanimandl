@@ -464,19 +464,19 @@ void setPreferences(void) {
   // Counter separat behandeln, ändert sich häufig
   for ( i=0 ; i < 5; i++ ) {
     sprintf(ausgabe, "TripCount%d", i);
-    if ( glaeser[i].Count != preferences.getUInt(ausgabe, 0) ) {
+    if ( glaeser[i].TripCount != preferences.getInt(ausgabe, 0) )
       preferences.putInt(ausgabe, glaeser[i].TripCount);
-      sprintf(ausgabe, "Count%d", i);
+    sprintf(ausgabe, "Count%d", i);
+    if ( glaeser[i].Count != preferences.getInt(ausgabe, 0) )
       preferences.putInt(ausgabe, glaeser[i].Count);
 #ifdef isDebug
       Serial.print("Counter gespeichert: Index ");
-      Serial.print(fmenge_index);
+      Serial.print(i);
       Serial.print(" Trip ");
       Serial.print(glaeser[fmenge_index].TripCount);
       Serial.print(" Gesamt ");
       Serial.println(glaeser[fmenge_index].Count);      
-  #endif
-    }
+#endif
   }
     
   // Den Rest machen wir gesammelt, das ist eher statisch
