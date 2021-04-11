@@ -3,6 +3,8 @@ $(eval python       := $(venvpath)/bin/python)
 $(eval pip          := $(venvpath)/bin/pip)
 $(eval platformio   := $(venvpath)/bin/platformio)
 
+.PHONY: build test
+
 
 build: setup-virtualenv
 	$(platformio) run

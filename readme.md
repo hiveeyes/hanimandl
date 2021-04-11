@@ -18,9 +18,8 @@ Websites:
 Das Verhalten des Codes wird über mehrere `#define`-Variablen gesteuert.
 
 ```
-#define HARDWARE_LEVEL 2
-  1 für originales pinout Layout mit Schalter auf Pin 19/22/21
-  2 für neues Layout für "New Heltec Wifi Kit 32" (V2) mit Schalter auf Pin 23/19/22
+#define HARDWARE_LAYOUT_LEGACY
+  Fuer das fruehere Hardware-Layout mit Schalter auf Pin 19/22/21 aktivieren.
 
 #define SERVO_ERWEITERT
   aktivieren, falls ein Automat mit Software 0.1.4 aktualisiert wird und der Servo nicht ganz schliesst
@@ -57,9 +56,16 @@ Die weiteren defines und Variablen müssen bei einer Standard-Schaltung nicht an
 
 ## Hardware-Aufbau
 
+### Verkabelung
+
+Aktuell liegt der Schalter auf Pin 23/19/22. Bei einem frueheren Layout lag er auf Pin 19/22/21.
+
+
+### Hinweise
 Es wird empfohlen, den Servo erst nach dem ersten Einschalten der Elektronik mit dem Quetschhahn zu verbinden!
 Der Servo fährt automatisch in die Nullstellung. Danach kann das Gestänge verbunden werden und über das Servo-Setup
 können die Servo-Positionen fein eingestellt werden.
+
 
 ## Betrieb
 
@@ -80,7 +86,7 @@ Für jede Füllmenge bzw. das entsprechende Glas kann ein Leergewicht ("Tara") d
 Die hinterlegten Tara-Werte werden im Menu angezeigt.
 Einstellung: Füllmenge wählen, leeres Glas aufstellen und über die Auswahl-Taste speichern
 
-2. Kalibieren
+2. Kalibrieren
 Menügeführte Kalibrierung der Wägezelle
 
 3. Korrektur
@@ -185,30 +191,44 @@ im Abfüllbehälter nach. Das Zielgewicht wird im Automatik-Setup über die Kula
 
 ## Firmware bauen
 
-Just type:
-```
+Fuer die Erstellung einer Firmware passend zum [Heltec WiFi Kit 32], einfach nur:
+```bash
 make
 ```
 
-After successfully building it, you will find firmware images at
+Nach erfolgreichem Kompilieren sind die Firmware-Dateien hier zu finden:
 
-- .pio/build/heltec/firmware.bin
-- .pio/build/heltec/firmware.elf
+- .pio/build/heltec_wifi_kit_32/firmware.bin
+- .pio/build/heltec_wifi_kit_32/firmware.elf
+
+### Andere Boards
+
+Diese Firmware unterstuetzt neben dem [Heltec WiFi Kit 32] auch das
+[Heltec WiFi LoRa 32] sowie das [Heltec WiFi LoRa 32 (V2)].
+
+```bash
+source .venv/bin/activate
+pio run --environment=heltec_wifi_kit_32
+pio run --environment=heltec_wifi_lora_32
+pio run --environment=heltec_wifi_lora_32_V2
+```
+
+[Heltec WiFi Kit 32]: https://docs.platformio.org/en/latest/boards/espressif32/heltec_wifi_kit_32.html
+[Heltec WiFi LoRa 32]: https://docs.platformio.org/en/latest/boards/espressif32/heltec_wifi_lora_32.html
+[Heltec WiFi LoRa 32 (V2)]: https://docs.platformio.org/en/latest/boards/espressif32/heltec_wifi_lora_32_V2.html
 
 
 ## Binär-Datei `hani-mandl.bin`
 
-Die Datei `hani-mandl.bin` wurde mit folgenden Parametern für das Board Heltec ESP32 Arduino > Wifi Kit 32 compiliert:
+Die Datei `hani-mandl.bin` wurde mit folgenden Parametern für das Board [Heltec WiFi Kit 32] kompiliert:
 
 ```
-#define HARDWARE_LEVEL 2        // 1 = originales Layout mit Schalter auf Pin 19/22/21
-                                // 2 = Layout für V2 mit Schalter auf Pin 23/19/22
-#define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
+#define SERVO_ERWEITERT         // Definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
                                 // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
-#define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder.
-                                // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
 #define USE_ROTARY              // Rotary benutzen
 #define USE_ROTARY_SW           // Taster des Rotary benutzen
+#define ROTARY_SCALE 2          // In welchen Schritten springt der Rotary Encoder.
+                                // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
 ```
 
 Eine Anleitung zum Flashen der Binär-Datei gibt es unter

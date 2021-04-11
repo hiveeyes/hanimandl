@@ -94,21 +94,41 @@
 //
 // Hier den Code auf die verwendete Hardware einstellen
 //
-#define HARDWARE_LEVEL 2        // 1 = originales Layout mit Schalter auf Pin 19/22/21
-                                // 2 = Layout für V2 mit Schalter auf Pin 23/19/22
-#define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
+
+// Wird normalerweise durch die Umgebung (Arduino/PlatformIO) vorgegeben.
+// #define ARDUINO_HELTEC_WIFI_KIT_32
+// #define ARDUINO_HELTEC_WIFI_LORA_32
+// #define ARDUINO_HELTEC_WIFI_LORA_32_V2
+
+#define SERVO_ERWEITERT         // Definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
                                 // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
-#define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder.
-                                // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
 #define USE_ROTARY              // Rotary benutzen
 #define USE_ROTARY_SW           // Taster des Rotary benutzen
+#define ROTARY_SCALE 2          // In welchen Schritten springt der Rotary Encoder.
+                                // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
 //#define USE_POTI              // Poti benutzen -> ACHTUNG, im Normalfall auch USE_ROTARY_SW deaktivieren!
 //#define FEHLERKORREKTUR_WAAGE   // falls Gewichtssprünge auftreten, können diese hier abgefangen werden
                                 // Achtung, kann den Wägeprozess verlangsamen. Vorher Hardware prüfen.
 //#define QUETSCHHAHN_LINKS       // Servo invertieren, falls der Quetschhahn von links geöffnet wird. Mindestens ein Exemplar bekannt
+//#define HARDWARE_LAYOUT_LEGACY  // Frueheres Hardware-Layout mit Schalter auf Pin 19/22/21
+
 //
 // Ende Benutzereinstellungen!
 //
+
+
+// Sanity checks
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#pragma message "Board-Variante: " STR(ARDUINO_VARIANT)
+#if not( \
+  defined(ARDUINO_HELTEC_WIFI_KIT_32) || \
+  defined(ARDUINO_HELTEC_WIFI_LORA_32) || \
+  defined(ARDUINO_HELTEC_WIFI_LORA_32_V2) \
+  )
+#error Board-Variante nicht implementiert. Bitte korrektes #define setzen!
+#endif
 
 //
 // Ab hier nur verstellen wenn Du genau weisst, was Du tust!
@@ -156,26 +176,42 @@ U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, 
 //U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ 16, /* clock=*/ 15, /* data=*/ 4);   // HW I2C crashed den Code
 
 // Rotary Encoder
+#if defined(ARDUINO_HELTEC_WIFI_KIT_32)
 const int outputA  = 33;
 const int outputB  = 26;
 const int outputSW = 32;
+
+#elif defined(ARDUINO_HELTEC_WIFI_LORA_32) || defined(ARDUINO_HELTEC_WIFI_LORA_32_V2)
+const int outputA  = 33;
+const int outputB  = 39;
+const int outputSW = 32;
+#endif
+
 
 // Servo
 const int servo_pin = 2;
 
 // 3x Schalter Ein 1 - Aus - Ein 2
-#if HARDWARE_LEVEL == 1
+#if defined(ARDUINO_HELTEC_WIFI_KIT_32)
+
+#ifdef HARDWARE_LAYOUT_LEGACY
 const int switch_betrieb_pin = 19;
 const int switch_vcc_pin     = 22;     // <- Vcc
 const int switch_setup_pin   = 21;
-#elif HARDWARE_LEVEL == 2
+#else
 const int switch_betrieb_pin = 23;
 const int switch_vcc_pin     = 19;     // <- Vcc
 const int switch_setup_pin   = 22;
 const int vext_ctrl_pin      = 21;     // Vext control pin
-#else
-#error Hardware Level nicht definiert! Korrektes #define setzen!
 #endif
+
+#elif defined(ARDUINO_HELTEC_WIFI_LORA_32) || defined(ARDUINO_HELTEC_WIFI_LORA_32_V2)
+const int switch_betrieb_pin = 23;
+const int switch_vcc_pin     = 16;     // <- Vcc
+const int switch_setup_pin   = 22;
+const int vext_ctrl_pin      = 21;     // Vext control pin
+#endif
+
 
 // Taster
 const int button_start_vcc_pin = 13;  // <- Vcc
@@ -187,8 +223,14 @@ const int button_stop_pin      = 27;
 const int poti_pin = 39;
 
 // Wägezelle-IC
+#if defined(ARDUINO_HELTEC_WIFI_KIT_32)
 const int hx711_sck_pin = 17;
 const int hx711_dt_pin  = 5;
+
+#elif defined(ARDUINO_HELTEC_WIFI_LORA_32) || defined(ARDUINO_HELTEC_WIFI_LORA_32_V2)
+const int hx711_sck_pin = 17;
+const int hx711_dt_pin  = 2;
+#endif
 
 // Buzzer - aktiver Piezo
 static int buzzer_pin = 25;
@@ -1941,7 +1983,7 @@ void setup()
   pinMode(button_stop_pin, INPUT_PULLDOWN);
   pinMode(switch_betrieb_pin, INPUT_PULLDOWN);
   pinMode(switch_setup_pin, INPUT_PULLDOWN);
-#if HARDWARE_LEVEL == 2
+#ifndef HARDWARE_LAYOUT_LEGACY
   pinMode(vext_ctrl_pin, INPUT_PULLDOWN);
 #endif
 
