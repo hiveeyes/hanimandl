@@ -1581,7 +1581,7 @@ void processAutomatik(void)
 {
   int zielgewicht;           // Glas + Korrektur
   long blinktime;
-  static int autokorrektur_gr; 
+  static int autokorrektur_gr = 0; 
   int erzwinge_servo_aktiv = 0;
   boolean voll = false; //Kud
 
@@ -1598,7 +1598,7 @@ void processAutomatik(void)
      rotary_select = SW_WINKEL;    // Einstellung für Winkel über Rotary
      initRotaries(SW_MENU, fmenge_index, 0, 4, 1);
      gewicht_vorher = glaeser[fmenge_index].Gewicht + korrektur;
-     autokorrektur_gr = 0;
+//     autokorrektur_gr = 0;
   }
 
   pos = getRotariesValue(SW_WINKEL);
@@ -1642,7 +1642,7 @@ void processAutomatik(void)
     servo_aktiv = 0;
     auto_aktiv  = 0;
     tara_glas   = 0;
-    autokorrektur_gr = 0;  
+//    autokorrektur_gr = 0;  
   }
 
 // Fehlerkorrektur der Waage, falls Gewicht zu sehr schwankt 
