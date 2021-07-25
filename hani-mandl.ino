@@ -69,6 +69,9 @@
                                - Korrektur zwischen -90 und +20 anpassbar
                                - Autokorrektur auch ohne Autostart 
                                - Preferences Flash-schonender implementiert
+  2021-07 Andreas Holzhammer | 0.2.11
+                               - Credits-Seite
+                               - Fix für Rotary mit Schrittweite > 1
                                   
   This code is in the public domain.
    
@@ -322,7 +325,7 @@ void IRAM_ATTR isr2() {
 // Skalierung des Rotaries für verschiedene Rotary Encoder oder Simulation über Poti
 int getRotariesValue( int rotary_mode ) {
 #ifdef USE_ROTARY
-    return (rotaries[rotary_mode].Value / ROTARY_SCALE);
+    return ( (rotaries[rotary_mode].Value - (rotaries[rotary_mode].Value % (rotaries[rotary_mode].Step*ROTARY_SCALE) )) / ROTARY_SCALE );
 #elif defined USE_POTI
     int poti_min = (rotaries[rotary_mode].Minimum / ROTARY_SCALE);
     int poti_max = (rotaries[rotary_mode].Maximum / ROTARY_SCALE);
@@ -2035,7 +2038,9 @@ void setup()
   u8g2.clearBuffer();
   print_logo();
   buzzer(BUZZER_SHORT);
-  delay(3000);
+  delay(2000);
+  print_credits();   
+  delay(4000);
 
 // Setup der Waage, Skalierungsfaktor setzen
   if (waage_vorhanden ==1 ) {                         // Waage angeschlossen?
@@ -2136,6 +2141,17 @@ void loop()
     processHandbetrieb();
 }
 
+void print_credits() {
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_helvB08_tf);
+  u8g2.setCursor(0, 10);    u8g2.print("Idee: M. Vasterling");
+  u8g2.setCursor(0, 23);    u8g2.print("Code: M. Vasterling, M.");
+  u8g2.setCursor(0, 36);    u8g2.print("Wetzel, C. Gruber, A.");
+  u8g2.setCursor(0, 49);    u8g2.print("Holzhammer, M. Junker,");
+  u8g2.setCursor(0, 62);    u8g2.print("J. Kuder, J. Bruker");
+  u8g2.sendBuffer();
+}
+
 void print_logo() {
   const unsigned char logo_biene1[] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x70, 0x00, 0xC0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 
@@ -2173,7 +2189,7 @@ void print_logo() {
   u8g2.setCursor(85, 27);    u8g2.print("HANI");
   u8g2.setCursor(75, 43);    u8g2.print("MANDL");
   u8g2.setFont(u8g2_font_courB08_tf);
-  u8g2.setCursor(77, 64);    u8g2.print("v.0.2.10");
+  u8g2.setCursor(77, 64);    u8g2.print("v.0.2.11");
   u8g2.sendBuffer();
 }
 
