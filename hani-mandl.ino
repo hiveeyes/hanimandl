@@ -1871,7 +1871,7 @@ void processAutomatik(void)
         sprintf(ausgabe,"k=   %s %3d-%3s",(autokorrektur==1)?"":" ", glaeser[fmenge_index].Gewicht, GlasTypArray[glaeser[fmenge_index].GlasTyp] ); 
       }
     } else if ( rotary_select == SW_MENU && blinktime < 2 ) {
-        sprintf(ausgabe,"k=%-3d" , korrektur + autokorrektur_gr, (autokorrektur==1)?"":" " );
+        sprintf(ausgabe,"k=%-3d" , korrektur + autokorrektur_gr);
     } else {
       if (glaeser[fmenge_index].Gewicht > 999){
         sprintf(ausgabe,"k=%-3d%s %3s-%3s", korrektur + autokorrektur_gr, (autokorrektur==1)?"":" ", "1kg", GlasTypArray[glaeser[fmenge_index].GlasTyp] );
