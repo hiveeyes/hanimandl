@@ -72,7 +72,10 @@
   2021-07 Andreas Holzhammer | 0.2.11
                                - Credits-Seite
                                - Fix für Rotary mit Schrittweite > 1
-                                  
+  2021-11 Andreas Holzhammer | 0.2.12
+                               - Glastoleranz einstellbar
+                               - Komfortverstellung für Füllmengen (1g/5g/25g Schritte)
+  
   This code is in the public domain.
    
   Hinweise zur Hardware
@@ -112,6 +115,7 @@
 //#define isDebug 3             // serielle debug-Ausgabe aktivieren. Mit >3 wird jeder Messdurchlauf ausgegeben
                                 // ACHTUNG: zu viel Serieller Output kann einen ISR-Watchdog Reset auslösen!
 //#define POTISCALE             // Poti simuliert eine Wägezelle, nur für Testbetrieb!
+#define MAXIMALGEWICHT 1000     // Maximales Gewicht
 
 // Ansteuerung der Waage
 #define SCALE_READS 2      // Parameter für hx711 Library. Messwert wird aus der Anzahl gemittelt
@@ -379,8 +383,9 @@ void getPreferences(void) {
     buzzermode    = preferences.getUInt("buzzermode", buzzermode);
     kali_gewicht  = preferences.getUInt("kali_gewicht", kali_gewicht); //JB 
     setup_modern  = preferences.getUInt("setup_modern", setup_modern);
+    glastoleranz   = preferences.getUInt("glastoleranz", glastoleranz);
 
-    preferences_chksum = faktor + pos + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_min + winkel_max + winkel_fein + kulanz_gr + buzzermode + kali_gewicht + setup_modern;
+    preferences_chksum = faktor + pos + gewicht_leer + korrektur + autostart + autokorrektur + fmenge_index + winkel_min + winkel_max + winkel_fein + kulanz_gr + buzzermode + kali_gewicht + setup_modern + glastoleranz;
 
     i = 0;
     int ResetGewichte[] = {125,250,250,500,500,};
@@ -426,6 +431,7 @@ void getPreferences(void) {
     Serial.print("buzzermode = ");   Serial.println(buzzermode);
     Serial.print("kali_gewicht = "); Serial.println(kali_gewicht);//JB 
     Serial.print("setup_modern = "); Serial.println(setup_modern); 
+    Serial.print("glastoleranz = "); Serial.println(glastoleranz); 
 
     i = 0;
     while( i < 5 ) {
@@ -485,7 +491,7 @@ void setPreferences(void) {
   // Den Rest machen wir gesammelt, das ist eher statisch
   preferences_newchksum = faktor + gewicht_leer + korrektur + autostart + autokorrektur +
                           fmenge_index + winkel_min + winkel_max + winkel_fein + kulanz_gr +
-                          buzzermode + kali_gewicht + setup_modern;
+                          buzzermode + kali_gewicht + setup_modern + glastoleranz;
   i = 0;
   while( i < 5 ) {
     preferences_newchksum += glaeser[i].Gewicht;//JB
@@ -519,7 +525,8 @@ void setPreferences(void) {
     preferences.putUInt("buzzermode", buzzermode);
     preferences.putUInt("kali_gewicht", kali_gewicht);//JB
     preferences.putUInt("setup_modern", setup_modern);
-
+    preferences.putUInt("glastoleranz", glastoleranz);
+    
     i = 0;
     while( i < 5 ) {
       sprintf(ausgabe, "Gewicht%d", i);
@@ -552,6 +559,7 @@ void setPreferences(void) {
     Serial.print("buzzermode = ");   Serial.println(buzzermode);
     Serial.print("kali_gewicht = "); Serial.println(kali_gewicht); //JB
     Serial.print("setup_modern = "); Serial.println(setup_modern);
+    Serial.print("glastoleranz = "); Serial.println(glastoleranz);
 
     i = 0;
     while( i < 5 ) {
@@ -1114,11 +1122,12 @@ void setupServoWinkel(void) {
 void setupAutomatik(void) {
   int menuitem;
   int lastautostart     = autostart;
+  int lastglastoleranz  = glastoleranz;
   int lastautokorrektur = autokorrektur;
   int lastkulanz        = kulanz_gr;
   bool wert_aendern = false;
 
-  initRotaries(SW_MENU, 0, 0, 3, -1);
+  initRotaries(SW_MENU, 0, 0, 4, -1);
 
   u8g2.setFont(u8g2_font_courB10_tf);
   i = 1;
@@ -1127,20 +1136,23 @@ void setupAutomatik(void) {
       autostart     = lastautostart;
       autokorrektur = lastautokorrektur;
       kulanz_gr     = lastkulanz;
+      glastoleranz  = lastglastoleranz;
       return;
     }
 
     if ( wert_aendern == false ) {
       menuitem = getRotariesValue(SW_MENU);
-      if ( menuitem == 3 )
-        menuitem = 4;  // Eine Zeile Abstand zu "Speichern"
+//      if ( menuitem == 3 )
+//        menuitem = 4;  // Eine Zeile Abstand zu "Speichern"
     } else {
       switch (menuitem) {
         case 0: autostart     = getRotariesValue(SW_MENU);
                 break;
-        case 1: autokorrektur = getRotariesValue(SW_MENU);
+        case 1: glastoleranz  = getRotariesValue(SW_MENU);
                 break;
-        case 2: kulanz_gr     = getRotariesValue(SW_MENU);
+        case 2: autokorrektur = getRotariesValue(SW_MENU);
+                break;
+        case 3: kulanz_gr     = getRotariesValue(SW_MENU);
                 break;
       }
     }
@@ -1148,8 +1160,9 @@ void setupAutomatik(void) {
     // Menu
     u8g2.clearBuffer();
     u8g2.setCursor(10, 10); sprintf(ausgabe,"Autostart %3s", (autostart==0?"aus":"ein"));     u8g2.print(ausgabe);
-    u8g2.setCursor(10, 23); sprintf(ausgabe,"Autokorr. %3s", (autokorrektur==0?"aus":"ein")); u8g2.print(ausgabe);
-    u8g2.setCursor(10, 36); sprintf(ausgabe,"-> Kulanz %2dg", kulanz_gr);                     u8g2.print(ausgabe);
+    u8g2.setCursor(10, 23); sprintf(ausgabe,"Glastol. %c%2dg", 177, glastoleranz); u8g2.print(ausgabe);
+    u8g2.setCursor(10, 36); sprintf(ausgabe,"Autokorr. %3s", (autokorrektur==0?"aus":"ein")); u8g2.print(ausgabe);
+    u8g2.setCursor(10, 49); sprintf(ausgabe,"-> Kulanz %2dg", kulanz_gr);                     u8g2.print(ausgabe);
     u8g2.setCursor(10, 62); u8g2.print(     "Speichern");
 
     // Positionsanzeige im Menu. "*" wenn nicht ausgewählt, Pfeil wenn ausgewählt
@@ -1164,7 +1177,7 @@ void setupAutomatik(void) {
 
     // Menupunkt zum Ändern ausgewählt
     if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) 
-         && (menuitem < 3 )
+         && (menuitem < 4 )
          && (wert_aendern == false) ) {
 
       // debounce
@@ -1176,9 +1189,11 @@ void setupAutomatik(void) {
       switch (menuitem) { 
         case 0: initRotaries(SW_MENU, autostart, 0, 1, 1);
                 break;
-        case 1: initRotaries(SW_MENU, autokorrektur, 0, 1, 1);
+        case 1: initRotaries(SW_MENU, glastoleranz, 0, 99, 1);
                 break;
-        case 2: initRotaries(SW_MENU, kulanz_gr, 0, 99, 1);
+        case 2: initRotaries(SW_MENU, autokorrektur, 0, 1, 1);
+                break;
+        case 3: initRotaries(SW_MENU, kulanz_gr, 0, 99, 1);
                 break;
       }
       wert_aendern = true;
@@ -1186,7 +1201,7 @@ void setupAutomatik(void) {
 
     // Änderung im Menupunkt übernehmen
     if ( (digitalRead(SELECT_SW) == SELECT_PEGEL) 
-         && (menuitem < 3 )
+         && (menuitem < 4 )
          && (wert_aendern == true) ) {
 
       // debounce
@@ -1195,7 +1210,7 @@ void setupAutomatik(void) {
         ;
       delay(10);
 
-      initRotaries(SW_MENU, menuitem, 0, 3, -1);
+      initRotaries(SW_MENU, menuitem, 0, 4, -1);
       wert_aendern = false;
     }
 
@@ -1211,107 +1226,115 @@ void setupAutomatik(void) {
 }
 
 void setupFuellmenge(void) {
-    int j,k;
-    int blinktime;
-    initRotaries(SW_MENU, fmenge_index, 0, 4, -1);
+  int j,k;
+  int blinktime;
+  initRotaries(SW_MENU, fmenge_index, 0, 4, -1);
       
-    u8g2.setFont(u8g2_font_courB10_tf);
-    i = 1;
-    while (i > 0) {
-      if ((digitalRead(button_stop_pin)) == HIGH)
-         return;
+  u8g2.setFont(u8g2_font_courB10_tf);
+  i = 1;
+  while (i > 0) {
+    if ((digitalRead(button_stop_pin)) == HIGH)
+      return;
       
-      pos = getRotariesValue(SW_MENU);
-      u8g2.clearBuffer();
-      j = 0;
-      while( j < 5  ) {
-        u8g2.setCursor(10, 10+(j*13));    
-        sprintf(ausgabe, "%4dg %3s", glaeser[j].Gewicht, GlasTypArray[glaeser[j].GlasTyp]);
-        u8g2.print(ausgabe);
-        j++;
-      }
-      u8g2.setCursor(0, 10+(getRotariesValue(SW_MENU)*13));    
-      u8g2.print("*");
-      u8g2.sendBuffer();
+    pos = getRotariesValue(SW_MENU);
+    u8g2.clearBuffer();
+    j = 0;
+    while( j < 5  ) {
+      u8g2.setCursor(10, 10+(j*13));    
+      sprintf(ausgabe, "%4dg %3s", glaeser[j].Gewicht, GlasTypArray[glaeser[j].GlasTyp]);
+      u8g2.print(ausgabe);
+      j++;
+    }
+    u8g2.setCursor(0, 10+(getRotariesValue(SW_MENU)*13));    
+    u8g2.print("*");
+    u8g2.sendBuffer();
 
-      if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) { // Füllmenge gewählt
-         delay(500);
+    if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) { // Füllmenge gewählt
+      delay(500);
 
-         initRotaries(SW_MENU, glaeser[pos].Gewicht, 30, 1000, 5);
-          k = 1;
-          while (k > 0){
+//         initRotaries(SW_MENU, glaeser[pos].Gewicht, 30, 1000, 5);
+      initRotaries(SW_MENU, weight2step( glaeser[pos].Gewicht) , 25, weight2step(MAXIMALGEWICHT), 1);
+      k = 1;
+      while (k > 0){
 
-          if ((digitalRead(button_stop_pin)) == HIGH) return;
-            blinktime = (millis()/10) % 5;
-            glaeser[pos].Gewicht = getRotariesValue(SW_MENU); 
-            u8g2.clearBuffer();
-             
+        if ((digitalRead(button_stop_pin)) == HIGH) 
+          return;
+
+        blinktime = (millis()/10) % 5;
+//        glaeser[pos].Gewicht = getRotariesValue(SW_MENU); 
+        glaeser[pos].Gewicht = step2weight( getRotariesValue(SW_MENU) ); 
+        u8g2.clearBuffer();
               
-      j = 0;
-      while( j < 5  ) {
-        u8g2.setCursor(10, 10+(j*13));
-        if (j == pos){ 
-          if (blinktime < 3) { sprintf(ausgabe, "%4dg %3s", glaeser[j].Gewicht, GlasTypArray[glaeser[j].GlasTyp]);  } 
-          else { sprintf(ausgabe, "%5s %3s","   ",GlasTypArray[glaeser[j].GlasTyp]);}
+        j = 0;
+        while( j < 5  ) {
+          u8g2.setCursor(10, 10+(j*13));
+          if (j == pos){ 
+            if (blinktime < 3) { 
+              sprintf(ausgabe, "%4dg %3s", glaeser[j].Gewicht, GlasTypArray[glaeser[j].GlasTyp]);  
+            } else { 
+              sprintf(ausgabe, "%5s %3s","   ",GlasTypArray[glaeser[j].GlasTyp]);
+            }
+          } else {
+            sprintf(ausgabe, "%4dg %3s", glaeser[j].Gewicht, GlasTypArray[glaeser[j].GlasTyp]);
           }
-        else {sprintf(ausgabe, "%4dg %3s", glaeser[j].Gewicht, GlasTypArray[glaeser[j].GlasTyp]);}
-        u8g2.print(ausgabe);
-        j++;
+          u8g2.print(ausgabe);
+          j++;
         }                     
         u8g2.sendBuffer();
 
-             if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) { // Gewicht bestätigt
-                delay(500);
-                initRotaries(SW_MENU, glaeser[pos].GlasTyp, 0, 2, 1);
+        if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) { // Gewicht bestätigt
+          delay(500);
 
-                while (k > 0){ 
+          initRotaries(SW_MENU, glaeser[pos].GlasTyp, 0, 2, 1);
+          while (k > 0){ 
+            if ((digitalRead(button_stop_pin)) == HIGH) 
+              return;
+            blinktime = (millis()/10) % 5; 
+            glaeser[pos].GlasTyp = getRotariesValue(SW_MENU);
+            u8g2.clearBuffer();
 
-                  if ((digitalRead(button_stop_pin)) == HIGH) return;
-                 blinktime = (millis()/10) % 5; 
-                 glaeser[pos].GlasTyp = getRotariesValue(SW_MENU);
-                 u8g2.clearBuffer();
-
-      j = 0;
-      while( j < 5  ) {
-        u8g2.setCursor(10, 10+(j*13));
-        if (j == pos){ 
-          if (blinktime < 3) {sprintf(ausgabe, "%4dg %3s", glaeser[j].Gewicht, GlasTypArray[glaeser[j].GlasTyp]);} 
-          else {sprintf(ausgabe, "%4dg %3s",glaeser[pos].Gewicht,"  ");}
-          }
-        else {sprintf(ausgabe, "%4dg %3s", glaeser[j].Gewicht, GlasTypArray[glaeser[j].GlasTyp]);}
-        u8g2.print(ausgabe);
-        j++;
-        }
-        u8g2.sendBuffer();
-
-
-          if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) { //GlasTyp bestätigt
-             u8g2.clearBuffer();
-             j = 0;
+            j = 0;
             while( j < 5  ) {
-            u8g2.setCursor(10, 10+(j*13));    
-            sprintf(ausgabe, "%4dg %3s", glaeser[j].Gewicht, GlasTypArray[glaeser[j].GlasTyp]);
-            u8g2.print(ausgabe);
-            j++;
+              u8g2.setCursor(10, 10+(j*13));
+              if (j == pos){ 
+                if (blinktime < 3) {
+                  sprintf(ausgabe, "%4dg %3s", glaeser[j].Gewicht, GlasTypArray[glaeser[j].GlasTyp]);
+                } else {
+                  sprintf(ausgabe, "%4dg %3s",glaeser[pos].Gewicht,"  ");
+                }
+              } else {
+                sprintf(ausgabe, "%4dg %3s", glaeser[j].Gewicht, GlasTypArray[glaeser[j].GlasTyp]);
+              }
+              u8g2.print(ausgabe);
+              j++;
             }
+            u8g2.sendBuffer();
 
-        u8g2.setCursor(0, 10+(13*pos));    
-        u8g2.print("*");
-        u8g2.sendBuffer();
-        delay(1000);
-        k = 0; //raus
+            if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) { //GlasTyp bestätigt
+              u8g2.clearBuffer();
+              j = 0;
+              while( j < 5  ) {
+                u8g2.setCursor(10, 10+(j*13));    
+                sprintf(ausgabe, "%4dg %3s", glaeser[j].Gewicht, GlasTypArray[glaeser[j].GlasTyp]);
+                u8g2.print(ausgabe);
+                j++;
+              }
 
+              u8g2.setCursor(0, 10+(13*pos));    
+              u8g2.print("*");
+              u8g2.sendBuffer();
+              delay(1000);
+              k = 0; //raus
+            }
+          }
         }
-     }
-        
-   }
-}  
-        fmenge = glaeser[pos].Gewicht;
-        tara   = glaeser[pos].Tara;
-        fmenge_index = pos; 
-        i = 0;
-      }
+      }  
+      fmenge = glaeser[pos].Gewicht;
+      tara   = glaeser[pos].Tara;
+      fmenge_index = pos; 
+      i = 0;
     }
+  }
 }
 
 void setupParameter(void) {
@@ -2189,7 +2212,7 @@ void print_logo() {
   u8g2.setCursor(85, 27);    u8g2.print("HANI");
   u8g2.setCursor(75, 43);    u8g2.print("MANDL");
   u8g2.setFont(u8g2_font_courB08_tf);
-  u8g2.setCursor(77, 64);    u8g2.print("v.0.2.11");
+  u8g2.setCursor(77, 64);    u8g2.print("v.0.2.12");
   u8g2.sendBuffer();
 }
 
@@ -2230,4 +2253,30 @@ void buzzer(byte type) {
         break;
     }
   }
+}
+
+// Supportfunktionen für stufenweise Gewichtsverstellung
+int step2weight( int step ) {
+  int sum = 0;
+
+  if ( step > 210 ) { sum += (step-210)*1000; step -= (step-210); }
+  if ( step > 200 ) { sum += (step-200)* 500; step -= (step-200); }  
+  if ( step > 160 ) { sum += (step-160)* 100; step -= (step-160); }
+  if ( step > 140 ) { sum += (step-140)*  25; step -= (step-140); }
+  if ( step >  50 ) { sum += (step- 50)*   5; step -= (step- 50); }
+  sum += step;
+      
+  return sum;
+}
+int weight2step ( int sum ) {
+  int step = 0;
+
+  if ( sum > 10000 ) { step += (sum-10000)/1000; sum -= ((sum-10000)); }
+  if ( sum >  5000 ) { step += (sum-5000)/500;   sum -= ((sum-5000)); }
+  if ( sum >  1000 ) { step += (sum-1000)/100;   sum -= ((sum-1000)); }
+  if ( sum >   500 ) { step += (sum-500)/25;     sum -= ((sum-500));  }
+  if ( sum >    50 ) { step += (sum-50)/5;       sum -= (sum-50);   }
+  step += sum;
+
+  return step;
 }
