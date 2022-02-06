@@ -5,3 +5,6 @@
 
 NICHT FÜR DEN PRODUKTIVEN EINSATZ. ALPHA STATUS. 
 
+
+
+![image](https://img.shields.io/github/v/tag/ClemensGruber/hani-mandl.svg)
