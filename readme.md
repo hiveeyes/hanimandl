@@ -3,7 +3,7 @@
 
 # HaniMandl mit geeichter rs232/Waage
 
-Ein halbautomatischer Honig-Abfüll-Roboter. Diese Version nutzt geeichte Waagen, die über eine rs232-Schnittstelle angebunden sind, um den Abfüllprozess zu steuern. 
+Ein halbautomatischer Honig-Abfüll-Roboter. Diese Version nutzt geeichte Waagen, die über eine rs232-Schnittstelle angebunden sind, um den Abfüllprozess zu steuern. Die rs232-Konfiguration der TEM TEKO+LCD03T-P1-B1 ist [hier](https://github.com/ClemensGruber/hani-mandl/blob/rs232/TEM-configuration/temconfig.md) beschrieben.
 
 NICHT FÜR DEN PRODUKTIVEN EINSATZ. ALPHA STATUS. 
 
@@ -75,7 +75,7 @@ Die weiteren defines und Variablen müssen bei einer Standard-Schaltung nicht an
 Es wird empfohlen, den Servo erst nach dem ersten Einschalten der Elektronik mit dem Quetschhahn zu verbinden!
 Der Servo fährt automatisch in die Nullstellung. Danach kann das Gestänge verbunden werden und über das Servo-Setup
 können die Servo-Positionen fein eingestellt werden.
-Die rs232-Konfiguration der TEM TEKO+LCD03T-P1-B1 ist [hier](https://github.com/ClemensGruber/hani-mandl/blob/rs232/TEM-configuration/temconfig.md) beschrieben. 
+ 
 
 ## Betrieb
 
