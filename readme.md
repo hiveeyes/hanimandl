@@ -31,6 +31,7 @@ Das Verhalten des Codes wird über mehrere `#define`-Variablen gesteuert.
   Die rs232-Kommunikation wird über einen max3232 hergestellt, der anstatt des HX711 
   angeschlossen wird. Die 4 ESP32-Leitungen zum HX711-Sockel (3.3V,GND, SCK, DT) können 
   direkt für den max3232 Chip (3.3V,GND,RX,TX) genutzt werden.
+  Die rs232-Konfiguration der TEM TEKO+LCD03T-P1-B1 ist [hier](https://github.com/ClemensGruber/hani-mandl/blob/rs232/TEM-configuration/temconfig.md) beschrieben. 
                               
 #define HARDWARE_LEVEL 2
   1 für originales pinout Layout mit Schalter auf Pin 19/22/21
