@@ -7,4 +7,4 @@ NICHT FÜR DEN PRODUKTIVEN EINSATZ. ALPHA STATUS.
 
 
 
-![image](https://img.shields.io/github/v/tag/ClemensGruber/hani-mandl.svg)
+![image](https://github.com/ClemensGruber/hani-mandl/blob/rs232/TEM-configuration/IMG_5308.jpeg)
