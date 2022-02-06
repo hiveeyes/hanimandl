@@ -1,6 +1,6 @@
 /*
   Abfuellwaage Version 0.2.13alpha1
-  ---------------------------
+  ---------------------------------
   Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker
             
   2018-05 Marc Vasterling    | initial version, 
