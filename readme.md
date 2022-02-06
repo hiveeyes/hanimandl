@@ -35,6 +35,7 @@ Das Verhalten des Codes wird über mehrere `#define`-Variablen gesteuert.
 #define HARDWARE_LEVEL 2
   1 für originales pinout Layout mit Schalter auf Pin 19/22/21
   2 für neues Layout für "New Heltec Wifi Kit 32" (V2) mit Schalter auf Pin 23/19/22
+  3 für einen ESP32 WROOM mit externem OLED (currently not supported)
 
 #define SERVO_ERWEITERT
   aktivieren, falls ein Automat mit Software 0.1.4 aktualisiert wird und der Servo nicht ganz schliesst
