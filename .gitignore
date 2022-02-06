@@ -1,2 +1,6 @@
 .pio
 .venv*
+.vscode/c_cpp_properties.json
+.vscode/extensions.json
+.vscode/launch.json
+.DS_Store
