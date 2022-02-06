@@ -20,6 +20,18 @@ Websites:
 Das Verhalten des Codes wird über mehrere `#define`-Variablen gesteuert.
 
 ```
+#define WEIGHT_TYPE 1           
+  0 = für den Betrieb mit HX711 + Zelle (Urform des HaniMandl)
+  Mittels rs232 angeschlossene (geeichte) Waagen:
+  1 = Delta-Cyprus (zB. TEM Waagen)
+  X = more to come.. Geplant sind die weiteren Protokolle: TEMnative,Tisa,Dialog06,Elicom
+  
+  Waagen mit rs232 Schnittstelle müssen so konfiguriert werden, dass sie das
+  gemessene Gewicht dauerhaft im "Delta-Cyprus"-Format übertragen.
+  Die rs232-Kommunikation wird über einen max3232 hergestellt, der anstatt des HX711 
+  angeschlossen wird. Die 4 ESP32-Leitungen zum HX711-Sockel (3.3V,GND, SCK, DT) können 
+  direkt für den max3232 Chip (3.3V,GND,RX,TX) genutzt werden.
+                              
 #define HARDWARE_LEVEL 2
   1 für originales pinout Layout mit Schalter auf Pin 19/22/21
   2 für neues Layout für "New Heltec Wifi Kit 32" (V2) mit Schalter auf Pin 23/19/22
