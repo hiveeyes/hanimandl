@@ -1,9 +1,11 @@
 ![image](https://github.com/ClemensGruber/hani-mandl/workflows/PlatformIO%20CI/badge.svg)
 ![image](https://img.shields.io/github/v/tag/ClemensGruber/hani-mandl.svg)
 
-# HaniMandl mit geeichter rs232/Waage (alpha-Status !)
+# HaniMandl mit geeichter rs232/Waage
 
-Ein halbautomatischer Honig-Abfüll-Roboter. Diese Version nutzt geeichte Waagen, die über eine rs232-Schnittstelle angebunden sind, um den Abfüllprozess zu steuern. NICHT FÜR DEN PRODUKTIVEN EINSATZ. ALPHA STATUS. 
+Ein halbautomatischer Honig-Abfüll-Roboter. Diese Version nutzt geeichte Waagen, die über eine rs232-Schnittstelle angebunden sind, um den Abfüllprozess zu steuern. 
+
+NICHT FÜR DEN PRODUKTIVEN EINSATZ. ALPHA STATUS. 
 
 Websites:
 - Code, Infos zur Hardware, Fotos und Videos initial publiziert in der Facebook-Gruppe ["Imkerei und Technik. Eigenbau"](https://www.facebook.com/groups/139671009967454)
