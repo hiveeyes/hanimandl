@@ -5,7 +5,7 @@
 
 ![image](https://github.com/ClemensGruber/hani-mandl/blob/rs232/TEM-configuration/IMG_5308.jpeg)
 
-Die Werkseinstellungen der TEM TEKO+LCD03T-P1-B1 Waage müssen geändert werden, damit der HaniMandl die gemessenen Werte auslesen kann. Seite 3 ff des beiliegende Handbuches beschreibt den Ablauf, um die Waage in den Konfigurationsmodus zu versetzen. 
+Die Werkseinstellungen der TEM TEKO+LCD03T-P1-B1 Waage müssen geändert werden, damit der HaniMandl die gemessenen Werte auslesen kann. Seite 3 ff des beiliegenden Handbuches beschreibt den Ablauf, um die Waage in den Konfigurationsmodus zu versetzen. 
 
 ```
 9. Relay Settings:
