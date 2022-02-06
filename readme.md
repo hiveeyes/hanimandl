@@ -31,7 +31,6 @@ Das Verhalten des Codes wird über mehrere `#define`-Variablen gesteuert.
   Die rs232-Kommunikation wird über einen max3232 hergestellt, der anstatt des HX711 
   angeschlossen wird. Die 4 ESP32-Leitungen zum HX711-Sockel (3.3V,GND, SCK, DT) können 
   direkt für den max3232 Chip (3.3V,GND,RX,TX) genutzt werden.
-  Die rs232-Konfiguration der TEM TEKO+LCD03T-P1-B1 ist [hier](https://github.com/ClemensGruber/hani-mandl/blob/rs232/TEM-configuration/temconfig.md) beschrieben. 
                               
 #define HARDWARE_LEVEL 2
   1 für originales pinout Layout mit Schalter auf Pin 19/22/21
@@ -76,6 +75,7 @@ Die weiteren defines und Variablen müssen bei einer Standard-Schaltung nicht an
 Es wird empfohlen, den Servo erst nach dem ersten Einschalten der Elektronik mit dem Quetschhahn zu verbinden!
 Der Servo fährt automatisch in die Nullstellung. Danach kann das Gestänge verbunden werden und über das Servo-Setup
 können die Servo-Positionen fein eingestellt werden.
+Die rs232-Konfiguration der TEM TEKO+LCD03T-P1-B1 ist [hier](https://github.com/ClemensGruber/hani-mandl/blob/rs232/TEM-configuration/temconfig.md) beschrieben. 
 
 ## Betrieb
 
@@ -88,7 +88,7 @@ der Füllmenge im Automatikmodus stehen nur bei einem Rotary Encoder mit integri
 
 Setup
 -----
-In Schalterstellung II (oder I je nachdem wie der 3-fach-Schalter verbaut wurde) könnne verschiedene
+In Schalterstellung II (oder I je nachdem wie der 3-fach-Schalter verbaut wurde) könnnen verschiedene
 Grundeinstellungen vorgenommen werden:
 
 1. Tara
