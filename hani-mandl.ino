@@ -1957,6 +1957,7 @@ Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);      // max3232 für geeichte Waage
          "rs232readerTaskCore0", // Name of the task
          10000,  // Stack size in words
          NULL,  // Task input parameter
+         // MarcN: Wenn Prio=0, dann kommt es zu vermehrten rs232 read timeouts !! 
          5,  // Priority of the task. 0 is lowest prio.
          &rs232readerTaskCore0,  // Task handle.
          0       // Core where the task should run
