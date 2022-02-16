@@ -75,11 +75,13 @@
   2021-11 Andreas Holzhammer | 0.2.12
                                - Glastoleranz einstellbar
                                - Komfortverstellung für Füllmengen (1g/5g/25g Schritte)
-  2022-01 Marc Junker        | 0.2.13alpha1
+  2022-01 Marc Junker        | 0.2.13alpha2
                                - Anbindung von geeichten Waagen über rs232
                                - rs232-Reader-Thread auf Kern0
                                - Definition WEIGHT_TYPE: HX711 und dirverse rs232 Waagen
-                               - Implementierung des rs232-Waagenprotokolls "Delta-Cypus"  
+                               - Definition DISPLAY: 0.96",1,3", 2.24" OLEDs angebunden über I2C oder SPI
+                               - Implementierung des rs232-Waagenprotokolls "Delta-Cyprus"  
+                               - Implementierung des rs232-Waagenprotokolls "TEMstandard" 
   
   This code is in the public domain.
    
@@ -88,276 +90,35 @@
   - bei allen digitalen Eingängen sind interne pull downs aktiviert, keine externen-Widerstände nötig! 
 */
 
-#define WEIGHT_TYPE 1           // 0 = HX711 + Zelle
-                                // max3232 + geeichte Waage über rs232 angeschlossen:
-                                // 1 = Delta-Cyprus
-                                // 2 = TEM (currently NOT supported)
-                                // 3 = Tisa (currently NOT supported)
-                                // 4 = Dialog06 (currently NOT supported)
-                                // 5 = Elicom (currently NOT supported)
 
 #include <Arduino.h>
 #include <Wire.h>
 #include <U8g2lib.h>      /* aus dem Bibliotheksverwalter */
+#include <ESP32Servo.h>   /* aus dem Bibliotheksverwalter */
+#include <Preferences.h>  /* aus dem BSP von expressif, wird verfügbar wenn das richtige Board ausgewählt ist */
+#include <defs.h>
+#include <vars.h>
+#include <rs232handling.h>
 #if WEIGHT_TYPE == 0      
 #include <HX711.h>        /* aus dem Bibliotheksverwalter: "HX711 Arduino Library" by Bogdan Necula, Andreas Motl */
 #endif
-#include <ESP32Servo.h>   /* aus dem Bibliotheksverwalter */
-#include <Preferences.h>  /* aus dem BSP von expressif, wird verfügbar wenn das richtige Board ausgewählt ist */
-
-//
-// Hier den Code auf die verwendete Hardware einstellen
-//
-
-#define HARDWARE_LEVEL 2        // 1 = originales Layout mit Schalter auf Pin 19/22/21
-                                // 2 = Layout für V2 mit Schalter auf Pin 23/19/22
-                                // 3 = ESP32 WROOM-32 mit externem 0.96", 1.3" oder 2.4" OLED
-#define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
-                                // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
-#define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder. 
-                                // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
-#define USE_ROTARY              // Rotary benutzen
-#define USE_ROTARY_SW           // Taster des Rotary benutzen
-//#define USE_POTI              // Poti benutzen -> ACHTUNG, im Normalfall auch USE_ROTARY_SW deaktivieren!
-//#define FEHLERKORREKTUR_WAAGE   // falls Gewichtssprünge auftreten, können diese hier abgefangen werden
-                                // Achtung, kann den Wägeprozess verlangsamen. Vorher Hardware prüfen.
-//#define QUETSCHHAHN_LINKS       // Servo invertieren, falls der Quetschhahn von links geöffnet wird. Mindestens ein Exemplar bekannt
-//
-// Ende Benutzereinstellungen!
-// 
-
-//
-// Ab hier nur verstellen wenn Du genau weisst, was Du tust!
-//
-//#define isDebug 3             // serielle debug-Ausgabe aktivieren. Mit >3 wird jeder Messdurchlauf ausgegeben
-                                // ACHTUNG: zu viel Serieller Output kann einen ISR-Watchdog Reset auslösen!
-//#define POTISCALE             // Poti simuliert eine Wägezelle, nur für Testbetrieb!
-#define MAXIMALGEWICHT 1000     // Maximales Gewicht
-
-// Ansteuerung der Waage
-#define SCALE_READS 2      // Parameter für hx711 Library. Messwert wird aus der Anzahl gemittelt
-//#define SCALE_GETUNITS(n)  (waage_vorhanden ? round(scale.get_units(n)) : simulate_scale(n) )
-//#define SCALE_GETUNITS(n)  (waage_vorhanden ? getWeight(n) : simulate_scale(n) )
-#define SCALE_GETUNITS(n)  getWeight(n)
-
-
-// Ansteuerung Servo
-#ifdef QUETSCHHAHN_LINKS
-#define SERVO_WRITE(n)     servo.write(180-n)
-#else
-#define SERVO_WRITE(n)     servo.write(n)
-#endif
-
-// Rotary Encoder Taster zieht Pegel auf Low, Start/Stop auf High!
-#ifdef USE_ROTARY_SW
-#define SELECT_SW outputSW
-#define SELECT_PEGEL LOW
-#else
-#define SELECT_SW button_start_pin
-#define SELECT_PEGEL HIGH
-#endif
-
-// Betriebsmodi 
-#define MODE_SETUP       0
-#define MODE_AUTOMATIK   1
-#define MODE_HANDBETRIEB 2
-
-// Buzzer Sounds
-#define BUZZER_SHORT   1
-#define BUZZER_LONG    2
-#define BUZZER_SUCCESS 3
-#define BUZZER_ERROR   4
 
 
 // ** Definition der pins 
 // ----------------------
 
 // OLED fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
-//U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
-U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 22, /* data=*/ 21, /* reset=*/ 16);
-
+#if DISPLAY == 1
+U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
+#endif
+#if DISPLAY == 2
+U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 22, /* data=*/ 21, /* reset=*/ 16);   // 0.96" I2C am ESP32
+//U8G2_SSD1306_128X64_NONAME_F_4W_SW_SPI u8g2(U8G2_R0, 22, 21, 16, 15, 23 );  // 2.24" SPI am ESP32 WROOM
+#endif
+#if DISPLAY == 3
+U8G2_SSD1309_128X64_NONAME0_F_4W_SW_SPI u8g2(U8G2_R0, 22, 21, 16, 15, 23 );  // 2.24" SPI am ESP32 WROOM
+#endif
 //U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ 16, /* clock=*/ 15, /* data=*/ 4);   // HW I2C crashed den Code
-
-
-
-
-// Rotary Encoder
-const int outputA  = 33;
-const int outputB  = 26;
-const int outputSW = 32;
-
-// Servo
-const int servo_pin = 2;
-
-// 3x Schalter Ein 1 - Aus - Ein 2
-#if HARDWARE_LEVEL == 1
-const int switch_betrieb_pin = 19;
-const int switch_vcc_pin     = 22;     // <- Vcc 
-const int switch_setup_pin   = 21;
-#elif HARDWARE_LEVEL == 2
-const int switch_betrieb_pin = 25; //23;
-const int switch_vcc_pin     = 19;     // <- Vcc 
-const int switch_setup_pin   = 27;//22;
-const int vext_ctrl_pin      = 18;     // Vext control pin
-#else
-#error Hardware Level nicht definiert! Korrektes #define setzen!
-#endif
-
-// Taster 
-const int button_start_vcc_pin = 13;  // <- Vcc 
-const int button_start_pin     = 12;
-const int button_stop_vcc_pin  = 14;  // <- Vcc 
-const int button_stop_pin      = 28;
-
-// Poti
-const int poti_pin = 39;
-
-// Wägezelle-IC 
-#if WEIGHT_TYPE == 0
-const int hx711_sck_pin = 17;
-const int hx711_dt_pin  = 5;
-#else
-const int rs232MaxAge = 400;
-const int RXD2 = 17;
-const int TXD2 = 5;
-#endif
-
-
-// Buzzer - aktiver Piezo
-static int buzzer_pin = 25;
-
-Servo servo;
-#if WEIGHT_TYPE == 0
-HX711 scale;
-#endif
-Preferences preferences;
-
-// Datenstrukturen für Rotary Encoder
-struct rotary {                        
-  int Value;
-  int Minimum;
-  int Maximum;
-  int Step;
-};
-#define SW_WINKEL    0
-#define SW_KORREKTUR 1
-#define SW_MENU      2
-struct rotary rotaries[3];         // Werden in setup() initialisiert
-int rotary_select = SW_WINKEL;
-static boolean rotating = false;   // debounce management für Rotary Encoder
-
-
-//MarcN: gemessenes Gewicht mit timestamp für rs232 Waagen
-struct rs232weight_struct {
-  int weight;
-  unsigned long timestamp;
-};
-
-// Füllmengen für 5 verschiedene Gläser
-struct glas { 
-  int Gewicht;
-  int GlasTyp;    //JB
-  int Tara;
-  int TripCount;  //Kud
-  int Count;      //Kud
-};
-const char *GlasTypArray[3] = { "DIB", "TOF", "DEE"};//DIB = DeutscherImkerBund-Glas DEE= DeepTwist-Glas TOF= TwistOff-Glas //JB
-struct glas glaeser[5] =            { 
-                                         {  125, 0, -9999, 0, 0 },
-                                         {  250, 1, -9999, 0, 0 },
-                                         {  250, 2, -9999, 0, 0 },
-                                         {  500, 1, -9999, 0, 0 },
-                                         {  500, 0, -9999, 0, 0 } 
-                                    };
-
-// Allgemeine Variablen
-char serbuf[260];               // MarcN: Serieller Buffer ist 256 Bytes
-int serlen;                     // MarcN: Anzahl der Zeichen im rs232 Puffer
-rs232weight_struct rs232weight; // MarcN: das letzte über rs232 gelesene Geicht mit timestamp in ms
-int i;                          // allgemeine Zählvariable
-int pos;                        // aktuelle Position des Poti bzw. Rotary 
-int gewicht;                    // aktuelles Gewicht
-int tara;                       // Tara für das ausgewählte Glas, für Automatikmodus
-int tara_glas;                  // Tara für das aktuelle Glas, falls Glasgewicht abweicht
-long gewicht_leer;              // Gewicht der leeren Waage
-float faktor;                   // Skalierungsfaktor für Werte der Waage
-int fmenge;                     // ausgewählte Füllmenge
-int fmenge_index;               // Index in gläser[]
-int korrektur;                  // Korrekturwert für Abfüllmenge
-int autostart;                  // Vollautomatik ein/aus
-int autokorrektur;              // Autokorrektur ein/aus
-int kulanz_gr;                  // gewollte Überfüllung im Autokorrekturmodus in Gramm
-int winkel;                     // aktueller Servo-Winkel
-int winkel_hard_min = 0;        // Hard-Limit für Servo
-int winkel_hard_max = 180;      // Hard-Limit für Servo
-int winkel_min = 0;             // konfigurierbar im Setup
-int winkel_max = 85;            // konfigurierbar im Setup
-int winkel_fein = 35;           // konfigurierbar im Setup
-float fein_dosier_gewicht = 60; // float wegen Berechnung des Schliesswinkels
-int servo_aktiv = 0;            // Servo aktivieren ja/nein
-int kali_gewicht = 500;         // frei wählbares Gewicht zum kalibrieren
-char ausgabe[30];               // Fontsize 12 = 13 Zeichen maximal in einer Zeile
-int modus = -1;                 // Bei Modus-Wechsel den Servo auf Minimum fahren
-int auto_aktiv = 0;             // Für Automatikmodus - System ein/aus?
-int waage_vorhanden = 0;        // HX711 nicht ansprechen, wenn keine Waage angeschlossen ist, sonst Crash
-long preferences_chksum;        // Checksumme, damit wir nicht sinnlos Prefs schreiben
-int buzzermode = 0;             // 0 = aus, 1 = ein. TODO: Tastentöne als buzzermode 2?
-bool gezaehlt = true;           // Kud Zähl-Flag
-bool setup_modern = 1;          // Setup als rotierendes Menu   
-int glastoleranz = 20;          // Gewicht für autostart darf um +-20g schwanken, insgesamt also 40g!
-
-TaskHandle_t rs232readerTaskCore0;   // MarcN: Thread auf Kern0. Liest den rs232 Puffer permanant aus
-
-
-//MarcN: Thread auf Kern0. rs232 Waage
-void Task0_rs232reader( void * parameter) { 
-  for(;;) {
-    delay(5); //MarcN: Ohne diese Pause leitet der watchdog alle 5s ein Reset ein. delay ist im aktuellen FreeRTOS thread safe / non blocking:
-              // https://github.com/BriscoeTech/Arduino-FreeRTOS-SAMD21/issues/9#issuecomment-488902521
-              // gibt damit dem watchdog ein Zeitfenster, seine Aufagen zu erledigen
-    while ( (serlen = Serial2.available()) ) {
-      //Serial.println(serlen);
-      // Falls Unsinn gelesen wird, könnte der Block alles bis zum nächsten Vorzeichen löschen
-   /*  char serial_peek = Serial2.peek();
-     while( (serial_peek != 43) && (serial_peek != 45) ) {
-       Serial.println((char)Serial2.peek());
-       Serial2.read();
-       delay(1000);      
-    }
-    
-    serlen = Serial2.available();
-    */
-    if( serlen < 10 ) {
-       // Kein vollständiger Datensatz. Abwarten / nix machen
-       //Serial.println("Weniger als 9 Zeichen im Puffer! Möglicherweise falsches Ergebnis");
-    }
-    else {
-       Serial2.readBytes(serbuf, serlen);
-       //Serial.print(serbuf);
-       rs232weight.timestamp = millis();
-       //ausgabe[8] = 0;  // Unsinn abschneiden   
-       rs232weight.weight = (atof( &(serbuf[1]) ));
-       if ( serbuf[0] == '-' ) {
-         rs232weight.weight *= -1;
-       }
-    //Serial.println(rs232weight.weight);
-    //Serial.println(serbuf);
-    //delay(1000);
-    }    
-    }
-  }
-}
-
-
-int getWeight(int n) {
-  if ( (millis() - rs232weight.timestamp) < rs232MaxAge) {
-    return rs232weight.weight;
-  }
-  else {
-    // Letzte Gewichtsmessung zu alt. Waage im Standby oder Kabel ab !
-    return -999;
-  }
-}
 
 
 // Simuliert die Dauer des Wägeprozess, wenn keine Waage angeschlossen ist. Wirkt sich auf die Blinkfrequenz im Automatikmodus aus.
@@ -398,10 +159,15 @@ void IRAM_ATTR isr1() {
 // SW_KORREKTUR = Korrekturfaktor für Füllgewicht
 // SW_MENU      = Zähler für Menuauswahlen  
 void IRAM_ATTR isr2() {
+  if (isr2running) {
+    Serial.println("ISR2 running"); // MarcN
+  }
+  else {
+    isr2running = true;
   static int aState;
   static int aLastState = 2;  // reale Werte sind 0 und 1
-  
-  if ( rotating ) delay (1);  // wait a little until the bouncing is done
+  //Serial.println(".");
+  if ( rotating ) delay (50);  // wait a little until the bouncing is done
    
   aState = digitalRead(outputA); // Reads the "current" state of the outputA
     if (aState != aLastState) {     
@@ -421,8 +187,11 @@ void IRAM_ATTR isr2() {
 #endif 
     }
     aLastState = aState; // Updates the previous state of the outputA with the current state
+isr2running = false;
+}
 }
 #endif
+
 
 //
 // Skalierung des Rotaries für verschiedene Rotary Encoder oder Simulation über Poti
@@ -461,6 +230,8 @@ void initRotaries( int rotary_mode, int rotary_value, int rotary_min, int rotary
     Serial.print(" Scale: ");        Serial.println(ROTARY_SCALE);
 #endif
 }
+
+
 // Ende Funktionen für den Rotary Encoder
 //
 
@@ -1763,6 +1534,7 @@ void processAutomatik(void)
   }
   
   if ((digitalRead(button_stop_pin)) == HIGH) {
+    Serial.println("Stop pressed !");  // MarcN
     winkel      = winkel_min;
     servo_aktiv = 0;
     auto_aktiv  = 0;
@@ -1780,19 +1552,33 @@ void processAutomatik(void)
     delay(100);
   }
 #else
+  //int gewichtTMP = (int(SCALE_GETUNITS(SCALE_READS)));
+  //gewicht = gewichtTMP - tara;
   gewicht = (int(SCALE_GETUNITS(SCALE_READS))) - tara;
+  unsigned long timeStampTMP = rs232weight.timestamp;
+  
 #endif 
   
   // Glas entfernt -> Servo schliessen
   if (gewicht < -20) {
-    winkel      = winkel_min;
-    servo_aktiv = 0;
-    tara_glas   = 0;
-    if ( autostart != 1 ) {  // Autostart nicht aktiv
-      auto_aktiv  = 0;
+    //Serial.print("Alarm #1 Gewicht: ");Serial.print(gewicht);Serial.println("g");  // MarcN
+   /* 
+    while ( (timeStampTMP == rs232weight.timestamp) && ( (int(SCALE_GETUNITS(SCALE_READS))) != -999 ) ) {   
+      // warte die nächste Gewichtsmessung ab. Fall 1: Der TimeStamp hat sich geändert. Fall 2: Es gab einen Timeout 
+      delay(5);
     }
-  }
-
+    gewicht = (int(SCALE_GETUNITS(SCALE_READS))) - tara;
+    if (gewicht < -20) {
+ */
+      //Serial.print("Alarm #2 Glas tatsächlich entfernt ! Gewicht: ");Serial.print(gewicht);Serial.println("g");  // MarcN
+      winkel      = winkel_min;
+      servo_aktiv = 0;
+      tara_glas   = 0;
+      if ( autostart != 1 ) {  // Autostart nicht aktiv
+        auto_aktiv  = 0;
+      }
+    }
+   //}
   // Automatik ein, leeres Glas aufgesetzt, Servo aus -> Glas füllen
   if ((auto_aktiv == 1) && (abs(gewicht) <= glastoleranz) && (servo_aktiv == 0)) {
     rotary_select = SW_WINKEL;     // falls während der Parameter-Änderung ein Glas aufgesetzt wird    
@@ -1959,10 +1745,19 @@ void processAutomatik(void)
   u8g2.setFont(u8g2_font_open_iconic_play_2x_t);
   u8g2.drawGlyph(0, 40, (auto_aktiv==1)?0x45:0x44 );
 
-  u8g2.setFont(u8g2_font_courB12_tf);
+  u8g2.setFont(u8g2_font_courR08_tf);  // MarcN: Etwas kleinerer Font. Auf OLED 2.24" noch gut ablesbar.
   // Zeile oben, Öffnungswinkel absolut und Prozent, Anzeige Autostart
+  
   u8g2.setCursor(0, 11);
-  sprintf(ausgabe,"W=%-3d %2s %3d%%", winkel, (autostart==1)?"AS":"  ", pos);
+  if ((millis() - ageRefresh) > 500 ) {
+     //tmpWeightShow = millis()-rs232weight.timestamp;  // Alter des letzten Gewichtes in ms
+     tmpWeightShow = rs232weight.delta;   // Abstand der letzten beiden Messungen in ms
+     ageRefresh = millis();
+  }
+  // MarcN: Ausgabe des Deltas zwischen zwei rs232-Messungen
+  sprintf(ausgabe,"W=%3d° %2s  %3dms %3d%%", winkel, (autostart==1)?"AS":"  ", tmpWeightShow, pos);
+  //sprintf(ausgabe,"W=%-3d %2s %3d%%", winkel, (autostart==1)?"AS":"  ", pos);
+
   u8g2.print(ausgabe);
   
   u8g2.setFont(u8g2_font_courB10_tf);
@@ -2162,7 +1957,7 @@ Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);      // max3232 für geeichte Waage
          "rs232readerTaskCore0", // Name of the task
          10000,  // Stack size in words
          NULL,  // Task input parameter
-         0,  // Priority of the task. 0 is lowest prio.
+         5,  // Priority of the task. 0 is lowest prio.
          &rs232readerTaskCore0,  // Task handle.
          0       // Core where the task should run
      ); 
