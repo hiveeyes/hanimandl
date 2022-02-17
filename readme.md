@@ -23,8 +23,9 @@ Das Verhalten des Codes wird über mehrere `#define`-Variablen gesteuert.
 #define WEIGHT_TYPE 1           
   0 = für den Betrieb mit HX711 + Zelle (Urform des HaniMandl)
   Mittels rs232 angeschlossene (geeichte) Waagen:
-  1 = Delta-Cyprus (zB. TEM Waagen)
-  X = more to come.. Geplant sind die weiteren Protokolle: TEMnative,Tisa,Dialog06,Elicom
+  1 = TEMstandard (aktuell noch im Test) 
+  2 = Delta-Cyprus (zB. TEM Waagen)
+  X = more to come.. Geplant sind die weiteren Protokolle: Tisa,Dialog06,Elicom
   
   Waagen mit rs232 Schnittstelle müssen so konfiguriert werden, dass sie das
   gemessene Gewicht dauerhaft im "Delta-Cyprus"-Format übertragen.
