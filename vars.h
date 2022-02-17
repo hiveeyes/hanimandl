@@ -142,3 +142,4 @@ bool setup_modern = 1;          // Setup als rotierendes Menu
 int glastoleranz = 20;          // Gewicht für autostart darf um +-20g schwanken, insgesamt also 40g!
 
 TaskHandle_t rs232readerTaskCore0;   // MarcN: Thread auf Kern0. Liest den rs232 Puffer permanant aus
+TaskHandle_t rotarySpinTaskCore0;    // MarcN: Thread auf Kern0. Verarbeitet die Drehungen des Rotary. Alternativ zu ISR2(); 

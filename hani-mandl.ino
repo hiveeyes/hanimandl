@@ -1,5 +1,5 @@
 /*
-  Abfuellwaage Version 0.2.13alpha1
+  Abfuellwaage Version 0.2.13alpha3
   ---------------------------------
   Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker
             
@@ -75,14 +75,16 @@
   2021-11 Andreas Holzhammer | 0.2.12
                                - Glastoleranz einstellbar
                                - Komfortverstellung für Füllmengen (1g/5g/25g Schritte)
-  2022-01 Marc Junker        | 0.2.13alpha2
+  2022-01 Marc Junker        | 0.2.13alpha3
                                - Anbindung von geeichten Waagen über rs232
-                               - rs232-Reader-Thread auf Kern0
+                               - rs232-Reader-Thread auf Kern0 Prio=5
                                - Definition WEIGHT_TYPE: HX711 und dirverse rs232 Waagen
                                - Definition DISPLAY: 0.96",1,3", 2.24" OLEDs angebunden über I2C oder SPI
-                               - Implementierung des rs232-Waagenprotokolls "Delta-Cyprus"  
+                               - WORK IN PROGRESS // Implementierung des rs232-Waagenprotokolls "Delta-Cyprus"  
                                - Implementierung des rs232-Waagenprotokolls "TEMstandard" 
+                               - #define ROTARY_AS_THREAD: Verarbeitung der Drehbewegung in separatem Prio=0 Kern0 Thread oder über Interrupt auf Kern1
   
+
   This code is in the public domain.
    
   Hinweise zur Hardware
@@ -112,8 +114,14 @@
 U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
 #endif
 #if DISPLAY == 2
-U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 22, /* data=*/ 21, /* reset=*/ 16);   // 0.96" I2C am ESP32
-//U8G2_SSD1306_128X64_NONAME_F_4W_SW_SPI u8g2(U8G2_R0, 22, 21, 16, 15, 23 );  // 2.24" SPI am ESP32 WROOM
+
+//MarcN: Hier muss aufgeräumt werden.....  Aktuell noch fehlerhaft mit dem 2.24" OLED. I2C als auch SPI....
+//U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 22, /* data=*/ 21, /* reset=*/ 16);   // 0.96" I2C am ESP32
+//U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* clock=*/ 22, /* data=*/ 21, /* reset=*/ 16);   // HW I2C crashed den Code
+
+//Clemens
+//U8G2_SSD1309_128X64_NONAME0_F_4W_SW_SPI u8g2(U8G2_R0, /* clock=*/ 18, /* data=*/ 4, /* cs=*/ 15, /* dc=*/ 22, /* reset=*/ 16);
+U8G2_SSD1306_128X64_NONAME_F_4W_SW_SPI u8g2(U8G2_R0, 22, 21, 23, 15, 16 );  // 2.24" SPI am ESP32 WROOM
 #endif
 #if DISPLAY == 3
 U8G2_SSD1309_128X64_NONAME0_F_4W_SW_SPI u8g2(U8G2_R0, 22, 21, 16, 15, 23 );  // 2.24" SPI am ESP32 WROOM
@@ -160,7 +168,7 @@ void IRAM_ATTR isr1() {
 // SW_MENU      = Zähler für Menuauswahlen  
 void IRAM_ATTR isr2() {
   if (isr2running) {
-    Serial.println("ISR2 running"); // MarcN
+    //Serial.println("ISR2 running"); // MarcN
   }
   else {
     isr2running = true;
@@ -1906,8 +1914,22 @@ void setup()
 #ifdef USE_ROTARY
   pinMode(outputA,INPUT);
   pinMode(outputB,INPUT);
-  attachInterrupt(outputA, isr2, CHANGE);
+
+#ifdef ROTARY_AS_THREAD
+xTaskCreatePinnedToCore(
+         Task0_rotary, // Function to implement the task
+         "rotaryTaskCore0", // Name of the task
+         10000,  // Stack size in words
+         NULL,  // Task input parameter
+         0,  // Priority of the task. 0 is lowest prio.
+         &rotarySpinTaskCore0,  // Task handle.
+         0       // Core where the task should run
+     ); 
+#else
+ attachInterrupt(outputA, isr2, CHANGE);
 #endif
+#endif
+
 
 // switch Vcc / GND on normal pins for convenient wiring
 // output is 3.3V for VCC
@@ -1963,6 +1985,9 @@ Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);      // max3232 für geeichte Waage
          0       // Core where the task should run
      ); 
 #endif  
+
+
+
 
 
 

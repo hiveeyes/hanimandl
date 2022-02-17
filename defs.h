@@ -12,15 +12,17 @@
 #define HARDWARE_LEVEL 1        // 1 = originales Layout mit Schalter auf Pin 19/22/21
                                 // 2 = Layout für V2 mit Schalter auf Pin 23/19/22
                                 // 3 = ESP32 WROOM-32 mit externem 0.96", 1.3" oder 2.4" OLED
-#define DISPLAY 3               // 1 = 0.96" oder 1.3" OLED per I2C
-                                // 2 = 2.24" OLED per I2C
-                                // 3 = 2.24" OLED per SPI
+#define DISPLAY 2               // 1 = Heltec mit 0.96" oder 1.3" OLED per I2C
+                                // 2 = ESP32-WROOM mit 0.96" oder 1.3" OLED per I2C
+                                // 3 = 2.24" OLED per I2C
+                                // 4 = 2.24" OLED per SPI
 #define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
                                 // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
 #define ROTARY_SCALE 1          // in welchen Schritten springt unser Rotary Encoder. 
                                 // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
 #define USE_ROTARY              // Rotary benutzen
 #define USE_ROTARY_SW           // Taster des Rotary benutzen
+#define ROTARY_AS_THREAD        // Drehungen des Rotary in einem Thread auf Kern0 und nicht über Interrupts verarbeiten 
 //#define USE_POTI              // Poti benutzen -> ACHTUNG, im Normalfall auch USE_ROTARY_SW deaktivieren!
 //#define FEHLERKORREKTUR_WAAGE   // falls Gewichtssprünge auftreten, können diese hier abgefangen werden
                                 // Achtung, kann den Wägeprozess verlangsamen. Vorher Hardware prüfen.
