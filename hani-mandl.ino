@@ -1,5 +1,7 @@
-/*
-  Abfuellwaage Version 0.2.13alpha3
+
+// Abfuellwaage Version:  
+const char versionTag[] = "v.0.2.13-a3";
+/*  
   ---------------------------------
   Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker
             
@@ -2184,8 +2186,11 @@ void print_logo() {
   u8g2.setFont(u8g2_font_courB14_tf);
   u8g2.setCursor(85, 27);    u8g2.print("HANI");
   u8g2.setCursor(75, 43);    u8g2.print("MANDL");
-  u8g2.setFont(u8g2_font_courB08_tf);
-  u8g2.setCursor(77, 64);    u8g2.print("v.0.2.13");
+  //u8g2.setFont(u8g2_font_courB08_tf);
+  u8g2.setFont(u8g2_font_courR08_tf);
+  
+  u8g2.setCursor(57, 64);    u8g2.print(versionTag);       // MarcN: Angabe der Version nun ganz oben ;-)
+  //u8g2.setCursor(77, 64);    u8g2.print("v.0.2.13a3");
   u8g2.sendBuffer();
 }
 
