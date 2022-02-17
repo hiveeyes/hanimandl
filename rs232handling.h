@@ -83,6 +83,8 @@ void Task0_rs232reader( void * parameter) {
 
 
 int getWeight(int n) {
+   //return 0;
+  
   if ( (millis() - rs232weight.timestamp) < maxWeightAge) {
     return rs232weight.weight;
   }
@@ -95,4 +97,5 @@ int getWeight(int n) {
 #endif 
 return -999;
   }
+  
 }

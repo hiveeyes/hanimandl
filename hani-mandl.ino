@@ -1982,6 +1982,7 @@ xTaskCreatePinnedToCore(
 Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);      // max3232 für geeichte Waagen
   //serlen = Serial2.available();
   //MarcN: Thread auf Kern0 rs232 Waage
+  
   xTaskCreatePinnedToCore(
          Task0_rs232reader, // Function to implement the task
          "rs232readerTaskCore0", // Name of the task
@@ -1991,7 +1992,8 @@ Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);      // max3232 für geeichte Waage
          5,  // Priority of the task. 0 is lowest prio.
          &rs232readerTaskCore0,  // Task handle.
          0       // Core where the task should run
-     ); 
+     );
+  
 #endif  
 
 

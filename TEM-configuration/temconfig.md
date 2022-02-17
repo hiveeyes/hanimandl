@@ -9,7 +9,7 @@ Die Werkseinstellungen der TEM TEKO+LCD03T-P1-B1 Waage müssen unter Umständen 
 
 ```
 9. Relay Settings:
-   9.2 Communication Protocol = 1 
+   9.2 Communication Protocol = 3  (Delta-Cyprus) 
 10. Interface Settings:
   10.1 Communication = ON
   10.3 Continuous Transmitting = OFF
