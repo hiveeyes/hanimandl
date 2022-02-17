@@ -58,6 +58,11 @@ Das Verhalten des Codes wird über mehrere `#define`-Variablen gesteuert.
   ACHTUNG: falls ein Poti (siehe unten) genutzt wird, sollte diese Variable deaktiviert werden!
            Ausnahme: es wird ein dritter Taster eingebaut. Nicht unterstützt!
 
+#define ROTARY_AS_THREAD       
+  EXPERIMENTELLER HotFix: Leider gibt es beim Drehen des Rotary sporadische ESP32 Reset/Reboot´s. Die Umstellung
+  von Interrupt-basierter Verarbeitung zu einem separaten Prio 0 Kern0 Thread umgeht das Problem vorerst..
+  Finale Lösung offen.  
+
 #define USE_POTI         // Poti benutzen -> ACHTUNG, im Normalfall auch USE_ROTARY_SW deaktivieren!
   aktivieren, wenn ein Poti statt eines Rotary für die Steuerung des Interface genutzt wird
   Es wird dringend empfohlen, einen Rotary Encoder zu benutzen!
