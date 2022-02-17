@@ -1763,7 +1763,13 @@ void processAutomatik(void)
      ageRefresh = millis();
   }
   // MarcN: Ausgabe des Deltas zwischen zwei rs232-Messungen
-  sprintf(ausgabe,"W=%3d° %2s  %3dms %3d%%", winkel, (autostart==1)?"AS":"  ", tmpWeightShow, pos);
+  if (getWeight(1) == -999) {
+      sprintf(ausgabe,"W=%3d° %2s  ----- %3d%%", winkel, (autostart==1)?"AS":"  ", pos);
+  }
+  else {
+      sprintf(ausgabe,"W=%3d° %2s  %3dms %3d%%", winkel, (autostart==1)?"AS":"  ", tmpWeightShow, pos);
+  }
+  
   //sprintf(ausgabe,"W=%-3d %2s %3d%%", winkel, (autostart==1)?"AS":"  ", pos);
 
   u8g2.print(ausgabe);

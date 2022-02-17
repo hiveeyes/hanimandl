@@ -66,8 +66,8 @@ void Task0_rs232reader( void * parameter) {
     serlen = Serial2.available();    
     if ( (serlen < 6) || (serlen == 0) ) {  // Ist nach dem Trimmen noch ein Paket mit min 6 Zeichen in Puffer ? 
        // Kein vollständiger Datensatz:
-       Serial.println("Weniger als 6 Zeichen im Puffer! Möglicherweise falsches Ergebnis.");  
-       Serial2.readBytes(serbuf, Serial2.available());   // Puffer leeren
+       //Serial.println("Weniger als 6 Zeichen im Puffer! Möglicherweise falsches Ergebnis.");  
+       //Serial2.readBytes(serbuf, Serial2.available());   // Puffer leeren
     }
     else {     // alles OK ! Das Paket fängt mit + oder - an und es folgen mindestens 5 weitere Zeichen
        Serial2.readBytes(serbuf, Serial2.available());  // den gesamten rs232 Puffer laden und damit löschen
@@ -89,10 +89,10 @@ int getWeight(int n) {
   else {
     // Letzte Gewichtsmessung zu alt. Waage im Standby oder Kabel ab !
     
-//#ifdef isDebug
+#ifdef isDebug
     Serial.print("rs232 Paket zu alt ->  ");
     Serial.println(millis() - rs232weight.timestamp);
-//#endif 
+#endif 
 return -999;
   }
 }
