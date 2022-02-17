@@ -1,7 +1,7 @@
 #define WEIGHT_TYPE 2           // 0 = HX711 + Zelle
                                 // max3232 + geeichte Waage über rs232 angeschlossen:
-                                // 1 = Delta-Cyprus
-                                // 2 = TEM
+                                // 1 = TEM
+                                // 2 = Delta-Cyprus
                                 // 3 = Tisa (currently NOT supported)
                                 // 4 = Dialog06 (currently NOT supported)
                                 // 5 = Elicom (currently NOT supported)

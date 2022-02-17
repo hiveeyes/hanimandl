@@ -34,23 +34,36 @@ const int poti_pin = 39;
 const int hx711_sck_pin = 17;
 const int hx711_dt_pin  = 5;
 #endif
-// rs232 Protokoll Delta-Cyprus  
+
+// rs232  Protokoll TEMstandard    AKTUELL NICHT LAUFFÄHIG
+/* Notizen: 
+-----------
+Rohformat:
+    15:08:06.631 -> I          0B9
+    15:08:06.631 -> +   137.5kg 7B       <- Gemessenes Gewicht. +- fehlt, wenn die Messung nicht stabil ist.
+    15:08:06.667 -> t       0kg 76       <- Taragewicht
+
+serbuf[0] = I
+serbuf[16] = +,- oder " "
+atof(&serbuf[17]) = das Gewicht
+serbuf[32] = t
+*/
 #if WEIGHT_TYPE == 1      
 const int rs232Timeout = 210;  // maximale Wartezeit, um eine Antwort von der Waage zu erhalten 
 const int maxWeightAge = 450;  // Gewichtsmessungen die älter als maxWeightAge sind, werden auf -999g gesetzt
 const int rs232wait = 50;      // erzwungene Wartezeit, bevor eine neue Gewichtsabfrage gestellt werden kann
-const byte rs232request[] = {68,13,10};  // rs232-Befehl, um das Gewicht anzufordern
+const byte rs232request[] = {87,13,10};  // rs232-Befehl, um das Gewicht anzufordern: <w><CR><LF>
 const int RXD2 = 17;
 const int TXD2 = 5;
 #endif
-// rs232 Protokoll TEMstandard
+// rs232 Protokoll Delta-Cyprus
 #if WEIGHT_TYPE == 2
 const int RXD2 = 17;           // receive Pin des max3232
 const int TXD2 = 5;            // send Pin des max3232 
 const int rs232Timeout = 210;  // maximale Wartezeit, um eine Antwort von der Waage zu erhalten 
 const int maxWeightAge = 450;  // Gewichtsmessungen die älter als maxWeightAge sind, werden auf -999g gesetzt
 const int rs232wait = 50;      // erzwungene Wartezeit, bevor eine neue Gewichtsabfrage gestellt werden kann
-const byte rs232request[] = {68,13,10};  // rs232-Befehl, um das Gewicht anzufordern
+const byte rs232request[] = {68,13,10};  // rs232-Befehl, um das Gewicht anzufordern: <d><CR><LF>
 #endif
 
 // Buzzer - aktiver Piezo
