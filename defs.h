@@ -9,10 +9,10 @@
 // Hier den Code auf die verwendete Hardware einstellen
 //
 
-#define HARDWARE_LEVEL 1        // 1 = originales Layout mit Schalter auf Pin 19/22/21
+#define HARDWARE_LEVEL 3        // 1 = originales Layout mit Schalter auf Pin 19/22/21
                                 // 2 = Layout für V2 mit Schalter auf Pin 23/19/22
                                 // 3 = ESP32 WROOM-32 mit externem 0.96", 1.3" oder 2.4" OLED
-#define DISPLAY 2               // 1 = Heltec mit 0.96" oder 1.3" OLED per I2C
+#define DISPLAY 4               // 1 = Heltec mit 0.96" oder 1.3" OLED per I2C
                                 // 2 = ESP32-WROOM mit 0.96" oder 1.3" OLED per I2C
                                 // 3 = 2.24" OLED per I2C
                                 // 4 = 2.24" OLED per SPI

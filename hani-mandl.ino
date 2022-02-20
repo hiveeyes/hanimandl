@@ -116,20 +116,24 @@ const char versionTag[] = "v.0.2.13-a3";
 U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
 #endif
 #if DISPLAY == 2
-
 //MarcN: Hier muss aufgeräumt werden.....  Aktuell noch fehlerhaft mit dem 2.24" OLED. I2C als auch SPI....
 //U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 22, /* data=*/ 21, /* reset=*/ 16);   // 0.96" I2C am ESP32
 //U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* clock=*/ 22, /* data=*/ 21, /* reset=*/ 16);   // HW I2C crashed den Code
-
 //Clemens
 //U8G2_SSD1309_128X64_NONAME0_F_4W_SW_SPI u8g2(U8G2_R0, /* clock=*/ 18, /* data=*/ 4, /* cs=*/ 15, /* dc=*/ 22, /* reset=*/ 16);
-U8G2_SSD1306_128X64_NONAME_F_4W_SW_SPI u8g2(U8G2_R0, 22, 21, 23, 15, 16 );  // 2.24" SPI am ESP32 WROOM
 #endif
 #if DISPLAY == 3
-U8G2_SSD1309_128X64_NONAME0_F_4W_SW_SPI u8g2(U8G2_R0, 22, 21, 16, 15, 23 );  // 2.24" SPI am ESP32 WROOM
+//U8G2_SSD1309_128X64_NONAME0_F_4W_SW_SPI u8g2(U8G2_R0, 22, 21, 16, 15, 23 );  // 2.24" SPI am ESP32 WROOM
 #endif
-//U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ 16, /* clock=*/ 15, /* data=*/ 4);   // HW I2C crashed den Code
+#if DISPLAY == 4
+// 2.24" SPI am ESP32 WROOM
+//U8G2_SSD1306_128X64_NONAME_F_4W_SW_SPI u8g2(U8G2_R0, 22, 21, 23, 15, 16 );  
+// HSPI
+// https://www.electronicshub.org/esp32-oled-display/
+U8G2_SSD1309_128X64_NONAME0_F_4W_SW_SPI u8g2(U8G2_R0, /* clock/SCL=*/ 18, /* data/SDA/MOSI=*/ 23, /* cs=*/ 5 ,  /* dc=*/ 15, /* reset=*/ 16 );  
+//U8G2_SSD1306_128X64_NONAME_F_4W_HW_SPI u8g2(U8G2_R0, 16, 15, 18);
 
+#endif
 
 // Simuliert die Dauer des Wägeprozess, wenn keine Waage angeschlossen ist. Wirkt sich auf die Blinkfrequenz im Automatikmodus aus.
 long simulate_scale(int n) {
@@ -770,8 +774,19 @@ void setupTara(void) {
 
 
 void setupCalibration(void) {
+#if WEIGHT_TYPE != 0
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_courB12_tf);
+  u8g2.setCursor(0, 12);    u8g2.print("Bei geeichter");
+  u8g2.setCursor(0, 28);    u8g2.print("rs232-Waage");
+  u8g2.setCursor(0, 44);    u8g2.print("nicht");
+  u8g2.setCursor(0, 60);    u8g2.print("möglich..");
+  u8g2.sendBuffer();
+  delay(3000);
+  u8g2.clearBuffer();
+  u8g2.sendBuffer();
+#else
   float gewicht_raw;
-    
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_courB12_tf);
   u8g2.setCursor(0, 12);    u8g2.print("Bitte Waage");
@@ -844,6 +859,8 @@ void setupCalibration(void) {
       i = 0;        
     }
   }
+
+#endif  
 }
 
 void setupKorrektur(void) {
@@ -2089,12 +2106,14 @@ Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);      // max3232 für geeichte Waage
 ////////////////////////////////////////////////////////////////////////////////////////////////
 #else
 gewicht = getWeight(0);
-while (gewicht !=0) {
+while ( (gewicht !=0) && ( digitalRead(button_start_pin) == LOW ) ) {
   if (gewicht == -999) {
         u8g2.clearBuffer();
-        u8g2.setFont(u8g2_font_courB18_tf);
-        u8g2.setCursor( 24, 24); u8g2.print("Waage");
-        u8g2.setCursor( 10, 56); u8g2.print("starten");
+        u8g2.setFont(u8g2_font_courB14_tf);
+        u8g2.setCursor( 36, 20); u8g2.print("Waage");
+        u8g2.setCursor( 10, 42); u8g2.print("aktivieren");
+        u8g2.setFont(u8g2_font_courR08_tr);
+        u8g2.setCursor( 1, 62); u8g2.print("..oder Start druecken");
         u8g2.sendBuffer();
   }
   else if (gewicht !=0) {     

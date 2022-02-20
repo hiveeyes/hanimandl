@@ -8,14 +8,20 @@ const int servo_pin = 2;
 
 // 3x Schalter Ein 1 - Aus - Ein 2
 #if HARDWARE_LEVEL == 1
-const int switch_betrieb_pin = 19; //23;
-const int switch_vcc_pin     = 13;     // <- Vcc 
-const int switch_setup_pin   = 27;//22;
+const int switch_betrieb_pin = 19;
+const int switch_vcc_pin     = 22;     // <- Vcc
+const int switch_setup_pin   = 21;
 #elif HARDWARE_LEVEL == 2
+const int switch_betrieb_pin = 23;
+const int switch_vcc_pin     = 19;     // <- Vcc
+const int switch_setup_pin   = 22;
+const int vext_ctrl_pin      = 21;     // Vext control pin
+#elif HARDWARE_LEVEL == 3
+// Platine Sebastian: ESP32-WROOM + 2.24" OLED SPI
 const int switch_betrieb_pin = 19; //23;
 const int switch_vcc_pin     = 13;     // <- Vcc 
 const int switch_setup_pin   = 27;//22;
-const int vext_ctrl_pin      = 18;     // Vext control pin
+//const int vext_ctrl_pin      = 18;     // Vext control pin
 #else
 #error Hardware Level nicht definiert! Korrektes #define setzen!
 #endif
@@ -32,7 +38,7 @@ const int poti_pin = 39;
 // Wägezelle-IC HX711
 #if WEIGHT_TYPE == 0
 const int hx711_sck_pin = 17;
-const int hx711_dt_pin  = 5;
+const int hx711_dt_pin  = 4;
 #endif
 
 // rs232  Protokoll TEMstandard    AKTUELL NICHT LAUFFÄHIG
@@ -54,12 +60,12 @@ const int maxWeightAge = 450;  // Gewichtsmessungen die älter als maxWeightAge 
 const int rs232wait = 50;      // erzwungene Wartezeit, bevor eine neue Gewichtsabfrage gestellt werden kann
 const byte rs232request[] = {87,13,10};  // rs232-Befehl, um das Gewicht anzufordern: <w><CR><LF>
 const int RXD2 = 17;
-const int TXD2 = 5;
+const int TXD2 = 4;
 #endif
 // rs232 Protokoll Delta-Cyprus
 #if WEIGHT_TYPE == 2
 const int RXD2 = 17;           // receive Pin des max3232
-const int TXD2 = 5;            // send Pin des max3232 
+const int TXD2 = 4;            // send Pin des max3232 
 const int rs232Timeout = 210;  // maximale Wartezeit, um eine Antwort von der Waage zu erhalten 
 const int maxWeightAge = 450;  // Gewichtsmessungen die älter als maxWeightAge sind, werden auf -999g gesetzt
 const int rs232wait = 50;      // erzwungene Wartezeit, bevor eine neue Gewichtsabfrage gestellt werden kann
