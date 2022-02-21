@@ -1,4 +1,4 @@
-#define WEIGHT_TYPE 2           // 0 = HX711 + Zelle
+#define WEIGHT_TYPE 0           // 0 = HX711 + Zelle
                                 // max3232 + geeichte Waage über rs232 angeschlossen:
                                 // 1 = TEM (currently NOT supported)
                                 // 2 = Delta-Cyprus
@@ -41,9 +41,11 @@
 
 // Ansteuerung der Waage
 #define SCALE_READS 2      // Parameter für hx711 Library. Messwert wird aus der Anzahl gemittelt
-//#define SCALE_GETUNITS(n)  (waage_vorhanden ? round(scale.get_units(n)) : simulate_scale(n) )
-//#define SCALE_GETUNITS(n)  (waage_vorhanden ? getWeight(n) : simulate_scale(n) )
-#define SCALE_GETUNITS(n)  getWeight(n)
+#if WEIGHT_TYPE == 0
+  #define SCALE_GETUNITS(n)  (waage_vorhanden ? round(scale.get_units(n)) : simulate_scale(n) )
+#else
+  #define SCALE_GETUNITS(n)  getWeight(n)
+#endif
 
 
 // Ansteuerung Servo

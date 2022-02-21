@@ -1,6 +1,6 @@
 
 // Abfuellwaage Version:  
-const char versionTag[] = "v.0.2.13-a4";
+const char versionTag[] = "v.0.2.13-a4a";
 /*  
   ---------------------------------
   Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker
@@ -101,11 +101,16 @@ const char versionTag[] = "v.0.2.13-a4";
 #include <ESP32Servo.h>   /* aus dem Bibliotheksverwalter */
 #include <Preferences.h>  /* aus dem BSP von expressif, wird verfügbar wenn das richtige Board ausgewählt ist */
 #include "defs.h"
-#include "vars.h"
-#include "rs232handling.h"
 #if WEIGHT_TYPE == 0      
-#include <HX711.h>        /* aus dem Bibliotheksverwalter: "HX711 Arduino Library" by Bogdan Necula, Andreas Motl */
+  #include <HX711.h>        /* aus dem Bibliotheksverwalter: "HX711 Arduino Library" by Bogdan Necula, Andreas Motl */
+  #include "vars.h"
+#else
+  #include "vars.h"
+  #include "rs232handling.h"  
 #endif
+#include "tools.h"
+
+
 
 
 // ** Definition der pins 
@@ -801,8 +806,8 @@ void setupCalibration(void) {
       return;
          
     if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
-      //scale.set_scale();  // MarcN: für rs232 Test erstmal raus
-      //scale.tare(10);
+      scale.set_scale();
+      scale.tare(10);
       delay(500);
         i = 0;
     }
@@ -841,10 +846,10 @@ void setupCalibration(void) {
       u8g2.setCursor(0, 44);    u8g2.print("und mit OK");
       u8g2.setCursor(0, 60);    u8g2.print("bestätigen");
       u8g2.sendBuffer();
-      //gewicht_raw  = scale.get_units(10); // MarcN: rs232 Test erstmal raus
-      //faktor       = gewicht_raw / kali_gewicht;
-      //scale.set_scale(faktor);
-      //gewicht_leer = scale.get_offset();    // Leergewicht der Waage speichern
+      gewicht_raw  = scale.get_units(10);
+      faktor       = gewicht_raw / kali_gewicht;
+      scale.set_scale(faktor);
+      gewicht_leer = scale.get_offset();    // Leergewicht der Waage speichern
 #ifdef isDebug
       Serial.print("kalibrier_gewicht = ");
       Serial.println(kali_gewicht);
@@ -1772,6 +1777,11 @@ void processAutomatik(void)
   u8g2.setFont(u8g2_font_open_iconic_play_2x_t);
   u8g2.drawGlyph(0, 40, (auto_aktiv==1)?0x45:0x44 );
 
+  
+  #if WEIGHT_TYPE == 0
+    sprintf(ausgabe,"W=%-3d %2s %3d%%", winkel, (autostart==1)?"AS":"  ", pos);
+    u8g2.setFont(u8g2_font_courB12_tf);
+  #else
   u8g2.setFont(u8g2_font_courR08_tf);  // MarcN: Etwas kleinerer Font. Auf OLED 2.24" noch gut ablesbar.
   // Zeile oben, Öffnungswinkel absolut und Prozent, Anzeige Autostart
   
@@ -1788,9 +1798,9 @@ void processAutomatik(void)
   else {
       sprintf(ausgabe,"W=%3d° %2s  %3dms %3d%%", winkel, (autostart==1)?"AS":"  ", tmpWeightShow, pos);
   }
-  
-  //sprintf(ausgabe,"W=%-3d %2s %3d%%", winkel, (autostart==1)?"AS":"  ", pos);
+  #endif
 
+  
   u8g2.print(ausgabe);
   
   u8g2.setFont(u8g2_font_courB10_tf);
@@ -2145,7 +2155,7 @@ while ( (gewicht !=0) && ( digitalRead(button_start_pin) == LOW ) ) {
 void loop()
 {
   rotating = true;     // debounce Management
-  
+
   // Setup Menu 
   if ((digitalRead(switch_setup_pin)) == HIGH)
     processSetup();
