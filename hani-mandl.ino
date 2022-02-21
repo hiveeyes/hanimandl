@@ -1,6 +1,6 @@
 
 // Abfuellwaage Version:  
-const char versionTag[] = "v.0.2.13-a3";
+const char versionTag[] = "v.0.2.13-a4";
 /*  
   ---------------------------------
   Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker
@@ -100,9 +100,9 @@ const char versionTag[] = "v.0.2.13-a3";
 #include <U8g2lib.h>      /* aus dem Bibliotheksverwalter */
 #include <ESP32Servo.h>   /* aus dem Bibliotheksverwalter */
 #include <Preferences.h>  /* aus dem BSP von expressif, wird verfügbar wenn das richtige Board ausgewählt ist */
-#include <defs.h>
-#include <vars.h>
-#include <rs232handling.h>
+#include "defs.h"
+#include "vars.h"
+#include "rs232handling.h"
 #if WEIGHT_TYPE == 0      
 #include <HX711.h>        /* aus dem Bibliotheksverwalter: "HX711 Arduino Library" by Bogdan Necula, Andreas Motl */
 #endif
