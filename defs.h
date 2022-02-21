@@ -1,4 +1,4 @@
-#define WEIGHT_TYPE 0           // 0 = HX711 + Zelle
+#define WEIGHT_TYPE 2           // 0 = HX711 + Zelle
                                 // max3232 + geeichte Waage über rs232 angeschlossen:
                                 // 1 = TEM (currently NOT supported)
                                 // 2 = Delta-Cyprus
