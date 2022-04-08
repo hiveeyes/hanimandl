@@ -2037,13 +2037,20 @@ Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);      // max3232 für geeichte Waage
   print_logo();
   delay(1000);
   print_credits();
+
+  #ifndef ACTIVE_BUZZER
   #ifdef ichhabeeinenpassivenbuzzerundichliebestarwars
     starwarsTheme();
-  #else  
+  #else
+    buzzer(BUZZER_SHORT);
+    delay(2000); 
+  #endif
+  #else 
     buzzer(BUZZER_SHORT);
     delay(2000);
-  #endif
-
+  #endif  
+  
+  
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2235,49 +2242,66 @@ void buzzer(byte type) {
   if (buzzermode == 1) {
     switch (type) {
       case BUZZER_SHORT: //short
-        //digitalWrite(buzzer_pin,HIGH);
-        tone(buzzer_pin ,800);
-        delay(100);
-        //digitalWrite(buzzer_pin,LOW);
-        noTone(buzzer_pin);
-        break;
-
+        #ifdef ACTIVE_BUZZER
+          digitalWrite(buzzer_pin,HIGH);
+          delay(100);
+          digitalWrite(buzzer_pin,LOW);
+        #else  
+          tone(buzzer_pin ,800);
+          delay(100);
+          noTone(buzzer_pin);
+        #endif  
+      break;
       case BUZZER_LONG: //long
-        //digitalWrite(buzzer_pin,HIGH);
-        tone(buzzer_pin ,800);
-        delay(500);
-        //digitalWrite(buzzer_pin,LOW);
-        noTone(buzzer_pin);
-        break;
-
+       #ifdef ACTIVE_BUZZER
+          digitalWrite(buzzer_pin,HIGH);
+          delay(500);
+          digitalWrite(buzzer_pin,LOW);
+        #else  
+          tone(buzzer_pin ,800);
+          delay(500);
+          noTone(buzzer_pin);
+        #endif   
+      break;
       case BUZZER_SUCCESS: //success
-        //digitalWrite(buzzer_pin,HIGH);
+        #ifdef ACTIVE_BUZZER
+        digitalWrite(buzzer_pin,HIGH);
+        delay(100);
+        digitalWrite(buzzer_pin,LOW);
+        delay(100);
+        digitalWrite(buzzer_pin,HIGH);
+        delay(100);
+        digitalWrite(buzzer_pin,LOW);
+        delay(100);
+        digitalWrite(buzzer_pin,HIGH);
+        delay(100);
+        digitalWrite(buzzer_pin,LOW);
+        delay(100);
+        #else
         tone(buzzer_pin ,800);
         delay(100);
-        //digitalWrite(buzzer_pin,LOW);
         noTone(buzzer_pin);
         delay(100);
-        //digitalWrite(buzzer_pin,HIGH);
         tone(buzzer_pin ,800);
         delay(100);
-        //digitalWrite(buzzer_pin,LOW);
         noTone(buzzer_pin);
         delay(100);
-        //digitalWrite(buzzer_pin,HIGH);
         tone(buzzer_pin ,800);
         delay(100);
-        //digitalWrite(buzzer_pin,LOW);
         noTone(buzzer_pin);
-        delay(100);
+        #endif
         break;
-
       case BUZZER_ERROR: //error
-        //digitalWrite(buzzer_pin,HIGH);
+      #ifdef ACTIVE_BUZZER
+        digitalWrite(buzzer_pin,HIGH);
+        delay(1500);
+        digitalWrite(buzzer_pin,LOW);
+      #else  
         tone(buzzer_pin ,800);
         delay(1500);
-        //digitalWrite(buzzer_pin,LOW);
         noTone(buzzer_pin);
-        break;
+      #endif  
+      break;
     }
   }
 }

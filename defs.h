@@ -70,7 +70,7 @@
 #define MODE_HANDBETRIEB 2
 
 // BUZZER Modus
-#define ACTIVE_BUZZER
+//#define ACTIVE_BUZZER
 #define ichhabeeinenpassivenbuzzerundichliebestarwars
 
 // Buzzer Sounds

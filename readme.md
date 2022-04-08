@@ -70,6 +70,12 @@ Das Verhalten des Codes wird über mehrere `#define`-Variablen gesteuert.
 #define FEHLERKORREKTUR_WAAGE   // falls Gewichtssprünge auftreten, können diese hier abgefangen werden
   Achtung, kann den Wägeprozess verlangsamen. Vorher Wägezellen/HX711 prüfen!
 
+#define ACTIVE_BUZZER     
+  Die aktuelle Servo-Lib nutzt nun andere Timer als tone(). Damit können auch wieder passive Piezo verbaut und angeschlossen werden
+
+#define ichhabeeinenpassivenbuzzerundichliebestarwars
+  ;-)  
+
 #define QUETSCHHAHN_LINKS
   Servo invertieren, falls der Quetschhahn von links geöffnet wird. Mindestens ein Exemplar eines solchen Eimers ist bekannt
 ```
