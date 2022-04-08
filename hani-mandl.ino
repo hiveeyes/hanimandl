@@ -1,6 +1,6 @@
 
 // Abfuellwaage Version:  
-const char versionTag[] = "v.0.2.13-a4a";
+const char versionTag[] = "v.0.2.13-a4d";
 /*  
   ---------------------------------
   Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker
@@ -85,7 +85,7 @@ const char versionTag[] = "v.0.2.13-a4a";
                                - WORK IN PROGRESS // Implementierung des rs232-Waagenprotokolls "Delta-Cyprus"  
                                - Implementierung des rs232-Waagenprotokolls "TEMstandard" 
                                - #define ROTARY_AS_THREAD: Verarbeitung der Drehbewegung in separatem Prio=0 Kern0 Thread oder über Interrupt auf Kern1
-  
+                               - #define ACTIVE_BUZZER: Die aktuelle Servo-Lib nutzt nicht mehr den timer von tone(). Damit können auch wieder passive Piezos verbaut werden
 
   This code is in the public domain.
    
@@ -109,9 +109,8 @@ const char versionTag[] = "v.0.2.13-a4a";
   #include "rs232handling.h"  
 #endif
 #include "tools.h"
-
-
-
+//#include <ServoEasing.h>
+//ServoEasing servo0;
 
 // ** Definition der pins 
 // ----------------------
@@ -1614,6 +1613,7 @@ void processAutomatik(void)
   // Automatik ein, leeres Glas aufgesetzt, Servo aus -> Glas füllen
   if ((auto_aktiv == 1) && (abs(gewicht) <= glastoleranz) && (servo_aktiv == 0)) {
     rotary_select = SW_WINKEL;     // falls während der Parameter-Änderung ein Glas aufgesetzt wird    
+    buzzer(BUZZER_SHORT);          // MarcN: Signal direkt bei erkanntem Glas
     u8g2.clearBuffer();
     u8g2.setFont(u8g2_font_courB24_tf);
     u8g2.setCursor(15, 43);
@@ -1636,7 +1636,7 @@ void processAutomatik(void)
       sammler_num = 0;
       voll = false; //Kud
       gezaehlt = false; //Kud
-      buzzer(BUZZER_SHORT);
+      //buzzer(BUZZER_SHORT);    // MarcN
     }
   }
   zielgewicht = fmenge + korrektur + tara_glas + autokorrektur_gr;
@@ -1652,10 +1652,11 @@ void processAutomatik(void)
     voll = true;//Kud                          
     if ( (gewicht == gewicht_vorher) && (sammler_num < 5) ) {   // wir wollen 5x das identische Gewicht sehen  
       sammler_num++;
+      delay(200);   // MarcN: der rs232 thread liefert die Daten sonst zu "schnell". Wir wollen 5x200ms=1sec abwarten
     } else if ( gewicht != gewicht_vorher ) {             // sonst gewichtsänderung nachführen
       gewicht_vorher = gewicht;
       sammler_num = 0;
-    } else if ( sammler_num == 5 ) {                      // gewicht ist 5x identisch, autokorrektur bestimmen
+    } else if ( sammler_num == 5 ) {                      // MarcNneu 10x zuvor:  alt:gewicht ist 5x identisch, autokorrektur bestimmen
       autokorrektur_gr = (fmenge + kulanz_gr + tara_glas) - (gewicht - autokorrektur_gr);
       if ( korrektur + autokorrektur_gr > kulanz_gr ) {   // Autokorrektur darf nicht überkorrigieren, max Füllmenge plus Kulanz
         autokorrektur_gr = kulanz_gr - korrektur;
@@ -1691,7 +1692,7 @@ void processAutomatik(void)
     servo_aktiv = 1;
     voll = false; //Kud
     gezaehlt = false;//Kud
-    buzzer(BUZZER_SHORT);
+    // buzzer(BUZZER_SHORT);      // MarcN
   }
   
   if (servo_aktiv == 1) {
@@ -1710,7 +1711,7 @@ void processAutomatik(void)
   if ((servo_aktiv == 1) && (gewicht >= zielgewicht)) {
     winkel      = winkel_min;
     servo_aktiv = 0;
-
+    //delay(3000);      // MarcN: Kurz warten, da Nachlauf
     if (gezaehlt == false) { //Kud
       glaeser[fmenge_index].TripCount++;
       glaeser[fmenge_index].Count++;
@@ -1721,7 +1722,7 @@ void processAutomatik(void)
       auto_aktiv = 0;
     if ( autokorrektur == 1 )   // autokorrektur, gewicht merken
       gewicht_vorher = gewicht;
-    buzzer(BUZZER_SHORT);
+    //buzzer(BUZZER_SHORT);
   }
   
   SERVO_WRITE(winkel);
@@ -2034,10 +2035,14 @@ Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);      // max3232 für geeichte Waage
   u8g2.enableUTF8Print();
   u8g2.clearBuffer();
   print_logo();
-  buzzer(BUZZER_SHORT);
-  delay(2000);
-  print_credits();   
-  delay(4000);
+  delay(1000);
+  print_credits();
+  #ifdef ichhabeeinenpassivenbuzzerundichliebestarwars
+    starwarsTheme();
+  #else  
+    buzzer(BUZZER_SHORT);
+    delay(2000);
+  #endif
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2230,35 +2235,48 @@ void buzzer(byte type) {
   if (buzzermode == 1) {
     switch (type) {
       case BUZZER_SHORT: //short
-        digitalWrite(buzzer_pin,HIGH);
+        //digitalWrite(buzzer_pin,HIGH);
+        tone(buzzer_pin ,800);
         delay(100);
-        digitalWrite(buzzer_pin,LOW);
+        //digitalWrite(buzzer_pin,LOW);
+        noTone(buzzer_pin);
         break;
 
       case BUZZER_LONG: //long
-        digitalWrite(buzzer_pin,HIGH);
+        //digitalWrite(buzzer_pin,HIGH);
+        tone(buzzer_pin ,800);
         delay(500);
-        digitalWrite(buzzer_pin,LOW);
+        //digitalWrite(buzzer_pin,LOW);
+        noTone(buzzer_pin);
         break;
 
       case BUZZER_SUCCESS: //success
-        digitalWrite(buzzer_pin,HIGH);
+        //digitalWrite(buzzer_pin,HIGH);
+        tone(buzzer_pin ,800);
         delay(100);
-        digitalWrite(buzzer_pin,LOW);
+        //digitalWrite(buzzer_pin,LOW);
+        noTone(buzzer_pin);
         delay(100);
-        digitalWrite(buzzer_pin,HIGH);
+        //digitalWrite(buzzer_pin,HIGH);
+        tone(buzzer_pin ,800);
         delay(100);
-        digitalWrite(buzzer_pin,LOW);
+        //digitalWrite(buzzer_pin,LOW);
+        noTone(buzzer_pin);
         delay(100);
-        digitalWrite(buzzer_pin,HIGH);
+        //digitalWrite(buzzer_pin,HIGH);
+        tone(buzzer_pin ,800);
         delay(100);
-        digitalWrite(buzzer_pin,LOW);
+        //digitalWrite(buzzer_pin,LOW);
+        noTone(buzzer_pin);
+        delay(100);
         break;
 
       case BUZZER_ERROR: //error
-        digitalWrite(buzzer_pin,HIGH);
+        //digitalWrite(buzzer_pin,HIGH);
+        tone(buzzer_pin ,800);
         delay(1500);
-        digitalWrite(buzzer_pin,LOW);
+        //digitalWrite(buzzer_pin,LOW);
+        noTone(buzzer_pin);
         break;
     }
   }

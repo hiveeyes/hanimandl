@@ -18,7 +18,7 @@
                                 // 4 = 2.24" OLED per SPI
 #define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
                                 // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
-#define ROTARY_SCALE 1          // in welchen Schritten springt unser Rotary Encoder. 
+#define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder. 
                                 // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
 #define USE_ROTARY              // Rotary benutzen
 #define USE_ROTARY_SW           // Taster des Rotary benutzen
@@ -69,9 +69,14 @@
 #define MODE_AUTOMATIK   1
 #define MODE_HANDBETRIEB 2
 
+// BUZZER Modus
+#define ACTIVE_BUZZER
+#define ichhabeeinenpassivenbuzzerundichliebestarwars
+
 // Buzzer Sounds
 #define BUZZER_SHORT   1
 #define BUZZER_LONG    2
 #define BUZZER_SUCCESS 3
 #define BUZZER_ERROR   4
+
 

@@ -1,6 +1,6 @@
 // Rotary Encoder
-const int outputA  = 33;
-const int outputB  = 26;
+const int outputB  = 33;
+const int outputA  = 26;
 const int outputSW = 32;
 
 // Servo
