@@ -75,6 +75,8 @@
                                  Servo-defaults für die neue Bibliothek angepasst
   2021-01 Andreas Motl       | Version 0.2.9.1
                                - PlatformIO-Support an neue Servo-Bibliothek angepasst
+  2022-08 Johannes Arndt     | Version 0.2.9.2
+                               - PlatformIO-Support fuer espressif32 bei Version 3.5.0 eingeforen 
 
 
   This code is in the public domain.
