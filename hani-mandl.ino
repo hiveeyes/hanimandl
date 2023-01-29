@@ -1,19 +1,19 @@
 /*
-  Abfuellwaage Version 0.2.12
-  ---------------------------
-  Copyright (C) 2018-2020 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker
+  HaniMandl Version 0.2.13
+  ------------------------
+  Copyright (C) 2018-2023 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker
             
-  2018-05 Marc Vasterling    | initial version, 
-                               published in the Facebook group "Imkerei und Technik. Eigenbau",
+  2018-05 Marc Vasterling    | initiale Version, 
+                               veröffentlicht in der Facebook-Gruppe "Imkerei und Technik. Eigenbau",
                                Marc Vasterling: "meinen Code kann jeder frei verwenden, ändern und hochladen wo er will, solange er nicht seinen eigenen Namen drüber setzt."
-  2018-06 Marc Vasterling    | improved version, 
-                               published in the Facebook group also
+  2018-06 Marc Vasterling    | verbesserte Version, 
+                               ebenfalls veröffentlicht in der Facebook-Gruppe
   2019-01 Marc Wetzel        | Refakturierung und Dokumentation, 
-                               published in the Facebook group also
+                               ebenfalls veröffentlicht in der Facebook-Gruppe
   2019-02 Clemens Gruber     | code beautifying mit kleineren Umbenennungen bei Funktionen und Variablen
-                               Anpssung fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
-                               - pins bei OLED-Initialisierung geaendert
-                               - pins geaendert, um Konflikte mit hard wired pins des OLEDs zu vermeiden 
+                               Anpassung für Heltec WiFi Kit 32 (ESP32 onboard OLED) 
+                               - pins bei OLED-Initialisierung geändert
+                               - pins geändert, um Konflikte mit hard wired pins des OLEDs zu vermeiden 
   2019-02 Clemens Gruber     | Aktivierung der internen pull downs für alle digitalen Eingaenge
   2019-02 Clemens Gruber     | "normale" pins zu Vcc / GND geaendert um die Verkabelung etwas einfacher und angenehmer zu machen
   2020-05 Andreas Holzhammer | Anpassungen an das veränderte ;-( pin-Layout der Version 2 des Heltec 
@@ -59,7 +59,7 @@
                                  werden (nicht jeder hat 500g als Eichgewicht) und wird nichtflüchtig gespeichert
                                - rotierendes Hauptmenü
                                - Umkehrbarer Servo für linksseitige Quetschhähne :-)
-  2020-10 Andreas Holzhammer
+  2020-10 Andreas Holzhammer | 0.2.8.1
                                - Bugfix: Servo konnte im Manuellen Modus unter Minimum bewegt werden
                                - Glastoleranz über Variable steuerbar auf +-20g angepasst 
   2020-12 Andreas Holzhammer | 0.2.9
@@ -75,9 +75,14 @@
   2021-11 Andreas Holzhammer | 0.2.12
                                - Glastoleranz einstellbar
                                - Komfortverstellung für Füllmengen (1g/5g/25g Schritte)
-  
+  2023-01 Clemens Gruber     | 0.2.13
+                               - pin-Anpassungen für Hardware-Version V3 des Heltec "WiFi Kit 32 V3" mit wieder mal geändertem pin-Layout
+                               - Anpassungen für den ESP32 Arduino core Version ≥ 2.x
+                                 - Display, U8g2: HW statt SW im constructor (ggf. Probleme mit älteren Heltec-Versionen)
+                                 - Rotary: de-bouncing code im isr2 auskommentiert, da sie zu Abstürzen führte
+
   This code is in the public domain.
-   
+  
   Hinweise zur Hardware
   ---------------------
   - bei allen digitalen Eingängen sind interne pull downs aktiviert, keine externen-Widerstände nötig! 
@@ -94,7 +99,8 @@
 // Hier den Code auf die verwendete Hardware einstellen
 //
 #define HARDWARE_LEVEL 2        // 1 = originales Layout mit Schalter auf Pin 19/22/21
-                                // 2 = Layout für V2 mit Schalter auf Pin 23/19/22
+                                // 2 = Layout für Heltec V2 mit Schalter auf Pin 23/19/22
+                                // 3 = Layout für Heltec V3 mit komplett anderer Pinbelegung 
 #define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
                                 // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
 #define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder. 
@@ -112,7 +118,9 @@
 //
 // Ab hier nur verstellen wenn Du genau weisst, was Du tust!
 //
-//#define isDebug 3             // serielle debug-Ausgabe aktivieren. Mit >3 wird jeder Messdurchlauf ausgegeben
+//#define isDebug 4             // serielle debug-Ausgabe aktivieren. Mit > 3 wird jeder Messdurchlauf ausgegeben
+                                // mit 4 zusätzlich u.a. Durchlaufzeiten
+                                // mit 5 zusätzlich rotary debug-Infos
                                 // ACHTUNG: zu viel Serieller Output kann einen ISR-Watchdog Reset auslösen!
 //#define POTISCALE             // Poti simuliert eine Wägezelle, nur für Testbetrieb!
 #define MAXIMALGEWICHT 1000     // Maximales Gewicht
@@ -151,9 +159,53 @@
 // ** Definition der pins 
 // ----------------------
 
+// Heltec Version 3
+//
+#if HARDWARE_LEVEL == 3
 // OLED fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
-U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
-//U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ 16, /* clock=*/ 15, /* data=*/ 4);   // HW I2C crashed den Code
+//U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
+// für den ESP32 Arduino core Version ≥ 2.x brauchen wir HW I2C, mit SW I2C läuft der code zu langsam
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ 21, /* clock=*/ 18, /* data=*/ 17);
+
+// Rotary Encoder
+const int outputA  = 47;  // Clk
+const int outputB  = 48;  // DT 
+const int outputSW = 26;
+
+// Servo
+const int servo_pin = 33;
+
+// 3x Schalter Ein 1 - Aus - Ein 2
+const int switch_betrieb_pin = 40;
+const int switch_vcc_pin     = 41;     // <- Vcc
+const int switch_setup_pin   = 42;
+const int vext_ctrl_pin      = 36;     // Vext control pin
+
+// Taster 
+const int button_start_vcc_pin =  7;  // <- Vcc
+const int button_start_pin     =  6;
+const int button_stop_vcc_pin  =  5;  // <- Vcc
+const int button_stop_pin      =  4;
+
+// Poti
+//const int poti_pin = 39;
+
+// Wägezelle-IC
+const int hx711_sck_pin = 38;
+const int hx711_dt_pin  = 39;
+
+// Buzzer - aktiver Piezo
+static int buzzer_pin = 2;
+
+
+#elif HARDWARE_LEVEL == 2
+//
+// Heltec Version 2
+
+// OLED fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
+//U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
+// für den ESP32 Arduino core Version ≥ 2.x brauchen wir HW I2C, mit SW I2C läuft der code zu langsam
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ 16, /* clock=*/ 15, /* data=*/ 4);
 
 // Rotary Encoder
 const int outputA  = 33;
@@ -164,18 +216,10 @@ const int outputSW = 32;
 const int servo_pin = 2;
 
 // 3x Schalter Ein 1 - Aus - Ein 2
-#if HARDWARE_LEVEL == 1
-const int switch_betrieb_pin = 19;
-const int switch_vcc_pin     = 22;     // <- Vcc 
-const int switch_setup_pin   = 21;
-#elif HARDWARE_LEVEL == 2
 const int switch_betrieb_pin = 23;
 const int switch_vcc_pin     = 19;     // <- Vcc 
 const int switch_setup_pin   = 22;
 const int vext_ctrl_pin      = 21;     // Vext control pin
-#else
-#error Hardware Level nicht definiert! Korrektes #define setzen!
-#endif
 
 // Taster 
 const int button_start_vcc_pin = 13;  // <- Vcc 
@@ -192,6 +236,48 @@ const int hx711_dt_pin  = 5;
 
 // Buzzer - aktiver Piezo
 static int buzzer_pin = 25;
+
+
+#elif HARDWARE_LEVEL == 1
+//
+// Heltec Version 1
+
+// OLED fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
+U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
+//U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ 16, /* clock=*/ 15, /* data=*/ 4);   // HW I2C crashed den Code
+
+// Rotary Encoder
+const int outputA  = 33;
+const int outputB  = 26;
+const int outputSW = 32;
+
+// Servo
+const int servo_pin = 2;
+
+// 3x Schalter Ein 1 - Aus - Ein 2
+const int switch_betrieb_pin = 19;
+const int switch_vcc_pin     = 22;     // <- Vcc 
+const int switch_setup_pin   = 21;
+
+// Taster 
+const int button_start_vcc_pin = 13;  // <- Vcc 
+const int button_start_pin     = 12;
+const int button_stop_vcc_pin  = 14;  // <- Vcc 
+const int button_stop_pin      = 27;
+
+// Poti
+const int poti_pin = 39;
+
+// Wägezelle-IC 
+const int hx711_sck_pin = 17;
+const int hx711_dt_pin  = 5;
+
+// Buzzer - aktiver Piezo
+static int buzzer_pin = 25;
+#else
+#error Hardware Level nicht definiert! Korrektes #define setzen!
+#endif
+
 
 Servo servo;
 HX711 scale;
@@ -301,8 +387,10 @@ void IRAM_ATTR isr1() {
 void IRAM_ATTR isr2() {
   static int aState;
   static int aLastState = 2;  // reale Werte sind 0 und 1
-  
-  if ( rotating ) delay (1);  // wait a little until the bouncing is done
+
+// auskommentiert, da vermutlich das delay in der isr-Funktion ein reset ab ESP32 Arduino core Version ≥ 2.x auslöst
+// beobachten, ob damit das bouncing ein Problem wird, in rudimentären Tests konnte ich (cg) nichts negatives beobachten
+//  if ( rotating ) delay (1);  // wait a little until the bouncing is done
    
   aState = digitalRead(outputA); // Reads the "current" state of the outputA
     if (aState != aLastState) {     
