@@ -2304,7 +2304,7 @@ void print_logo() {
   u8g2.setCursor(85, 27);    u8g2.print("HANI");
   u8g2.setCursor(75, 43);    u8g2.print("MANDL");
   u8g2.setFont(u8g2_font_courB08_tf);
-  u8g2.setCursor(77, 64);    u8g2.print("v.0.2.12");
+  u8g2.setCursor(77, 64);    u8g2.print("v.0.2.13");
   u8g2.sendBuffer();
 }
 
