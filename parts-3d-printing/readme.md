@@ -38,5 +38,3 @@ Von Ralf Näke gibt es eine Halterung, welche direkt am Quetschhahn befestigt wi
 https://www.printables.com/de/model/524971-filling-machine-hanimandl
 
 <img src="./variante-5_dresden/hanimandl-dresden-1.jpg" width="350">
-
-
