@@ -29,3 +29,14 @@ HaniMandl wie eine "klassische" Waage von JoSef.
 Von Markus Straub / merlin2539 gibt es bei thingiverse eine einfache Halterung, die ähnlich wie die zugeschnittene Platte von Sebastian (siehe https://community.hiveeyes.org/t/side-project-hanimandl-halbautomatischer-honig-abfullbehalter/768/65) mit den Schrauben des Quetschhahns befestigt wird:
 
 https://www.thingiverse.com/thing:4564453
+
+
+## Variante 5 / Dresden 
+
+Von Ralf Näke gibt es eine Halterung, welche direkt am Quetschhahn befestigt wird und den Schieber über einen Zahnradantrieb bewegt. Die Waage und die Kontrolleinheit werden in separaten Gehäusen untergebracht. Alle 3D-Druck-Teile und das komplette CAD-Projekt sind verfügbar unter:
+
+https://www.printables.com/de/model/524971-filling-machine-hanimandl
+
+<img src="./variante-5_dresden/hanimandl-dresden-1.jpg" width="350">
+
+
