@@ -11,10 +11,4 @@ Einige Videos dieser Variante in Aktion sind hier zu finden: \
 Abfüllung 250g: https://www.youtube.com/watch?v=SyjUTZp4k2A \
 Abfüllung 500g: https://youtube.com/watch?v=RO7_LGpqIUE
 
-
 Alle 3D-Druck-Teile der "Variante 5 / Dresden" sind verfügbar unter https://www.printables.com/de/model/524971-filling-machine-hanimandl. Dort liegt auch das komplette CAD-Projekt, falls noch Modifikationen nötig sind (z.B. wenn andere Taster oder Bedienelemente verwendet werden sollen).
-
-
-
-
-
