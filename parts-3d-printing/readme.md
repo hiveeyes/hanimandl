@@ -33,7 +33,7 @@ https://www.thingiverse.com/thing:4564453
 
 ## Variante 5 / Dresden 
 
-Von Ralf Näke gibt es eine Halterung, welche direkt am Quetschhahn befestigt wird und den Schieber über einen Zahnradantrieb bewegt. Die Waage und die Kontrolleinheit werden in separaten Gehäusen untergebracht. Alle 3D-Druck-Teile und das komplette CAD-Projekt sind verfügbar unter:
+Von Ralf / rallef80 gibt es eine Halterung, welche direkt am Quetschhahn befestigt wird und den Schieber über einen Zahnradantrieb bewegt. Die Waage und die Kontrolleinheit werden in separaten Gehäusen untergebracht. Alle 3D-Druck-Teile und das komplette CAD-Projekt sind verfügbar unter:
 
 https://www.printables.com/de/model/524971-filling-machine-hanimandl
 
