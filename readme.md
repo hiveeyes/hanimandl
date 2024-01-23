@@ -213,3 +213,10 @@ Die Datei `hani-mandl.bin` wurde mit folgenden Parametern für das Board Heltec 
 
 Eine Anleitung zum Flashen der Binär-Datei gibt es unter
 http://hanimandl.de/2020/12/23/firmware-binary-flashen/
+
+
+## Lizenzen
+
+HaniMandl steht unter den Open Source Initiative (OSI) Lizenzen "GPLv3"
+und "CERN-OHL-S". Bei früheren Versionen und einigen aktuellen Derivaten
+sind keine Lizenzen definiert.
