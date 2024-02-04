@@ -5,9 +5,22 @@
 
 Ein halbautomatischer Honig-Abfüll-Roboter.
 
-Websites:
-- Code, Infos zur Hardware, Fotos und Videos initial publiziert in der Facebook-Gruppe ["Imkerei und Technik. Eigenbau"](https://www.facebook.com/groups/139671009967454)
-- Weitere Infos unter: [HaniMandl, halbautomatischer Honig-Abfüllbehälter](https://community.hiveeyes.org/t/side-project-hanimandl-halbautomatischer-honig-abfullbehalter/768)
+- [Firmware und Dokumentation]
+
+- [Hardware-Modell und Design-Dateien]
+
+- [Diskussionsforum bei Hiveeyes]:
+  Viele weitere Informationen, Anleitungen und Handreichungen zum Nachbau des HaniMandl.
+
+- [Facebook-Gruppe »Imkerei und Technik. Eigenbau«]:
+  Weitere Diskussionen über Code, Infos zur Hardware, Fotos, und Videos.
+
+
+[Firmware und Dokumentation]: https://github.com/hiveeyes/hani-mandl
+[Facebook-Gruppe »Imkerei und Technik. Eigenbau«]: https://www.facebook.com/groups/139671009967454
+[Diskussionsforum bei Hiveeyes]: https://community.hiveeyes.org/t/hanimandl-halbautomatischer-honig-abfull-roboter/768
+[Hardware-Modell und Design-Dateien]: https://github.com/hiveeyes/hanimandl-hardware
+
 
 ---
 
@@ -212,11 +225,11 @@ Die Datei `hani-mandl.bin` wurde mit folgenden Parametern für das Board Heltec 
 ```
 
 Eine Anleitung zum Flashen der Binär-Datei gibt es unter
-http://hanimandl.de/2020/12/23/firmware-binary-flashen/
+https://hanimandl.de/2020/12/23/firmware-binary-flashen/
 
 
 ## Lizenzen
 
-HaniMandl steht unter den Open Source Initiative (OSI) Lizenzen "GPLv3"
-und "CERN-OHL-S". Bei früheren Versionen und einigen aktuellen Derivaten
-sind keine Lizenzen definiert.
+Die HaniMandl Firmware ist unter der Open Source Lizenz "GPLv3"
+verfügbar. Für frühere Versionen und einige aktuelle Derivate finden
+abweichende Lizenzen Anwendung.
