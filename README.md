@@ -1,5 +1,5 @@
-![image](https://github.com/ClemensGruber/hani-mandl/workflows/PlatformIO%20CI/badge.svg)
-![image](https://img.shields.io/github/v/tag/ClemensGruber/hani-mandl.svg)
+![image](https://github.com/hiveeyes/hanimandl/workflows/PlatformIO%20CI/badge.svg)
+![image](https://img.shields.io/github/v/tag/hiveeyes/hanimandl.svg)
 
 # HaniMandl
 
