@@ -1,3 +1,4 @@
 .idea
 .pio
 .venv*
+docs/_build
