@@ -16,7 +16,7 @@ Ein halbautomatischer Honig-Abfüll-Roboter.
   Weitere Diskussionen über Code, Infos zur Hardware, Fotos, und Videos.
 
 
-[Firmware und Dokumentation]: https://github.com/hiveeyes/hani-mandl
+[Firmware und Dokumentation]: https://github.com/hiveeyes/hanimandl
 [Facebook-Gruppe »Imkerei und Technik. Eigenbau«]: https://www.facebook.com/groups/139671009967454
 [Diskussionsforum bei Hiveeyes]: https://community.hiveeyes.org/t/hanimandl-halbautomatischer-honig-abfull-roboter/768
 [Hardware-Modell und Design-Dateien]: https://github.com/hiveeyes/hanimandl-hardware
@@ -209,9 +209,13 @@ After successfully building it, you will find firmware images at
 - .pio/build/heltec/firmware.elf
 
 
-## Binär-Datei `hani-mandl.bin`
+## Binär-Dateien
 
-Die Datei `hani-mandl.bin` wurde mit folgenden Parametern für das Board Heltec ESP32 Arduino > Wifi Kit 32 compiliert:
+- [hani-mandl-heltec-v2]
+- [hani-mandl-heltec-v3]
+
+Die Datei für den Heltec V2 wurde mit folgenden Parametern für das
+Board Heltec ESP32 Arduino > Wifi Kit 32 kompiliert:
 
 ```
 #define HARDWARE_LEVEL 2        // 1 = originales Layout mit Schalter auf Pin 19/22/21
@@ -224,8 +228,10 @@ Die Datei `hani-mandl.bin` wurde mit folgenden Parametern für das Board Heltec 
 #define USE_ROTARY_SW           // Taster des Rotary benutzen
 ```
 
-Eine Anleitung zum Flashen der Binär-Datei gibt es unter
-https://hanimandl.de/2020/12/23/firmware-binary-flashen/
+> [!TIP]
+> Anleitungen zum Flashen der Binär-Datei gibt es hier:
+> - [HaniMandl 0.2.11 aufspielen]
+> - [HaniMandl 0.2.13 aufspielen]
 
 
 ## Lizenzen
@@ -233,3 +239,9 @@ https://hanimandl.de/2020/12/23/firmware-binary-flashen/
 Die HaniMandl Firmware ist unter der Open Source Lizenz "GPLv3"
 verfügbar. Für frühere Versionen und einige aktuelle Derivate finden
 abweichende Lizenzen Anwendung.
+
+
+[hani-mandl-heltec-v2]: https://github.com/hiveeyes/hanimandl/files/14157991/hani-mandl.bin.zip
+[hani-mandl-heltec-v3]: https://github.com/ClemensGruber/hani-mandl/releases/download/v0.2.13/hani-mandl_v0.2.13_heltec-v3-combined.bin
+[HaniMandl 0.2.11 aufspielen]: https://hanimandl.de/2020/12/23/firmware-binary-flashen/
+[HaniMandl 0.2.13 aufspielen]: https://community.hiveeyes.org/t/wie-bekomme-ich-am-einfachsten-die-hanimandl-software-aufs-board-oder-binary-datei-mit-espressif-tool-flashen/3825

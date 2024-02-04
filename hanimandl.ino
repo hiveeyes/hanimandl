@@ -2093,7 +2093,7 @@ void setup()
   while (!Serial) {
   }
 #ifdef isDebug
-    Serial.println("Hanimandl Start");
+    Serial.println("HaniMandl Start");
 #endif
   
 // Rotary
