@@ -1,3 +1,3 @@
-# HaniMandl Handbook
+# Handbook [en]
 
-Todo. In the meanwhile, see the [HaniMandl Handbuch](handbook-de.md).
+Todo. In the meanwhile, see the [](handbook-de.md).
