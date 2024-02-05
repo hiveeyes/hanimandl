@@ -1,4 +1,4 @@
-# HaniMandl Handbuch
+# Handbuch [de]
 
 Das HaniMandl Handbuch vermittelt einen Überblick über die Basiskonfiguration
 der HaniMandl Firmware, sowie deren Betrieb.
@@ -230,10 +230,12 @@ Board Heltec ESP32 Arduino > Wifi Kit 32 kompiliert:
 #define USE_ROTARY_SW           // Taster des Rotary benutzen
 ```
 
-> [!TIP]
-> Anleitungen zum Flashen der Binär-Datei gibt es hier:
-> - [HaniMandl 0.2.11 aufspielen]
-> - [HaniMandl 0.2.13 aufspielen]
+```{tip}
+Anleitungen zum Flashen der Binär-Datei gibt es hier:
+
+- [HaniMandl 0.2.11 aufspielen]
+- [HaniMandl 0.2.13 aufspielen]
+```
 
 
 [Heltec WiFi Kit 32]: https://community.hiveeyes.org/t/heltec-wifi-kit-32-esp32-mit-kleinem-oled/1498
