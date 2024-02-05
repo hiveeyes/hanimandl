@@ -8,7 +8,7 @@
 <br/>
 [en] A semi-automatic honey filling robot.
 
-[![image](https://community.hiveeyes.org/uploads/default/optimized/2X/4/4cab90a77589485ebf0a2629a05b222a7cf9c84d_2_1380x776.jpeg)
+![image](https://community.hiveeyes.org/uploads/default/optimized/2X/4/4cab90a77589485ebf0a2629a05b222a7cf9c84d_2_1380x776.jpeg)
 
 > [!TIP]
 > The [HaniMandl Documentation] is the canonical source of information about
