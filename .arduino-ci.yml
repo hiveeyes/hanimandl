@@ -26,5 +26,5 @@ compile:
     # - mega2560
     - rpipico
   libraries:
-    - U8g2lib
+    - U8g2
 
