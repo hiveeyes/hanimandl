@@ -27,4 +27,5 @@ compile:
     - rpipico
   libraries:
     - U8g2
+    - HX711
 
