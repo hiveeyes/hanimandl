@@ -4,6 +4,8 @@
 ![Documentation](https://readthedocs.org/projects/hanimandl/badge/)
 ![Version](https://img.shields.io/github/v/tag/hiveeyes/hanimandl.svg)
 
+[![Arduino CI](https://github.com/hiveeyes/hanimandl/workflows/Arduino%20CI/badge.svg)](https://github.com/marketplace/actions/arduino_ci)
+
 [de] Ein halbautomatischer Honig-Abfüll-Roboter.
 <br/>
 [en] A semi-automatic honey filling robot.
