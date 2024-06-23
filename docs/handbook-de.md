@@ -195,6 +195,7 @@ Die weiteren defines und Variablen müssen bei einer Standard-Schaltung nicht an
 ### Bauen
 
 Just type:
+
 ```
 make
 ```
@@ -222,11 +223,15 @@ Board Heltec ESP32 Arduino > Wifi Kit 32 kompiliert:
 ```cpp
 #define HARDWARE_LEVEL 2        // 1 = originales Layout mit Schalter auf Pin 19/22/21
                                 // 2 = Layout für V2 mit Schalter auf Pin 23/19/22
+
 #define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
                                 // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
+
 #define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder.
                                 // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
+
 #define USE_ROTARY              // Rotary benutzen
+
 #define USE_ROTARY_SW           // Taster des Rotary benutzen
 ```
 
