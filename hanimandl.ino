@@ -102,9 +102,10 @@
 //
 // Hier den Code auf die verwendete Hardware einstellen
 //
-#define HARDWARE_LEVEL 3        // 1 = originales Layout mit Schalter auf Pin 19/22/21
+#define HARDWARE_LEVEL 4        // 1 = originales Layout mit Schalter auf Pin 19/22/21
                                 // 2 = Layout für Heltec V2 mit Schalter auf Pin 23/19/22
                                 // 3 = Layout für Heltec V3 mit komplett anderer Pinbelegung 
+                                // 4 = Layout for AZ-Delivery ESP32 with Fysetc Mini 12864 (contains display and rotary encoder)
 #define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
                                 // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
 #define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder. 
@@ -122,12 +123,12 @@
 //
 // Ab hier nur verstellen wenn Du genau weisst, was Du tust!
 //
-//#define isDebug 4             // serielle debug-Ausgabe aktivieren. Mit > 3 wird jeder Messdurchlauf ausgegeben
+// #define isDebug 4             // serielle debug-Ausgabe aktivieren. Mit > 3 wird jeder Messdurchlauf ausgegeben
                                 // mit 4 zusätzlich u.a. Durchlaufzeiten
                                 // mit 5 zusätzlich rotary debug-Infos
                                 // ACHTUNG: zu viel Serieller Output kann einen ISR-Watchdog Reset auslösen!
 //#define POTISCALE             // Poti simuliert eine Wägezelle, nur für Testbetrieb!
-#define MAXIMALGEWICHT 1000     // Maximales Gewicht
+#define MAXIMALGEWICHT 5000     // Maximales Gewicht
 
 // Ansteuerung der Waage
 #define SCALE_READS 2      // Parameter für hx711 Library. Messwert wird aus der Anzahl gemittelt
@@ -162,6 +163,69 @@
 
 // ** Definition der pins 
 // ----------------------
+
+#elif HARDWARE_LEVEL == 4
+
+// ESP32 (AZ-Delivery) with Fysetc Mini 12864
+
+namespace Mini_12846_EXP1
+{
+	// Pins Mini 12864 EXP1 Header
+								//  1. VCC
+								//  2. GND
+	// constexpr int LCD_Blue = ;	//  3.
+	// constexpr int LCD_Green = ;	//  4.
+	// constexpr int LCD_Red = ;	//  5.
+	constexpr int LCD_Rst = 32;	//  6.
+	constexpr int LCD_RS = 33;	//  7.
+	constexpr int LCD_CS = 5;	//  8.
+	constexpr int BTN_ENC = 15;	//  9.
+	constexpr int BEEP = 25;	// 10.
+}
+
+namespace Mini_12846_EXP2
+{
+	// Pins Mini 12864 EXP2 Header
+								//  1. Kill
+								//  2. GND
+								//  3. RST
+								//  4. CD (only required for SD Card)
+	constexpr int MOSI = 23;	//  5.
+	constexpr int BTN_EN1 = 0;	//  6.
+								//  7. SS (for SD Card)
+	constexpr int BTN_EN2 = 26;	//  8.
+	constexpr int SCK = 18;		//  9.
+								// 10. MISO (only required for SD Card)
+}
+
+// Display
+U8G2_UC1701_MINI12864_F_4W_HW_SPI u8g2(U8G2_R0, Mini_12846_EXP1::LCD_CS, Mini_12846_EXP1::LCD_RS, Mini_12846_EXP1::LCD_Rst);
+
+// Buzzer
+constexpr int buzzer_pin = Mini_12846_EXP1::BEEP;
+
+// Rotary Encoder
+constexpr int outputA  = Mini_12846_EXP2::BTN_EN1;
+constexpr int outputB  = Mini_12846_EXP2::BTN_EN2;
+constexpr int outputSW = Mini_12846_EXP1::BTN_ENC;
+
+// Servo
+constexpr int servo_pin = 2;
+
+// 3x Schalter Ein 1 - Aus - Ein 2
+constexpr int switch_betrieb_pin = 16;
+constexpr int switch_vcc_pin     = 39;     // <- Vcc 
+constexpr int switch_setup_pin   = 4;
+
+// Taster 
+constexpr int button_start_vcc_pin = 13;  // <- Vcc 
+constexpr int button_start_pin     = 12;
+constexpr int button_stop_vcc_pin  = 14;  // <- Vcc 
+constexpr int button_stop_pin      = 27;
+
+// Wägezelle-IC 
+constexpr int hx711_dt_pin  = 21;
+constexpr int hx711_sck_pin = 22;
 
 // Heltec Version 3
 //
@@ -998,7 +1062,7 @@ void setupCalibration(void) {
       return;
          
     if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
-      scale.set_scale();
+      scale.set_scale(0.0);
       scale.tare(10);
       delay(500);
         i = 0;
@@ -1669,7 +1733,7 @@ void processSetupScroll(void) {
   u8g2.sendBuffer();
   int lastpos = menuitem;
   
-    if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) {
+  if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) {
     // sollte verhindern, dass ein Tastendruck gleich einen Unterpunkt wählt
     delay(250);
     while( digitalRead(SELECT_SW) == SELECT_PEGEL ) {}
@@ -2102,8 +2166,8 @@ void setup()
   attachInterrupt(outputSW, isr1, FALLING);
 #endif
 #ifdef USE_ROTARY
-  pinMode(outputA,INPUT);
-  pinMode(outputB,INPUT);
+  pinMode(outputA,INPUT_PULLUP);
+  pinMode(outputB,INPUT_PULLUP);
   attachInterrupt(outputA, isr2, CHANGE);
 #endif
 
@@ -2151,6 +2215,7 @@ void setup()
   u8g2.begin();
   u8g2.enableUTF8Print();
   u8g2.clearBuffer();
+  u8g2.setContrast(220);
   print_logo();
   buzzer(BUZZER_SHORT);
   delay(2000);
