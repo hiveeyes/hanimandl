@@ -106,7 +106,7 @@
                                 // 2 = Layout für Heltec V2 mit Schalter auf Pin 23/19/22
                                 // 3 = Layout für Heltec V3 mit komplett anderer Pinbelegung 
                                 // 4 = Layout for AZ-Delivery ESP32 with Fysetc Mini 12864 (contains display and rotary encoder)
-#define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
+// #define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
                                 // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
 #define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder. 
                                 // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
@@ -115,7 +115,7 @@
 //#define USE_POTI              // Poti benutzen -> ACHTUNG, im Normalfall auch USE_ROTARY_SW deaktivieren!
 //#define FEHLERKORREKTUR_WAAGE   // falls Gewichtssprünge auftreten, können diese hier abgefangen werden
                                 // Achtung, kann den Wägeprozess verlangsamen. Vorher Hardware prüfen.
-//#define QUETSCHHAHN_LINKS       // Servo invertieren, falls der Quetschhahn von links geöffnet wird. Mindestens ein Exemplar bekannt
+#define QUETSCHHAHN_LINKS       // Servo invertieren, falls der Quetschhahn von links geöffnet wird. Mindestens ein Exemplar bekannt
 //
 // Ende Benutzereinstellungen!
 // 
@@ -164,7 +164,7 @@
 // ** Definition der pins 
 // ----------------------
 
-#elif HARDWARE_LEVEL == 4
+#if HARDWARE_LEVEL == 4
 
 // ESP32 (AZ-Delivery) with Fysetc Mini 12864
 
@@ -214,7 +214,7 @@ constexpr int servo_pin = 2;
 
 // 3x Schalter Ein 1 - Aus - Ein 2
 constexpr int switch_betrieb_pin = 16;
-constexpr int switch_vcc_pin     = 39;     // <- Vcc 
+constexpr int switch_vcc_pin     = 39;     // <- Vcc // Dummy value as it is connected to 3.3 Pin and 39 is input only
 constexpr int switch_setup_pin   = 4;
 
 // Taster 
@@ -229,7 +229,7 @@ constexpr int hx711_sck_pin = 22;
 
 // Heltec Version 3
 //
-#if HARDWARE_LEVEL == 3
+#elif HARDWARE_LEVEL == 3
 // OLED fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
 //U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
 // für den ESP32 Arduino core Version ≥ 2.x brauchen wir HW I2C, mit SW I2C läuft der code zu langsam
@@ -1062,7 +1062,7 @@ void setupCalibration(void) {
       return;
          
     if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {
-      scale.set_scale(0.0);
+      scale.set_scale();
       scale.tare(10);
       delay(500);
         i = 0;

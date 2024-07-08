@@ -1,4 +1,5 @@
 .idea
 .pio
 .venv*
+.vscode/*
 docs/_build
