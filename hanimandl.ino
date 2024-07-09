@@ -83,6 +83,8 @@
                                - Anpassungen für den ESP32 Arduino core Version ≥ 2.x
                                  - Display, U8g2: HW statt SW im constructor (ggf. Probleme mit älteren Heltec-Versionen)
                                  - Rotary: de-bouncing code im isr2 auskommentiert, da sie zu Abstürzen führte
+  2024-07 Michael Atzmüller  | Version 0.2.13
+                               - added Hardware Level for AZ-Delivery ESP32 Dev-Kit-C V2 and Fysetc Mini 12864 Display
 
 
   This code is in the public domain.
@@ -105,7 +107,7 @@
 #define HARDWARE_LEVEL 4        // 1 = originales Layout mit Schalter auf Pin 19/22/21
                                 // 2 = Layout für Heltec V2 mit Schalter auf Pin 23/19/22
                                 // 3 = Layout für Heltec V3 mit komplett anderer Pinbelegung 
-                                // 4 = Layout for AZ-Delivery ESP32 with Fysetc Mini 12864 (contains display and rotary encoder)
+                                // 4 = Layout for AZ-Delivery ESP32 Dev-Kit-C V2 with Fysetc Mini 12864 (contains display and rotary encoder)
 // #define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
                                 // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
 #define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder. 
@@ -166,7 +168,7 @@
 
 #if HARDWARE_LEVEL == 4
 
-// ESP32 (AZ-Delivery) with Fysetc Mini 12864
+// AZ-Delivery ESP32 Dev-Kit-C V2 with Fysetc Mini 12864
 
 namespace Mini_12846_EXP1
 {
@@ -2166,8 +2168,13 @@ void setup()
   attachInterrupt(outputSW, isr1, FALLING);
 #endif
 #ifdef USE_ROTARY
+#if HARDWARE_LEVEL == 4   // Fysetc Mini 12864 has no pull ups on encoder pins
   pinMode(outputA,INPUT_PULLUP);
   pinMode(outputB,INPUT_PULLUP);
+#else
+  pinMode(outputA,INPUT);
+  pinMode(outputB,INPUT);
+#endif
   attachInterrupt(outputA, isr2, CHANGE);
 #endif
 
@@ -2215,7 +2222,9 @@ void setup()
   u8g2.begin();
   u8g2.enableUTF8Print();
   u8g2.clearBuffer();
+#if HARDWARE_LEVEL == 4   // Fysetc Mini 12864 Displpay is too dark with default values
   u8g2.setContrast(220);
+#endif
   print_logo();
   buzzer(BUZZER_SHORT);
   delay(2000);
