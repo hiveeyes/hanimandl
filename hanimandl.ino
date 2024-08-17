@@ -98,10 +98,11 @@
 #include <HX711.h>        /* aus dem Bibliotheksverwalter: "HX711 Arduino Library" by Bogdan Necula, Andreas Motl */
 #include <ESP32Servo.h>   /* aus dem Bibliotheksverwalter */
 #include <Preferences.h>  /* aus dem BSP von expressif, wird verfügbar wenn das richtige Board ausgewählt ist */
-
 //
 // Hier den Code auf die verwendete Hardware einstellen
 //
+#define DEFAULT_TIMER_WIDTH 10 // bei ESP32S2 bzw ESP32S3 erforderlich, da sonst der Servo nicht funktioniert
+#define DEFAULT_TIMER_WIDTH_TICKS 1024  // bei ESP32S2 bzw ESP32S3 erforderlich, da sonst der Servo nicht funktioniert
 #define HARDWARE_LEVEL 3        // 1 = originales Layout mit Schalter auf Pin 19/22/21
                                 // 2 = Layout für Heltec V2 mit Schalter auf Pin 23/19/22
                                 // 3 = Layout für Heltec V3 mit komplett anderer Pinbelegung 
