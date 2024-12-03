@@ -1,0 +1,12 @@
+
+#define MENU_TARE "Tara"
+#define MENU_CALIBRATION "Kalibrieren"
+#define MENU_CORRECTION "Korrektur"
+#define MENU_JARTYPES "Füllmenge"
+#define MENU_AUTO "Automatik"
+#define MENU_SERVO "Servowinkel"
+#define MENU_PARAMETERS "Parameter"
+#define MENU_COUNT "Zähler"
+#define MENU_COUNTTRIP "Zähler Trip"
+#define MENU_RESETPREFS "Clear Prefs"
+//#define MENU_ ""

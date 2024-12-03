@@ -1,0 +1,12 @@
+
+#define MENU_TARE "Tare"
+#define MENU_CALIBRATION "Calibration"
+#define MENU_CORRECTION "Correction"
+#define MENU_JARTYPES "Jar types"
+#define MENU_AUTO "Automatic"
+#define MENU_SERVO "Servo"
+#define MENU_PARAMETERS "Parameters"
+#define MENU_COUNT "Count"
+#define MENU_COUNTTRIP "Trip count"
+#define MENU_RESETPREFS "Reset Prefs"
+//#define MENU_ ""

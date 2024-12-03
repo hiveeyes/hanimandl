@@ -99,6 +99,20 @@
 #include <ESP32Servo.h>   /* aus dem Bibliotheksverwalter */
 #include <Preferences.h>  /* aus dem BSP von expressif, wird verfügbar wenn das richtige Board ausgewählt ist */
 
+#define LANG_EN 0
+#define LANG_DE 1
+// #define LANG_FR 2
+#define LANGUAGE LANG_DE
+#if LANGUAGE==LANG_EN
+#include "resources_en.h"
+#elif LANGUAGE==LANG_DE
+#include "resources_de.h"
+// #elif LANGUAGE==LANG_FR
+// #include "resources_fr.h"
+#else 
+#error "invalid language"
+#endif
+
 //
 // Hier den Code auf die verwendete Hardware einstellen
 //
@@ -1620,19 +1634,19 @@ void processSetupList(void) {
   u8g2.setFont(u8g2_font_courB10_tf);
   u8g2.clearBuffer();
   if( menuitem < 5 ) {
-     u8g2.setCursor(10, 10);   u8g2.print("Tara");
-     u8g2.setCursor(10, 23);   u8g2.print("Kalibrieren");
-     u8g2.setCursor(10, 36);   u8g2.print("Korrektur");
-     u8g2.setCursor(10, 49);   u8g2.print("Füllmenge");
-     u8g2.setCursor(10, 62);   u8g2.print("Automatik");
+     u8g2.setCursor(10, 10);   u8g2.print(MENU_TARE);
+     u8g2.setCursor(10, 23);   u8g2.print(MENU_CALIBRATION);
+     u8g2.setCursor(10, 36);   u8g2.print(MENU_CORRECTION);
+     u8g2.setCursor(10, 49);   u8g2.print(MENU_JARTYPES);
+     u8g2.setCursor(10, 62);   u8g2.print(MENU_AUTO);
      u8g2.setFont(u8g2_font_open_iconic_arrow_2x_t);
      u8g2.drawGlyph(112, 64, 0x40);  
   } else {
-     u8g2.setCursor(10, 10);   u8g2.print("Servowinkel");
-     u8g2.setCursor(10, 23);   u8g2.print("Parameter");
-     u8g2.setCursor(10, 36);   u8g2.print("Zähler");//Kud
-     u8g2.setCursor(10, 49);   u8g2.print("Zähler Trip");//Kud     
-     u8g2.setCursor(10, 62);   u8g2.print("Clear Prefs");
+     u8g2.setCursor(10, 10);   u8g2.print(MENU_SERVO);
+     u8g2.setCursor(10, 23);   u8g2.print(MENU_PARAMETERS);
+     u8g2.setCursor(10, 36);   u8g2.print(MENU_COUNT);//Kud
+     u8g2.setCursor(10, 49);   u8g2.print(MENU_COUNTTRIP);//Kud     
+     u8g2.setCursor(10, 62);   u8g2.print(MENU_RESETPREFS);
      u8g2.setFont(u8g2_font_open_iconic_arrow_2x_t);
      u8g2.drawGlyph(112, 16, 0x43);  
   }
