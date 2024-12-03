@@ -10,3 +10,6 @@
 #define MENU_COUNTTRIP "Zähler Trip"
 #define MENU_RESETPREFS "Clear Prefs"
 //#define MENU_ ""
+#define JARTYPE_1 "DIB"
+#define JARTYPE_2 "TEE"
+#define JARTYPE_3 "TOF"

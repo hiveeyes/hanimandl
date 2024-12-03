@@ -10,3 +10,7 @@
 #define MENU_COUNTTRIP "Trip count"
 #define MENU_RESETPREFS "Reset Prefs"
 //#define MENU_ ""
+
+#define JARTYPE_1 "TO42"
+#define JARTYPE_2 "TO63"
+#define JARTYPE_3 "TO82"

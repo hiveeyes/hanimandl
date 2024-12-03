@@ -102,7 +102,7 @@
 #define LANG_EN 0
 #define LANG_DE 1
 // #define LANG_FR 2
-#define LANGUAGE LANG_DE
+#define LANGUAGE LANG_EN
 #if LANGUAGE==LANG_EN
 #include "resources_en.h"
 #elif LANGUAGE==LANG_DE
@@ -364,7 +364,7 @@ struct glas {
   int TripCount;  //Kud
   int Count;      //Kud
 };
-const char *GlasTypArray[3] = { "DIB", "TOF", "DEE"};//DIB = DeutscherImkerBund-Glas DEE= DeepTwist-Glas TOF= TwistOff-Glas //JB
+const char *GlasTypArray[3] = { JARTYPE_1, JARTYPE_2, JARTYPE_3};//DIB = DeutscherImkerBund-Glas DEE= DeepTwist-Glas TOF= TwistOff-Glas //JB
 struct glas glaeser[5] =            {
                                          {  125, 0, -9999, 0, 0 },
                                          {  250, 1, -9999, 0, 0 },
