@@ -102,7 +102,7 @@
 //
 // Hier den Code auf die verwendete Hardware einstellen
 //
-#define HARDWARE_LEVEL 3        // 1 = originales Layout mit Schalter auf Pin 19/22/21
+#define HARDWARE_LEVEL 4        // 1 = originales Layout mit Schalter auf Pin 19/22/21
                                 // 2 = Layout für Heltec V2 mit Schalter auf Pin 23/19/22
                                 // 3 = Layout für Heltec V3 mit komplett anderer Pinbelegung 
 #define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
@@ -163,9 +163,50 @@
 // ** Definition der pins 
 // ----------------------
 
+//Esp32_Devkitc_V4
+
+#if HARDWARE_LEVEL == 4
+//U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
+// für den ESP32 Arduino core Version ≥ 2.x brauchen wir HW I2C, mit SW I2C läuft der code zu langsam
+//U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ 21, /* clock=*/ 18, /* data=*/ 17);
+U8G2_SSD1309_128X64_NONAME0_F_4W_SW_SPI u8g2(U8G2_R0, /* clock=*/ 19, /* data=*/ 18, /* cs=*/ 5, /* dc=*/ 17, /* reset=*/ 16);
+
+
+// Rotary Encoder
+const int outputA  = 34;  // Clk
+const int outputB  = 35;  // DT
+const int outputSW = 32;
+
+// Servo
+const int servo_pin = 2;
+
+// 3x Schalter Ein 1 - Aus - Ein 2
+const int switch_betrieb_pin = 26;
+const int switch_vcc_pin     = 25;     // <- Vcc
+const int switch_setup_pin   = 33;
+const int vext_ctrl_pin      = 0;     // Vext control pin
+
+// Taster
+const int button_start_vcc_pin =  27;  // <- Vcc
+const int button_start_pin     =  14;
+const int button_stop_vcc_pin  =  12;  // <- Vcc
+const int button_stop_pin      =  13;
+
+// Poti
+//const int poti_pin = 39;
+
+// Wägezelle-IC
+const int hx711_sck_pin = 23;
+const int hx711_dt_pin  = 22;
+
+// Buzzer - aktiver Piezo
+static int buzzer_pin = 21;
+
+
+
 // Heltec Version 3
 //
-#if HARDWARE_LEVEL == 3
+#elif HARDWARE_LEVEL == 3
 // OLED fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
 //U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
 // für den ESP32 Arduino core Version ≥ 2.x brauchen wir HW I2C, mit SW I2C läuft der code zu langsam
