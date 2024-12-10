@@ -101,14 +101,14 @@
 
 #define LANG_EN 0
 #define LANG_DE 1
-// #define LANG_FR 2
+#define LANG_FR 2
 #define LANGUAGE LANG_EN
 #if LANGUAGE==LANG_EN
 #include "resources_en.h"
 #elif LANGUAGE==LANG_DE
 #include "resources_de.h"
-// #elif LANGUAGE==LANG_FR
-// #include "resources_fr.h"
+#elif LANGUAGE==LANG_FR
+#include "resources_fr.h"
 #else
 #error "invalid language"
 #endif
@@ -137,7 +137,7 @@
 //
 // From here on, only change if you know exactly what you're doing!
 //
-// #define isDebug 4             // Activate serial debug output. Values > 3 will output every measurement
+// #define isDebug 4            // Activate serial debug output. Values > 3 will output every measurement
                                 // set to 4 for additional lead times
                                 // set to 5 for additional rotary debug infos
                                 // WARNING: to many serial outputs can trigger an ISR watchdog reset!!
@@ -2238,7 +2238,7 @@ scale.begin(hx711_dt_pin, hx711_sck_pin);
     u8g2.clearBuffer();
     u8g2.setFont(u8g2_font_courB14_tf);
     u8g2.setCursor( 10, 24); u8g2.print(STARTUP_NOSCALE1);
-    u8g2.setCursor( 10, 56);  u8g2.print(STARTUP_NOSCALE2);
+    u8g2.setCursor( 10, 56); u8g2.print(STARTUP_NOSCALE2);
     u8g2.sendBuffer();
     buzzer(BUZZER_ERROR);
 #ifdef isDebug
