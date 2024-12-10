@@ -120,16 +120,16 @@
                                 // 2 = layout for Heltec V2 switch on pins 23/19/22
                                 // 3 = layout for Heltec V3 with completely changed pins
                                 // 4 = layout for Esp32_Devkitc_v4(38 pins) with completely changed pins and SPI OLED
-#define SERVO_EXTENDED         // define in case the hardware uses the old potentiometer or the servo moves to little
+#define SERVO_EXTENDED       // define in case the hardware uses the old potentiometer or the servo moves to little
                                 // if not, the servo stays open a few degrees in stop position! Check after updating!
 #define ROTARY_SCALE 2          // in what steps the rotary encoder moves.
                                 // Examples: KY-040 = 2, HW-040 = 1, for potentiometer use set to 1
 #define USE_ROTARY              // wether to use rotary
 #define USE_ROTARY_SW           // wether to use rotary switch
-//#define USE_POTENTIOMETER              // Use potentiometer -> WARNING in normal usecase deactivate USE_ROTARY_SW!
-//#define ERRORCORRECTION_SCALE   // if weight jumps occur, they can be caught here
+//#define USE_POTENTIOMETER     // Use potentiometer -> WARNING in normal usecase deactivate USE_ROTARY_SW!
+//#define ERRORCORRECTION_SCALE // if weight jumps occur, they can be caught here
                                 // Warning: this can slow down the weighing process. Check hardware beforehand.
-//#define SERVO_INVERTED       // Inverses the servo, in case of a left-hand opening honeygate. Examples of this are known.
+//#define SERVO_INVERTED        // Inverses the servo, in case of a left-hand opening honeygate. Examples of this are known.
 //
 // End of user setup!
 //
@@ -142,7 +142,7 @@
                                 // set to 5 for additional rotary debug infos
                                 // WARNING: to many serial outputs can trigger an ISR watchdog reset!!
 //#define POTISCALE             // Potentiometer simulates a weightcell, for testing purposes only!
-#define MAXIMUMWEIGHT 1000     // Maximum Weight
+#define MAXIMUMWEIGHT 1000      // Maximum Weight
 
 // Driving of scale
 #define SCALE_READS 2      // Parameters for hx711 library. Measured value displayed on screen
@@ -197,10 +197,10 @@ const int outputSW = 32;
 const int servo_pin = 2;
 
 //  3-way selector ON 1 - OFF - ON 2
-const int switch_mode_pin = 26;
+const int switch_mode_pin    = 26;
 const int switch_vcc_pin     = 25;     // <- Vcc
 const int switch_setup_pin   = 33;
-const int vext_ctrl_pin      = 0;     // Vext control pin
+const int vext_ctrl_pin      = 0;      // Vext control pin
 
 // Buttons
 const int button_start_vcc_pin =  27;  // <- Vcc
@@ -237,7 +237,7 @@ const int outputSW = 26;
 const int servo_pin = 33;
 
 // 3-way selector ON 1 - OFF - ON 2
-const int switch_mode_pin = 40;
+const int switch_mode_pin    = 40;
 const int switch_vcc_pin     = 41;     // <- Vcc
 const int switch_setup_pin   = 42;
 const int vext_ctrl_pin      = 36;     // Vext control pin
@@ -278,15 +278,15 @@ const int outputSW = 32;
 const int servo_pin = 2;
 
 // 3-way selector ON 1 - OFF - ON 2
-const int switch_mode_pin = 23;
+const int switch_mode_pin    = 23;
 const int switch_vcc_pin     = 19;     // <- Vcc
 const int switch_setup_pin   = 22;
 const int vext_ctrl_pin      = 21;     // Vext control pin
 
 // Buttons
-const int button_start_vcc_pin = 13;  // <- Vcc
+const int button_start_vcc_pin = 13;   // <- Vcc
 const int button_start_pin     = 12;
-const int button_stop_vcc_pin  = 14;  // <- Vcc
+const int button_stop_vcc_pin  = 14;   // <- Vcc
 const int button_stop_pin      = 27;
 
 // Potentiometer
@@ -317,14 +317,14 @@ const int outputSW = 32;
 const int servo_pin = 2;
 
 // 3-way selector ON 1 - OFF - ON 2
-const int switch_mode_pin = 19;
+const int switch_mode_pin    = 19;
 const int switch_vcc_pin     = 22;     // <- Vcc
 const int switch_setup_pin   = 21;
 
 // Buttons
-const int button_start_vcc_pin = 13;  // <- Vcc
+const int button_start_vcc_pin = 13;   // <- Vcc
 const int button_start_pin     = 12;
-const int button_stop_vcc_pin  = 14;  // <- Vcc
+const int button_stop_vcc_pin  = 14;   // <- Vcc
 const int button_stop_pin      = 27;
 
 // Potentiometer
@@ -377,19 +377,19 @@ struct jar jars[5] =            {
                                     };
 
 // General variables
-int i;                          // general count variable
-int pos;                        // current position of potentiometer or rotary
+int i;                         // general count variable
+int pos;                       // current position of potentiometer or rotary
 int weight;                    // current weight
-int tare;                       // tare for chosen jar, for automatic mode
+int tare;                      // tare for chosen jar, for automatic mode
 int tare_jar;                  // tare for current jar, in case jar weight differs
-long weight_empty;              // weight of empty scale
-float factor;                   // scaling factor for scale values
-int fquantity;                     // chosen fill quantity
-int fquantity_index;               // index in jars[]
-int correction;                  // correction value for fill quantity
-int autostart;                  // full automatic on/off
-int autocorrection;              // autocorrection on/off
-int overfill_gr;                  // desired overfilling for autcorrection mode in grams
+long weight_empty;             // weight of empty scale
+float factor;                  // scaling factor for scale values
+int fquantity;                 // chosen fill quantity
+int fquantity_index;           // index in jars[]
+int correction;                // correction value for fill quantity
+int autostart;                 // full automatic on/off
+int autocorrection;            // autocorrection on/off
+int overfill_gr;               // desired overfilling for autcorrection mode in grams
 int angle;                     // current servo angle
 int angle_hard_min = 0;        // hard limit for servo
 int angle_hard_max = 180;      // hard limit for servo
@@ -397,17 +397,17 @@ int angle_min = 0;             // configurable in setup
 int angle_max = 85;            // configurable in setup
 int angle_fine = 35;           // configurable in setup
 float fine_dosage_weight = 60; // float due to calculation of the closing angle
-int servo_enabled = 0;            // activate servo yes/no
+int servo_enabled = 0;         // activate servo yes/no
 int cali_weight = 500;         // choosen weight for calibration
 char output[30];               // Fontsize 12 = 13 maximum characters per line
 int mode = -1;                 // wether to drive the servo to minimum on mode change
-int auto_enabled = 0;             // for automatic mode system on/off?
-int scale_present = 0;        // not talking to HX711 when no scale is connected, otherwise crash
-long preferences_chksum;        // checksum to not write uncoherent prefs
-int buzzermode = 0;             /// 0 = off, 1 = on. TODO: button sounds as buzzermode 2?
+int auto_enabled = 0;          // for automatic mode system on/off?
+int scale_present = 0;         // not talking to HX711 when no scale is connected, otherwise crash
+long preferences_chksum;       // checksum to not write uncoherent prefs
+int buzzermode = 0;            // 0 = off, 1 = on. TODO: button sounds as buzzermode 2?
 bool counted = true;           // Kud count flag
-bool setup_modern = 1;          // Setup appearance as rolling menu
-int jartolerance = 20;          // weight for autostart may vary by +-20g, total 40g!
+bool setup_modern = 1;         // Setup appearance as rolling menu
+int jartolerance = 20;         // weight for autostart may vary by +-20g, total 40g!
 
 // Simulates the duration of the weighing process when no scale is connected. Affects the blinking frequency in automatic mode.
 long simulate_scale(int n) {
@@ -428,8 +428,8 @@ void IRAM_ATTR isr1() {
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
 
-  if (interrupt_time - last_interrupt_time > 300) {      // If interrupts come faster than 300ms, assume it's a bounce and ignore
-    if ( mode == MODE_AUTOMATIC && servo_enabled == 0 ) { // the click is only relevant in automatic mode
+  if (interrupt_time - last_interrupt_time > 300) {        // If interrupts come faster than 300ms, assume it's a bounce and ignore
+    if ( mode == MODE_AUTOMATIC && servo_enabled == 0 ) {  // the click is only relevant in automatic mode
       rotary_select = (rotary_select + 1) % 3;
 #ifdef isDebug
     Serial.print("Rotary button changed to ");
@@ -1627,7 +1627,7 @@ void processSetupList(void) {
   if ( mode != MODE_SETUP ) {
      mode = MODE_SETUP;
      angle = angle_min;          // Close honeygate
-     servo_enabled = 0;              // Servo deactivated
+     servo_enabled = 0;          // Servo deactivated
      SERVO_WRITE(angle);
      rotary_select = SW_MENU;
      initRotaries(SW_MENU, 0, 0, 9, -1);
@@ -1672,8 +1672,8 @@ void processSetupList(void) {
     int lastpos = menuitem;
     if (menuitem == 0)   setupTare();              // Tare
     if (menuitem == 1)   setupCalibration();       // Calibration
-    if (menuitem == 2)   setupCorrection();         // Correction
-    if (menuitem == 3)   setupFillquantity();        // Fill quantity
+    if (menuitem == 2)   setupCorrection();        // Correction
+    if (menuitem == 3)   setupFillquantity();      // Fill quantity
     if (menuitem == 4)   setupAutomatic();         // Autostart/Autocorrection configuration
     if (menuitem == 5)   setupServoWinkel();       // Servo settings Minimum, Maximum und finedosage
     if (menuitem == 6)   setupParameter();         // Other parameters
@@ -1689,7 +1689,7 @@ void processSetupScroll(void) {
   if ( mode != MODE_SETUP ) {
      mode = MODE_SETUP;
      angle = angle_min;          // Close honeygate
-     servo_enabled = 0;              // Servo deactivated
+     servo_enabled = 0;          // Servo deactivated
      SERVO_WRITE(angle);
      rotary_select = SW_MENU;
      initRotaries(SW_MENU, 124, 0,255, -1);
@@ -1738,10 +1738,10 @@ void processSetupScroll(void) {
 #endif
 
     int lastpos = menuitem;
-   if (menuitem == 0)   setupTare();              // Tare
+   if (menuitem == 0)   setupTare();               // Tare
     if (menuitem == 1)   setupCalibration();       // Calibration
-    if (menuitem == 2)   setupCorrection();         // Correction
-    if (menuitem == 3)   setupFillquantity();        // Fill quantity
+    if (menuitem == 2)   setupCorrection();        // Correction
+    if (menuitem == 3)   setupFillquantity();      // Fill quantity
     if (menuitem == 4)   setupAutomatic();         // Autostart/Autocorrection configuration
     if (menuitem == 5)   setupServoWinkel();       // Servo settings Minimum, Maximum und finedosage
     if (menuitem == 6)   setupParameter();         // Other parameters
@@ -1749,8 +1749,8 @@ void processSetupScroll(void) {
     if (menuitem == 8)   setupTripCounter();       // Kud Counter Trip
     setPreferences();
 
-    if (menuitem == 9)   setupClearPrefs();         // Erase EEPROM
-    initRotaries(SW_MENU,lastpos, 0,255, -1); // Menu parameters might have been changed
+    if (menuitem == 9)   setupClearPrefs();        // Erase EEPROM
+    initRotaries(SW_MENU,lastpos, 0,255, -1);      // Menu parameters might have been changed
   }
 }
 
@@ -1767,12 +1767,12 @@ void processAutomatic(void)
 
   if ( mode != MODE_AUTOMATIC ) {
      mode = MODE_AUTOMATIC;
-     angle = angle_min;          // Close honeygate
+     angle = angle_min;              // Close honeygate
      servo_enabled = 0;              // Servo deactivated
      SERVO_WRITE(angle);
      auto_enabled = 0;               // start automatic filling
      tare_jar = 0;
-     rotary_select = SW_ANGLE;    // Angle setting with rotatry
+     rotary_select = SW_ANGLE;       // Angle setting with rotatry
      initRotaries(SW_MENU, fquantity_index, 0, 4, 1);
      weight_previous = jars[fquantity_index].Weight + correction;
 //     autocorrection_gr = 0;
@@ -1809,8 +1809,8 @@ void processAutomatic(void)
       Serial.println("force servo enabled");
 #endif
     }
-    auto_enabled    = 1;             // autofill activation
-    rotary_select = SW_ANGLE;     // in case the start button is pushed during parameter changes
+    auto_enabled    = 1;           // autofill activation
+    rotary_select = SW_ANGLE;      // in case the start button is pushed during parameter changes
     setPreferences();              // in case parameters are changed using the rotary
   }
 
@@ -1878,15 +1878,15 @@ void processAutomatic(void)
   // Adaptation of the autocorrection value
   if ( autocorrection == 1 )
   {
-    if ( (auto_enabled == 1)                                // Automatic is enabled
-       && (servo_enabled == 0 ) && (angle == angle_min)   // Honeygate is closed
-       && (weight >= goalweight )                       // Jar is full
+    if ( (auto_enabled == 1)                               // Automatic is enabled
+       && (servo_enabled == 0 ) && (angle == angle_min)    // Honeygate is closed
+       && (weight >= goalweight )                          // Jar is full
        && (sample_count <= 5)                              // drip amount not yet recorded
        ) {
     full = true;//Kud
     if ( (weight == weight_previous) && (sample_count < 5) ) {   // we want to see 5 times the same weight
       sample_count++;
-    } else if ( weight != weight_previous ) {             // otherwise track the weight changes
+    } else if ( weight != weight_previous ) {              // otherwise track the weight changes
       weight_previous = weight;
       sample_count = 0;
     } else if ( sample_count == 5 ) {                      // weight is 5 times identical, confirm autocorrection
@@ -1951,7 +1951,7 @@ void processAutomatic(void)
 //      setPreferences();  this is done at the end
       counted = true;
     }
-    if ( autostart != 1 )       // autostart is not active, no further start
+    if ( autostart != 1 )        // autostart is not active, no further start
       auto_enabled = 0;
     if ( autocorrection == 1 )   // autocorrection, weight saved
       weight_previous = weight;
@@ -2067,7 +2067,7 @@ void processManualmode(void)
 
   if ( mode != MODE_MANUAL ) {
      mode = MODE_MANUAL;
-     angle = angle_min;          // Close honeygate
+     angle = angle_min;              // Close honeygate
      servo_enabled = 0;              // Servo deactivated
      SERVO_WRITE(angle);
      rotary_select = SW_ANGLE;
@@ -2216,7 +2216,7 @@ scale.begin(hx711_dt_pin, hx711_sck_pin);
   delay(4000);
 
 // Scale setup, setting scaling factor
-  if (scale_present ==1 ) {                         // Scale connected?
+  if (scale_present ==1 ) {                           // Scale connected?
     if ( factor == 0 ) {                              // Present but uncalibrated
       u8g2.clearBuffer();
       u8g2.setFont(u8g2_font_courB14_tf);
@@ -2286,9 +2286,9 @@ scale.begin(hx711_dt_pin, hx711_sck_pin);
   }
 
 // initialization of the 3 rotary datastructures
-  initRotaries(SW_ANGLE,    0,   0, 100, 5 );     // Angle
+  initRotaries(SW_ANGLE,    0,   0, 100, 5 );       // Angle
   initRotaries(SW_CORRECTION, 0, -90,  20, 1 );     // Correction
-  initRotaries(SW_MENU,      0,   0,   7, 1 );     // Menu choices
+  initRotaries(SW_MENU,      0,   0,   7, 1 );      // Menu choices
 
 // Setting up rotary parameters from the preferences
   setRotariesValue(SW_ANGLE,    pos);
