@@ -830,8 +830,8 @@ void setupTripCounter(void) { //Kud
       pos = getRotariesValue(SW_MENU);
       u8g2.setFont(u8g2_font_courB10_tf);
       u8g2.clearBuffer();
-      u8g2.setCursor(10, 12);    u8g2.print(DIALOGUE_RESET);
-      u8g2.setCursor(10, 28);    u8g2.print(DIALOGUE_CANCEL);
+      u8g2.setCursor(10, 12);    u8g2.print(DIALOG_RESET);
+      u8g2.setCursor(10, 28);    u8g2.print(DIALOG_CANCEL);
 
       u8g2.setCursor(0, 12 + ((pos) * 16));
       u8g2.print("*");
@@ -839,7 +839,7 @@ void setupTripCounter(void) { //Kud
 
       if ((digitalRead(SELECT_SW)) == SELECT_LEVEL) {
         u8g2.setCursor(105, 12 + ((pos) * 16));
-        u8g2.print(DIALOGUE_OK);
+        u8g2.print(DIALOG_OK);
         u8g2.sendBuffer();
         if ( pos == 0) {
           j = 0;
@@ -962,8 +962,8 @@ void setupCounter(void) { //Kud
       pos = getRotariesValue(SW_MENU);
       u8g2.setFont(u8g2_font_courB10_tf);
       u8g2.clearBuffer();
-      u8g2.setCursor(10, 12);    u8g2.print(DIALOGUE_RESET);
-      u8g2.setCursor(10, 28);    u8g2.print(DIALOGUE_CANCEL);
+      u8g2.setCursor(10, 12);    u8g2.print(DIALOG_RESET);
+      u8g2.setCursor(10, 28);    u8g2.print(DIALOG_CANCEL);
 
       u8g2.setCursor(0, 12 + ((pos) * 16));
       u8g2.print("*");
@@ -971,7 +971,7 @@ void setupCounter(void) { //Kud
 
       if ((digitalRead(SELECT_SW)) == SELECT_LEVEL) {
         u8g2.setCursor(105, 12 + ((pos) * 16));
-        u8g2.print(DIALOGUE_OK);
+        u8g2.print(DIALOG_OK);
         u8g2.sendBuffer();
         if ( pos == 0) {
           j = 0;
@@ -1027,7 +1027,7 @@ void setupTare(void) {
           sprintf(output, " %4dg", jars[j].Tare);
           u8g2.print(output);
         } else {
-          u8g2.print(DIALOGUE_MISSING);
+          u8g2.print(DIALOG_MISSING);
         }
         j++;
       }
@@ -1044,10 +1044,10 @@ void setupCalibration(void) {
 
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_courB12_tf);
-  u8g2.setCursor(0, 12);    u8g2.print(DIALOGUE_SCALECAL1);
-  u8g2.setCursor(0, 28);    u8g2.print(DIALOGUE_SCALECAL2);
-  u8g2.setCursor(0, 44);    u8g2.print(DIALOGUE_SCALECAL3);
-  u8g2.setCursor(0, 60);    u8g2.print(DIALOGUE_SCALECAL4);
+  u8g2.setCursor(0, 12);    u8g2.print(CALIBRATION_PROMPT1);
+  u8g2.setCursor(0, 28);    u8g2.print(CALIBRATION_PROMPT2);
+  u8g2.setCursor(0, 44);    u8g2.print(CALIBRATION_PROMPT3);
+  u8g2.setCursor(0, 60);    u8g2.print(CALIBRATION_PROMPT4);
   u8g2.sendBuffer();
 
   i = 1;
@@ -1074,7 +1074,7 @@ void setupCalibration(void) {
 
     int blinktime = (millis()/10) % 5;
     u8g2.clearBuffer();
-    u8g2.setCursor(0, 12);u8g2.print(DIALOGUE_SCALECAL5);
+    u8g2.setCursor(0, 12);u8g2.print(CALIBRATION_PROMPT5);
 
     if (blinktime < 3) {
       sprintf(output, "%dg", cali_weight);
@@ -1082,19 +1082,19 @@ void setupCalibration(void) {
       sprintf(output, "     ");
     }
     u8g2.print(output);
-    u8g2.setCursor(0, 28);    u8g2.print(DIALOGUE_SCALECAL6);
-    u8g2.setCursor(0, 44);    u8g2.print(DIALOGUE_SCALECAL3);
-    u8g2.setCursor(0, 60);    u8g2.print(DIALOGUE_SCALECAL4);
+    u8g2.setCursor(0, 28);    u8g2.print(CALIBRATION_PROMPT6);
+    u8g2.setCursor(0, 44);    u8g2.print(CALIBRATION_PROMPT3);
+    u8g2.setCursor(0, 60);    u8g2.print(CALIBRATION_PROMPT4);
     u8g2.sendBuffer();
 
     if ((digitalRead(SELECT_SW)) == SELECT_LEVEL) {
       u8g2.clearBuffer();
-      u8g2.setCursor(0, 12);u8g2.print(DIALOGUE_SCALECAL5);
+      u8g2.setCursor(0, 12);u8g2.print(CALIBRATION_PROMPT5);
       sprintf(output, "%dg", cali_weight);
       u8g2.print(output);
-      u8g2.setCursor(0, 28);    u8g2.print(DIALOGUE_SCALECAL6);
-      u8g2.setCursor(0, 44);    u8g2.print(DIALOGUE_SCALECAL3);
-      u8g2.setCursor(0, 60);    u8g2.print(DIALOGUE_SCALECAL4);
+      u8g2.setCursor(0, 28);    u8g2.print(CALIBRATION_PROMPT6);
+      u8g2.setCursor(0, 44);    u8g2.print(CALIBRATION_PROMPT3);
+      u8g2.setCursor(0, 60);    u8g2.print(CALIBRATION_PROMPT4);
       u8g2.sendBuffer();
       weight_raw  = scale.get_units(10);
       factor       = weight_raw / cali_weight;
@@ -1134,12 +1134,12 @@ void setupCorrection(void) {
       u8g2.setFont(u8g2_font_courB12_tf);
       u8g2.clearBuffer();
       u8g2.setCursor(10, 12);
-      u8g2.print(DIALOGUE_CORRECTION);
+      u8g2.print(CORRECTION_CORR);
       u8g2.setCursor(40, 28);
       u8g2.print(correction);
 
       u8g2.setCursor(10, 48);     // A.P.
-      u8g2.print(DIALOGUE_FORMER);   // A.P.
+      u8g2.print(CORRECTION_PREVIOUS);   // A.P.
       u8g2.setCursor(40, 64);     // A.P.
       u8g2.print(correction_old);  // A.P.
 
@@ -1147,7 +1147,7 @@ void setupCorrection(void) {
 
       if ((digitalRead(SELECT_SW)) == SELECT_LEVEL) {
         u8g2.setCursor(100, 28);
-        u8g2.print(DIALOGUE_OK);
+        u8g2.print(DIALOG_OK);
         u8g2.sendBuffer();
         delay(1000);
         i = 0;
@@ -1200,16 +1200,16 @@ void setupServoWinkel(void) {
     u8g2.setCursor(10, 23); sprintf(output,SERVO_MINIMUM, angle_min);  u8g2.print(output);
     u8g2.setCursor(10, 36); sprintf(output,SERVO_FINE, angle_fine); u8g2.print(output);
     u8g2.setCursor(10, 49); sprintf(output,SERVO_MAXIMUM, angle_max);  u8g2.print(output);
-    u8g2.setCursor(10, 62); u8g2.print(     DIALOGUE_SAVE);
+    u8g2.setCursor(10, 62); u8g2.print(     DIALOG_SAVE);
 
     if ( value_change == false ) {
-       u8g2.setCursor(10, 10); sprintf(output,SERVO_LIVESETUP, (servo_live==false?DIALOGUE_OFF:DIALOGUE_ON)); u8g2.print(output);
+       u8g2.setCursor(10, 10); sprintf(output,SERVO_LIVESETUP, (servo_live==false?DIALOG_OFF:DIALOG_ON)); u8g2.print(output);
        u8g2.setCursor( 0, 10+(menuitem*13)); u8g2.print("*");
     } else {
        if ( menuitem != 0 ) {
           u8g2.setCursor(10, 10); sprintf(output,SERVO_PREVIOUS, value_old); u8g2.print(output);
        } else {
-          u8g2.setCursor(10, 10); sprintf(output,SERVO_LIVESETUP, (servo_live==false?DIALOGUE_OFF:DIALOGUE_ON)); u8g2.print(output);
+          u8g2.setCursor(10, 10); sprintf(output,SERVO_LIVESETUP, (servo_live==false?DIALOG_OFF:DIALOG_ON)); u8g2.print(output);
        }
        u8g2.setFont(u8g2_font_open_iconic_arrow_1x_t);
        u8g2.drawGlyph(0, 10+(menuitem*13), 0x42);
@@ -1261,7 +1261,7 @@ void setupServoWinkel(void) {
 
       if ( (digitalRead(SELECT_SW) == SELECT_LEVEL) && (menuitem == 4) ) {
         u8g2.setCursor(108, 10+(menuitem*13));
-        u8g2.print(DIALOGUE_OK);
+        u8g2.print(DIALOG_OK);
         u8g2.sendBuffer();
         delay(1000);
         i = 0;
@@ -1309,11 +1309,11 @@ void setupAutomatic(void) {
 
     // Menu
     u8g2.clearBuffer();
-    u8g2.setCursor(10, 10); sprintf(output,AUTOMATIC_AUTOSTART, (autostart==0?DIALOGUE_OFF:DIALOGUE_ON));     u8g2.print(output);
-    u8g2.setCursor(10, 23); sprintf(output,AUTOMATIC_JARTOLERANCE, 177, jartolerance); u8g2.print(output);
-    u8g2.setCursor(10, 36); sprintf(output,AUTOMATIC_AUTOCORRECTION, (autocorrection==0?DIALOGUE_OFF:DIALOGUE_ON)); u8g2.print(output);
-    u8g2.setCursor(10, 49); sprintf(output,AUTOMATIC_OVERFILL, overfill_gr);                     u8g2.print(output);
-    u8g2.setCursor(10, 62); u8g2.print(     DIALOGUE_SAVE);
+    u8g2.setCursor(10, 10); sprintf(output,AUTO_AUTOSTART, (autostart==0?DIALOG_OFF:DIALOG_ON));     u8g2.print(output);
+    u8g2.setCursor(10, 23); sprintf(output,AUTO_JARTOLERANCE, 177, jartolerance); u8g2.print(output);
+    u8g2.setCursor(10, 36); sprintf(output,AUTO_AUTOCORRECTION, (autocorrection==0?DIALOG_OFF:DIALOG_ON)); u8g2.print(output);
+    u8g2.setCursor(10, 49); sprintf(output,AUTO_OVERFILL, overfill_gr);                     u8g2.print(output);
+    u8g2.setCursor(10, 62); u8g2.print(     DIALOG_SAVE);
 
       // Show position in menu. "*" when not selected, arrow when selected
     if ( value_change == false ) {
@@ -1367,7 +1367,7 @@ void setupAutomatic(void) {
         // Leave menu
     if ( (digitalRead(SELECT_SW) == SELECT_LEVEL) && (menuitem == 4) ) {
       u8g2.setCursor(108, 10+(menuitem*13));
-      u8g2.print(DIALOGUE_OK);
+      u8g2.print(DIALOG_OK);
       u8g2.sendBuffer();
       delay(1000);
       i = 0;
@@ -1520,11 +1520,11 @@ void setupParameter(void) {
     // Menu
     u8g2.setFont(u8g2_font_courB10_tf);
     u8g2.clearBuffer();
-    sprintf(output,PARAMETER_BUZZER, (buzzermode==0?DIALOGUE_OFF:DIALOGUE_ON));
+    sprintf(output,PARAMETER_BUZZER, (buzzermode==0?DIALOG_OFF:DIALOG_ON));
     u8g2.setCursor(10, 10);    u8g2.print(output);
     sprintf(output,PARAMETER_MENU, (setup_modern==0?PARAMETER_LIST:PARAMETER_SCROLL));
     u8g2.setCursor(10, 23);    u8g2.print(output);
-    u8g2.setCursor(10, 62);    u8g2.print(DIALOGUE_SAVE);
+    u8g2.setCursor(10, 62);    u8g2.print(DIALOG_SAVE);
 
     // Show position in menu. "*" when not selected, arrow when selected
     if ( value_change == false ) {
@@ -1572,7 +1572,7 @@ void setupParameter(void) {
           // Leave menu
       if ( (digitalRead(SELECT_SW) == SELECT_LEVEL) && (menuitem == 4) ) {
         u8g2.setCursor(108, 10+(menuitem*13));
-        u8g2.print(DIALOGUE_OK);
+        u8g2.print(DIALOG_OK);
         u8g2.sendBuffer();
 
         delay(1000);
@@ -1593,7 +1593,7 @@ void setupClearPrefs(void) {
     u8g2.setFont(u8g2_font_courB10_tf);
     u8g2.clearBuffer();
     u8g2.setCursor(10, 12);    u8g2.print(CLEARPREFS_ERASE);
-    u8g2.setCursor(10, 28);    u8g2.print(DIALOGUE_CANCEL);
+    u8g2.setCursor(10, 28);    u8g2.print(DIALOG_CANCEL);
 
     u8g2.setCursor(0, 12+((pos)*16));
     u8g2.print("*");
@@ -1601,7 +1601,7 @@ void setupClearPrefs(void) {
 
     if ((digitalRead(SELECT_SW)) == SELECT_LEVEL) {
       u8g2.setCursor(105, 12+((pos)*16));
-      u8g2.print(DIALOGUE_OK);
+      u8g2.print(DIALOG_OK);
       u8g2.sendBuffer();
       if ( pos == 0) {
         preferences.begin("EEPROM", false);
@@ -1696,7 +1696,7 @@ void processSetupScroll(void) {
   }
   int MenuItemsCount = 10;
   const char *menuitems[] = {
-    "Tare values","Calibration"," Correction"," Jar types"," Automatic","Servo param."," Parameter","  Counter","Trip Counter","Clear Prefs"
+    MENU_TARE,MENU_CALIBRATION,MENU_CORRECTION,MENU_JARTYPES,MENU_AUTO,MENU_SERVO,MENU_PARAMETERS,MENU_COUNT,MENU_COUNTTRIP,MENU_RESETPREFS
   };
   int menuitem = getRotariesValue(SW_MENU);
   menuitem = menuitem % MenuItemsCount;
@@ -1851,7 +1851,7 @@ void processAutomatic(void)
     u8g2.clearBuffer();
     u8g2.setFont(u8g2_font_courB24_tf);
     u8g2.setCursor(15, 43);
-    u8g2.print(DIALOGUE_START);
+    u8g2.print(DIALOG_START);
     u8g2.sendBuffer();
     // wait briefly and check if the weight was not just a random fluctuation
     delay(1500);
