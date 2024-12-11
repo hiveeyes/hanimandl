@@ -2218,7 +2218,9 @@ scale.begin(hx711_dt_pin, hx711_sck_pin);
   buzzer(BUZZER_SHORT);
   delay(2000);
   print_credits();
-  delay(4000);
+  delay(3000);
+  print_credits2();
+  delay(2000);
 
 // Scale setup, setting scaling factor
   if (scale_present ==1 ) {                           // Scale connected?
@@ -2327,6 +2329,17 @@ void print_credits() {
   u8g2.setCursor(0, 36);    u8g2.print("Wetzel, C. Gruber, A.");
   u8g2.setCursor(0, 49);    u8g2.print("Holzhammer, M. Junker,");
   u8g2.setCursor(0, 62);    u8g2.print("J. Kuder, J. Bruker");
+  u8g2.sendBuffer();
+}
+
+void print_credits2() {
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_helvB08_tf);
+  u8g2.setCursor(0, 10);    u8g2.print("More contributors:");
+  u8g2.setCursor(0, 23);    u8g2.print("A. Motl, J. Lehmann");
+  u8g2.setCursor(0, 36);    u8g2.print("");
+  u8g2.setCursor(0, 49);    u8g2.print("");
+  u8g2.setCursor(0, 62);    u8g2.print("");
   u8g2.sendBuffer();
 }
 
