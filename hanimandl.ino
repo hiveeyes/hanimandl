@@ -1,5 +1,5 @@
 /*
-  HaniMandl Version 0.2.13
+  HaniMandl Version 0.3.0
   ------------------------
   Copyright (C) 2018-2023 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker
 
@@ -82,7 +82,12 @@
                                - adaptation for ESP32 Arduino core version ≥ 2.x
                                 - display, U8g2: HW instead of SW in constructor (possibly problems with olderHeltec versions)
                                 - rotary: de-bouncing code in isr2 commented out, was leading to crashes
-
+  2024-12 Jérémie Lehmann    | Version 0.3.0
+                               -added structure for UI translation to multiple languages at compile time using resources_*.h files
+                               -added support for Esp32_Devkitc_v4(38 pins) with external SPI OLED screen.
+                               -translated all code and comments from the original German to English
+                               -added English, German and French resources_*.h files
+                               -added a second credits page for more contributors names
 
   This code is in the public domain.
 
@@ -2362,7 +2367,7 @@ void print_logo() {
   u8g2.setCursor(85, 27);    u8g2.print("HANI");
   u8g2.setCursor(75, 43);    u8g2.print("MANDL");
   u8g2.setFont(u8g2_font_courB08_tf);
-  u8g2.setCursor(77, 64);    u8g2.print("v.0.2.13");
+  u8g2.setCursor(77, 64);    u8g2.print("v.0.3.0");
   u8g2.sendBuffer();
 }
 
