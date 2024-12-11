@@ -48,9 +48,9 @@
   2020-07 Andreas Holzhammer | Version 0.2.6
                                - scale calibration upgrade; rounding up of measured values; scale "warm-up" before bootscreen
                                - active piezo buzzer(suggested by Johannes Kuder)
-  2020-07 Johannes Kuder     | 0.2.7
+  2020-07 Johannes Kuder     | Version 0.2.7
                                - counter for filled jars and weight (only in auto mode)
-  2020-07 Jeremias Bruker    | 0.2.8
+  2020-07 Jeremias Bruker    | Version 0.2.8
                                - "JarType" integrated in every menus and automatic mode
                                - 5 different jars can be configured for weight and jar type by user in "Jar types" menu and are saved in a nonvolatile manner. This way every user can set their own 5 particular jars types
                                - stabilization of scale values at will (define ERRORCORRECTION_SCALE)
@@ -58,25 +58,25 @@
                                  (not everyone has 500g as a calibration weight) and is stored in a nonvolatile manner
                                - rotating main menu
                                - reversible servo for left-hand opening honeygate :-)
-  2020-10 Andreas Holzhammer | 0.2.8.1
+  2020-10 Andreas Holzhammer | Version 0.2.8.1
                                - bugfix: servo could be moved below minimum in manual mode
                                - jar tolerance can be controlled via variable and adjusted to +-20g
-  2020-12 Andreas Holzhammer | 0.2.9.1
+  2020-12 Andreas Holzhammer | Version 0.2.9.1
                                - progressbar built in
                                - adapted to ESP32Servo from the library manager
   2021-01 Andreas Motl       | Version 0.2.9.1
                                - PlatformIO support adapted to the new servo library
-  2021-02 Andreas Holzhammer | 0.2.10
+  2021-02 Andreas Holzhammer | Version 0.2.10
                                - correction can be set between -90 and +20
                                - autocorrection also without autostart
                                - flashing preferences confirmation implemented
-  2021-07 Andreas Holzhammer | 0.2.11
+  2021-07 Andreas Holzhammer | Version 0.2.11
                                - credits page
                                - fix for rotary with step > 1
-  2021-11 Andreas Holzhammer | 0.2.12
+  2021-11 Andreas Holzhammer | Version 0.2.12
                                - configurable jar tolerance
                                - confort adjustments for fill quantities (1g/5g/25g steps)
-  2023-01 Clemens Gruber     | 0.2.13
+  2023-01 Clemens Gruber     | Version 0.2.13
                                - pin adaptation for hardware version V3 of Heltec "WiFi Kit 32 V3" with pin layout changed again
                                - default HARDWARE_LEVEL is now 3 / Heltec V3
                                - adaptation for ESP32 Arduino core version ≥ 2.x
@@ -2317,7 +2317,7 @@ void loop()
 void print_credits() {
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_helvB08_tf);
-  u8g2.setCursor(0, 10);    u8g2.print("Idee: M. Vasterling");
+  u8g2.setCursor(0, 10);    u8g2.print("Idea: M. Vasterling");
   u8g2.setCursor(0, 23);    u8g2.print("Code: M. Vasterling, M.");
   u8g2.setCursor(0, 36);    u8g2.print("Wetzel, C. Gruber, A.");
   u8g2.setCursor(0, 49);    u8g2.print("Holzhammer, M. Junker,");
