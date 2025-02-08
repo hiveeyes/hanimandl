@@ -2,3 +2,5 @@
 .pio
 .venv*
 docs/_build
+.vscode
+
