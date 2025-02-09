@@ -178,6 +178,7 @@ const int outputSW = 26;
 
 // Servo
 const int servo_pin = 33;
+// const int servo_pin = 45; // Move Servo to different PIN for HELTEC V3.1
 
 // 3x Schalter Ein 1 - Aus - Ein 2
 const int switch_betrieb_pin = 40;
@@ -2085,7 +2086,7 @@ void setup()
   pinMode(button_stop_pin, INPUT_PULLDOWN);
   pinMode(switch_betrieb_pin, INPUT_PULLDOWN);
   pinMode(switch_setup_pin, INPUT_PULLDOWN);
-#if HARDWARE_LEVEL == 2
+#if HARDWARE_LEVEL == 2 || HARDWARE_LEVEL == 3
   pinMode(vext_ctrl_pin, INPUT_PULLDOWN);
 #endif
 
@@ -2107,17 +2108,18 @@ void setup()
   attachInterrupt(outputA, isr2, CHANGE);
 #endif
 
-// switch Vcc / GND on normal pins for convenient wiring
-// output is 3.3V for VCC
-  digitalWrite (switch_vcc_pin, HIGH); 
-  digitalWrite (button_start_vcc_pin, HIGH); 
-  digitalWrite (button_stop_vcc_pin, HIGH); 
-  
 //  pinMode (_GND, OUTPUT);     // turn on GND pin first (important!)
 // turn on VCC power
   pinMode (switch_vcc_pin, OUTPUT);
   pinMode (button_start_vcc_pin, OUTPUT);
   pinMode (button_stop_vcc_pin, OUTPUT);
+
+// switch Vcc / GND on normal pins for convenient wiring
+// output is 3.3V for VCC
+  digitalWrite (switch_vcc_pin, HIGH);
+  digitalWrite (button_start_vcc_pin, HIGH);
+  digitalWrite (button_stop_vcc_pin, HIGH);
+
 
 // Buzzer
   pinMode(buzzer_pin, OUTPUT);
