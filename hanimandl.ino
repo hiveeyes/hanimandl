@@ -83,6 +83,8 @@
                                - Anpassungen für den ESP32 Arduino core Version ≥ 2.x
                                  - Display, U8g2: HW statt SW im constructor (ggf. Probleme mit älteren Heltec-Versionen)
                                  - Rotary: de-bouncing code im isr2 auskommentiert, da sie zu Abstürzen führte
+  2024-07 Michael Atzmüller  | Version 0.2.13
+                               - added Hardware Level for AZ-Delivery ESP32 Dev-Kit-C V2 and Fysetc Mini 12864 Display
 
 
   This code is in the public domain.
@@ -102,10 +104,11 @@
 //
 // Hier den Code auf die verwendete Hardware einstellen
 //
-#define HARDWARE_LEVEL 3        // 1 = originales Layout mit Schalter auf Pin 19/22/21
+#define HARDWARE_LEVEL 4        // 1 = originales Layout mit Schalter auf Pin 19/22/21
                                 // 2 = Layout für Heltec V2 mit Schalter auf Pin 23/19/22
                                 // 3 = Layout für Heltec V3 mit komplett anderer Pinbelegung 
-#define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
+                                // 4 = Layout for AZ-Delivery ESP32 Dev-Kit-C V2 with Fysetc Mini 12864 (contains display and rotary encoder)
+// #define SERVO_ERWEITERT         // definieren, falls die Hardware mit dem alten Programmcode mit Poti aufgebaut wurde oder der Servo zu wenig fährt
                                 // Sonst bleibt der Servo in Stop-Position einige Grad offen! Nach dem Update erst prüfen!
 #define ROTARY_SCALE 2          // in welchen Schritten springt unser Rotary Encoder. 
                                 // Beispiele: KY-040 = 2, HW-040 = 1, für Poti-Betrieb auf 1 setzen
@@ -114,7 +117,7 @@
 //#define USE_POTI              // Poti benutzen -> ACHTUNG, im Normalfall auch USE_ROTARY_SW deaktivieren!
 //#define FEHLERKORREKTUR_WAAGE   // falls Gewichtssprünge auftreten, können diese hier abgefangen werden
                                 // Achtung, kann den Wägeprozess verlangsamen. Vorher Hardware prüfen.
-//#define QUETSCHHAHN_LINKS       // Servo invertieren, falls der Quetschhahn von links geöffnet wird. Mindestens ein Exemplar bekannt
+#define QUETSCHHAHN_LINKS       // Servo invertieren, falls der Quetschhahn von links geöffnet wird. Mindestens ein Exemplar bekannt
 //
 // Ende Benutzereinstellungen!
 // 
@@ -122,12 +125,12 @@
 //
 // Ab hier nur verstellen wenn Du genau weisst, was Du tust!
 //
-//#define isDebug 4             // serielle debug-Ausgabe aktivieren. Mit > 3 wird jeder Messdurchlauf ausgegeben
+// #define isDebug 4             // serielle debug-Ausgabe aktivieren. Mit > 3 wird jeder Messdurchlauf ausgegeben
                                 // mit 4 zusätzlich u.a. Durchlaufzeiten
                                 // mit 5 zusätzlich rotary debug-Infos
                                 // ACHTUNG: zu viel Serieller Output kann einen ISR-Watchdog Reset auslösen!
 //#define POTISCALE             // Poti simuliert eine Wägezelle, nur für Testbetrieb!
-#define MAXIMALGEWICHT 1000     // Maximales Gewicht
+#define MAXIMALGEWICHT 5000     // Maximales Gewicht
 
 // Ansteuerung der Waage
 #define SCALE_READS 2      // Parameter für hx711 Library. Messwert wird aus der Anzahl gemittelt
@@ -163,9 +166,72 @@
 // ** Definition der pins 
 // ----------------------
 
+#if HARDWARE_LEVEL == 4
+
+// AZ-Delivery ESP32 Dev-Kit-C V2 with Fysetc Mini 12864
+
+namespace Mini_12846_EXP1
+{
+	// Pins Mini 12864 EXP1 Header
+								//  1. VCC
+								//  2. GND
+	// constexpr int LCD_Blue = ;	//  3.
+	// constexpr int LCD_Green = ;	//  4.
+	// constexpr int LCD_Red = ;	//  5.
+	constexpr int LCD_Rst = 32;	//  6.
+	constexpr int LCD_RS = 33;	//  7.
+	constexpr int LCD_CS = 5;	//  8.
+	constexpr int BTN_ENC = 15;	//  9.
+	constexpr int BEEP = 25;	// 10.
+}
+
+namespace Mini_12846_EXP2
+{
+	// Pins Mini 12864 EXP2 Header
+								//  1. Kill
+								//  2. GND
+								//  3. RST
+								//  4. CD (only required for SD Card)
+	constexpr int MOSI = 23;	//  5.
+	constexpr int BTN_EN1 = 0;	//  6.
+								//  7. SS (for SD Card)
+	constexpr int BTN_EN2 = 26;	//  8.
+	constexpr int SCK = 18;		//  9.
+								// 10. MISO (only required for SD Card)
+}
+
+// Display
+U8G2_UC1701_MINI12864_F_4W_HW_SPI u8g2(U8G2_R0, Mini_12846_EXP1::LCD_CS, Mini_12846_EXP1::LCD_RS, Mini_12846_EXP1::LCD_Rst);
+
+// Buzzer
+constexpr int buzzer_pin = Mini_12846_EXP1::BEEP;
+
+// Rotary Encoder
+constexpr int outputA  = Mini_12846_EXP2::BTN_EN1;
+constexpr int outputB  = Mini_12846_EXP2::BTN_EN2;
+constexpr int outputSW = Mini_12846_EXP1::BTN_ENC;
+
+// Servo
+constexpr int servo_pin = 2;
+
+// 3x Schalter Ein 1 - Aus - Ein 2
+constexpr int switch_betrieb_pin = 16;
+constexpr int switch_vcc_pin     = 39;     // <- Vcc // Dummy value as it is connected to 3.3 Pin and 39 is input only
+constexpr int switch_setup_pin   = 4;
+
+// Taster 
+constexpr int button_start_vcc_pin = 13;  // <- Vcc 
+constexpr int button_start_pin     = 12;
+constexpr int button_stop_vcc_pin  = 14;  // <- Vcc 
+constexpr int button_stop_pin      = 27;
+
+// Wägezelle-IC 
+constexpr int hx711_dt_pin  = 21;
+constexpr int hx711_sck_pin = 22;
+
 // Heltec Version 3
 //
-#if HARDWARE_LEVEL == 3
+#elif HARDWARE_LEVEL == 3
 // OLED fuer Heltec WiFi Kit 32 (ESP32 onboard OLED) 
 //U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
 // für den ESP32 Arduino core Version ≥ 2.x brauchen wir HW I2C, mit SW I2C läuft der code zu langsam
@@ -1669,7 +1735,7 @@ void processSetupScroll(void) {
   u8g2.sendBuffer();
   int lastpos = menuitem;
   
-    if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) {
+  if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) {
     // sollte verhindern, dass ein Tastendruck gleich einen Unterpunkt wählt
     delay(250);
     while( digitalRead(SELECT_SW) == SELECT_PEGEL ) {}
@@ -2102,8 +2168,13 @@ void setup()
   attachInterrupt(outputSW, isr1, FALLING);
 #endif
 #ifdef USE_ROTARY
+#if HARDWARE_LEVEL == 4   // Fysetc Mini 12864 has no pull ups on encoder pins
+  pinMode(outputA,INPUT_PULLUP);
+  pinMode(outputB,INPUT_PULLUP);
+#else
   pinMode(outputA,INPUT);
   pinMode(outputB,INPUT);
+#endif
   attachInterrupt(outputA, isr2, CHANGE);
 #endif
 
@@ -2151,6 +2222,9 @@ void setup()
   u8g2.begin();
   u8g2.enableUTF8Print();
   u8g2.clearBuffer();
+#if HARDWARE_LEVEL == 4   // Fysetc Mini 12864 Displpay is too dark with default values
+  u8g2.setContrast(220);
+#endif
   print_logo();
   buzzer(BUZZER_SHORT);
   delay(2000);
