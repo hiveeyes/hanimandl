@@ -1922,7 +1922,7 @@ void processAutomatik(void)
   }
   
   if ((servo_aktiv == 1) && (( zielgewicht - gewicht ) <= fein_dosier_gewicht)) {
-    winkel = ( ((winkel_max*pos) / 100) * ((zielgewicht-gewicht) / fein_dosier_gewicht) );
+    winkel = ( ((winkel_max*pos) / 100.0) * ((zielgewicht-gewicht) / fein_dosier_gewicht) );
   }
   
   if ((servo_aktiv == 1) && (winkel <= winkel_fein)) {
