@@ -1,4 +1,28 @@
-.idea
-.pio
-.venv*
-docs/_build
+# IDEs and Editors
+.idea/
+.vscode/
+.clangd
+compile_commands.json
+
+# PlatformIO Build & Dependency folders
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Python Virtual Environments
+.venv*/
+__pycache__/
+*.py[cod]
+
+# Documentation builds
+docs/_build/
+
+# Backup and Temporary files
+*.bak
+*.tmp
+*.backup
+
+# OS-specific files
+Thumbs.db
+desktop.ini
+.DS_Store
