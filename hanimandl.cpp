@@ -1,7 +1,7 @@
 /*
   HaniMandl Version 0.2.13
   ------------------------
-  Copyright (C) 2018-2023 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker
+  Copyright (C) 2018-2026 by Marc Vasterling, Marc Wetzel, Clemens Gruber, Marc Junker, Andreas Holzhammer, Johannes Kuder, Jeremias Bruker, Joshua Schumacher
             
   2018-05 Marc Vasterling    | initiale Version, 
                                veröffentlicht in der Facebook-Gruppe "Imkerei und Technik. Eigenbau",
@@ -83,6 +83,10 @@
                                - Anpassungen für den ESP32 Arduino core Version ≥ 2.x
                                  - Display, U8g2: HW statt SW im constructor (ggf. Probleme mit älteren Heltec-Versionen)
                                  - Rotary: de-bouncing code im isr2 auskommentiert, da sie zu Abstürzen führte
+  2026-05 Joshua Schumacher  | - Migration zu PlatformIO C++ (.cpp) mit Vorwärtsdeklarationen
+                               - Kompatibilität für Heltec WiFi Kit 32 V3 (ESP32-S3) unter Core 3.0 / pioarduino
+                               - Vext-Stromsteuerung (GPIO 36) in setup() hinzugefügt, um das OLED einzuschalten
+                               - ESP32Servo auf Version ^3.2.0 aktualisiert
 
 
   This code is in the public domain.
@@ -2310,10 +2314,10 @@ void print_credits() {
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_helvB08_tf);
   u8g2.setCursor(0, 10);    u8g2.print("Idee: M. Vasterling");
-  u8g2.setCursor(0, 23);    u8g2.print("Code: M. Vasterling, M.");
-  u8g2.setCursor(0, 36);    u8g2.print("Wetzel, C. Gruber, A.");
-  u8g2.setCursor(0, 49);    u8g2.print("Holzhammer, M. Junker,");
-  u8g2.setCursor(0, 62);    u8g2.print("J. Kuder, J. Bruker");
+  u8g2.setCursor(0, 23);    u8g2.print("Code: Vasterling, Wetzel,");
+  u8g2.setCursor(0, 36);    u8g2.print("Gruber, Holzhammer,");
+  u8g2.setCursor(0, 49);    u8g2.print("Junker, Kuder, Bruker,");
+  u8g2.setCursor(0, 62);    u8g2.print("J. Schumacher");
   u8g2.sendBuffer();
 }
 
