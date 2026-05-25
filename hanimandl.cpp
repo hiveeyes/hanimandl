@@ -99,6 +99,42 @@
 #include <ESP32Servo.h>   /* aus dem Bibliotheksverwalter */
 #include <Preferences.h>  /* aus dem BSP von expressif, wird verfügbar wenn das richtige Board ausgewählt ist */
 
+// Vorwärtsdeklarationen für C++ Kompatibilität
+long simulate_scale(int n);
+#ifdef USE_ROTARY_SW
+void IRAM_ATTR isr1();
+#endif
+#ifdef USE_ROTARY
+void IRAM_ATTR isr2();
+#endif
+int getRotariesValue(int rotary_mode);
+void setRotariesValue(int rotary_mode, int rotary_value);
+void initRotaries(int rotary_mode, int rotary_value, int rotary_min, int rotary_max, int rotary_step);
+void getPreferences(void);
+void setPreferences(void);
+void setupTripCounter(void);
+void setupCounter(void);
+void setupTara(void);
+void setupCalibration(void);
+void setupKorrektur(void);
+void setupServoWinkel(void);
+void setupAutomatik(void);
+void setupFuellmenge(void);
+void setupParameter(void);
+void setupClearPrefs(void);
+void processSetup(void);
+void processSetupList(void);
+void processSetupScroll(void);
+void processAutomatik(void);
+void processHandbetrieb(void);
+void setup(void);
+void loop(void);
+void print_credits(void);
+void print_logo(void);
+void buzzer(byte type);
+int step2weight(int step);
+int weight2step(int sum);
+
 //
 // Hier den Code auf die verwendete Hardware einstellen
 //
@@ -711,9 +747,9 @@ void setupTripCounter(void) { //Kud
 
     u8g2.setFont(u8g2_font_courB10_tf);
     u8g2.clearBuffer();
-    while ( j < 5  ) {
+    while ( j < 5) {
       u8g2.setCursor(1, 10 + (j * 13));
-      sprintf(ausgabe, "%4dg%3s", glaeser[j].Gewicht,GlasTypArray[glaeser[j].GlasTyp]);
+      sprintf(ausgabe, "%4dg%3s", glaeser[j].Gewicht, GlasTypArray[glaeser[j].GlasTyp]);
       u8g2.print(ausgabe);
       u8g2.setCursor(65, 10 + (j * 13));
       //      Serial.println(glaeser[j].Gewicht);
@@ -1317,6 +1353,10 @@ void setupAutomatik(void) {
   }
 }
 
+// Hilfsfunktionen für stufenweise Gewichtsverstellung
+int step2weight( int step );
+int weight2step ( int sum );
+
 void setupFuellmenge(void) {
   int j,k;
   int blinktime;
@@ -1539,7 +1579,7 @@ void setupClearPrefs(void) {
     u8g2.setCursor(0, 12+((pos)*16));
     u8g2.print("*");
     u8g2.sendBuffer();
- 
+  
     if ((digitalRead(SELECT_SW)) == SELECT_PEGEL) {      
       u8g2.setCursor(105, 12+((pos)*16));
       u8g2.print("OK");
@@ -1556,6 +1596,9 @@ void setupClearPrefs(void) {
     }
   }
 }   
+
+void processSetupList(void);
+void processSetupScroll(void);
 
 void processSetup(void) {
   if ( setup_modern == 0 ) 
@@ -1667,7 +1710,6 @@ void processSetupScroll(void) {
   u8g2.drawLine(1, 47, 120, 47);
 
   u8g2.sendBuffer();
-  int lastpos = menuitem;
   
     if ( digitalRead(SELECT_SW) == SELECT_PEGEL ) {
     // sollte verhindern, dass ein Tastendruck gleich einen Unterpunkt wählt
@@ -1694,6 +1736,8 @@ void processSetupScroll(void) {
     initRotaries(SW_MENU,lastpos, 0,255, -1); // Menu-Parameter könnten verstellt worden sein
   }
 }
+
+void buzzer(byte type);
 
 void processAutomatik(void)
 {
@@ -1747,7 +1791,7 @@ void processAutomatik(void)
     if ( auto_aktiv == 1 ) {
       erzwinge_servo_aktiv = 1;
 #ifdef isDebug
-      Serial.println("erzwinge Servo aktiv");      
+      Serial.println("erzwinge Servo active");      
 #endif
     }
     auto_aktiv    = 1;             // automatisches Füllen aktivieren
@@ -1948,7 +1992,7 @@ void processAutomatik(void)
      u8g2.print(ausgabe);
   }
 
-  // Play/Pause Icon, ob die Automatik aktiv ist
+  // Play/Pause Icon, ob die Automatik active ist
   u8g2.setFont(u8g2_font_open_iconic_play_2x_t);
   u8g2.drawGlyph(0, 40, (auto_aktiv==1)?0x45:0x44 );
 
@@ -2088,6 +2132,10 @@ void setup()
 #if HARDWARE_LEVEL == 2
   pinMode(vext_ctrl_pin, INPUT_PULLDOWN);
 #endif
+#if HARDWARE_LEVEL == 3
+  pinMode(vext_ctrl_pin, OUTPUT);
+  digitalWrite(vext_ctrl_pin, LOW); // LOW turns Vext power ON for OLED and other sensors on Heltec V3
+#endif
 
   Serial.begin(115200);
   while (!Serial) {
@@ -2151,9 +2199,11 @@ void setup()
   u8g2.begin();
   u8g2.enableUTF8Print();
   u8g2.clearBuffer();
+  void print_logo();
   print_logo();
   buzzer(BUZZER_SHORT);
   delay(2000);
+  void print_credits();
   print_credits();   
   delay(4000);
 
