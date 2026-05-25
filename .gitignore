@@ -26,3 +26,7 @@ docs/_build/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# Internal development
+Todo-Intern.txt
+
